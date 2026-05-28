@@ -3,13 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/authentication/data/auth_repository.dart';
-import '../../features/authentication/presentation/email_auth_screen.dart';
-import '../../features/authentication/presentation/email_confirmation_screen.dart';
-import '../../features/authentication/presentation/role_selection_screen.dart';
-import '../../features/authentication/presentation/splash_screen.dart';
+import '../../features/authentication/presentation/screens/email_auth_screen.dart';
+import '../../features/authentication/presentation/screens/email_confirmation_screen.dart';
+import '../../features/authentication/presentation/screens/role_selection_screen.dart';
+import '../../features/authentication/presentation/screens/onboarding_details_screen.dart';
+import '../../features/authentication/domain/user_role.dart';
+import '../../features/authentication/presentation/screens/splash_screen.dart';
 import '../../features/discovery_feed/presentation/home_screen.dart';
-import '../../features/provider_profiles/presentation/profile_screen.dart';
-import '../../features/provider_profiles/presentation/settings_screen.dart';
+import '../../features/provider_profiles/presentation/screens/profile_screen.dart';
+import '../../features/provider_profiles/presentation/screens/settings_screen.dart';
 import '../widgets/main_scaffold.dart';
 
 /// Defines all the route names and paths in the app.
@@ -18,6 +20,7 @@ enum AppRoute {
   auth(path: '/auth'),
   confirmEmail(path: '/confirm_email'),
   roleSelection(path: '/role'),
+  onboardingDetails(path: '/onboarding_details'),
   main(path: '/main'),
   discover(path: '/discover'),
   bookings(path: '/bookings'),
@@ -51,6 +54,15 @@ final List<RouteBase> _appRoutes = [
     path: AppRoute.roleSelection.path,
     name: AppRoute.roleSelection.name,
     builder: (context, state) => const RoleSelectionScreen(),
+  ),
+  GoRoute(
+    path: AppRoute.onboardingDetails.path,
+    name: AppRoute.onboardingDetails.name,
+    builder: (context, state) {
+      final extra = state.extra as Map<String, dynamic>? ?? {};
+      final role = extra['role'] as UserRole? ?? UserRole.customer;
+      return OnboardingDetailsScreen(role: role);
+    },
   ),
   ShellRoute(
     builder: (context, state, child) {
@@ -103,7 +115,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isLoggingInOrSplash =
           state.uri.path == AppRoute.auth.path ||
           state.uri.path == AppRoute.splash.path ||
-          state.uri.path == AppRoute.confirmEmail.path;
+          state.uri.path == AppRoute.confirmEmail.path ||
+          state.uri.path == AppRoute.roleSelection.path ||
+          state.uri.path == AppRoute.onboardingDetails.path;
 
       // Redirect to splash/auth if not authenticated.
       if (!isAuth && !isLoggingInOrSplash) {
@@ -111,10 +125,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       // If authenticated and trying to access auth/splash screens,
-      // redirect to the main app feed (unless still confirming email).
+      // redirect to the main app feed (unless still confirming/onboarding).
       if (isAuth &&
           isLoggingInOrSplash &&
-          state.uri.path != AppRoute.confirmEmail.path) {
+          state.uri.path != AppRoute.confirmEmail.path &&
+          state.uri.path != AppRoute.roleSelection.path &&
+          state.uri.path != AppRoute.onboardingDetails.path) {
         return AppRoute.main.path;
       }
 

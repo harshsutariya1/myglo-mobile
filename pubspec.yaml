@@ -37,12 +37,13 @@ dependencies:
   supabase_flutter: ^2.12.4
   flutter_riverpod: ^3.3.1
   go_router: ^17.2.3
-  freezed_annotation: ^3.1.0
   json_annotation: ^4.12.0
   shared_preferences: ^2.5.5
   flutter_dotenv: ^6.0.1
+  sentry_flutter: ^9.20.0
 
 dev_dependencies:
+  sentry_dart_plugin: ^3.4.0
   flutter_test:
     sdk: flutter
 
@@ -52,8 +53,6 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
-  build_runner: ^2.15.0
-  freezed: ^3.2.5
   json_serializable: ^6.14.0
 
 # For information on the generic Dart part of this file, see the
@@ -100,3 +99,9 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+sentry:
+  upload_debug_symbols: true
+  upload_source_maps: true
+  project: myglo-app
+  org: nexotec-technologies

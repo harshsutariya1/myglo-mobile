@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/constants/app_assets.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../../core/constants/app_assets.dart';
+import '../../../../core/theme/app_theme.dart';
 
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
@@ -26,7 +26,7 @@ class SplashScreen extends StatelessWidget {
                     child: Padding(
                       padding: const EdgeInsets.all(32.0),
                       child: Image.asset(
-                        AppAssets.iconLogo3D_2, 
+                        AppAssets.iconLogo3D_2,
                         errorBuilder: (context, error, stackTrace) =>
                             const Icon(
                               Icons.phone_iphone,

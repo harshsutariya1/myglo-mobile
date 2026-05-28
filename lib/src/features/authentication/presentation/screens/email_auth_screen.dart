@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../core/constants/app_assets.dart';
-import '../../../core/theme/app_theme.dart';
-import '../../../core/utils/snackbar_utils.dart';
-import '../data/auth_repository.dart';
+import '../../../../core/constants/app_assets.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/snackbar_utils.dart';
+import '../../data/auth_repository.dart';
 
 class EmailAuthScreen extends ConsumerStatefulWidget {
   const EmailAuthScreen({super.key});
@@ -79,33 +79,63 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
       final supabase = ref.read(supabaseClientProvider);
 
       developer.log(
-        'Querying profiles table to check if user exists',
+        'Checking both customers and businesses tables to see if user exists',
         name: 'EmailAuthScreen',
       );
       bool exists = false;
       try {
-        // Without an RPC, the standard approach is to query a public 'profiles' or 'users' table
-        // that mirrors your auth.users table. If you don't have this, Supabase Auth prevents
-        // enumeration by default and will always give vague errors on purpose.
-        final res = await supabase
-            .from('profiles')
+        final customerRes = await supabase
+            .from('customers')
             .select('id')
             .eq('email', email)
             .maybeSingle();
 
+        if (customerRes != null) {
+          exists = true;
+        } else {
+          final businessRes = await supabase
+              .from('businesses')
+              .select('id')
+              .eq('email', email)
+              .maybeSingle();
+
+          if (businessRes != null) {
+            exists = true;
+          } else {
+            // Check auth error hack in case they registered but didn't finish onboarding.
+            // NOTE: If Supabase "Email Enumeration Protection" is ON, this will always return 'Invalid login credentials'
+            // for ANY email, causing a false positive `exists = true`.
+            try {
+              await supabase.auth.signInWithPassword(
+                email: email,
+                password: 'invalid_password_to_check_existence_123!@#',
+              );
+            } on AuthException catch (e) {
+              if (e.message.toLowerCase().contains(
+                'invalid login credentials',
+              )) {
+                exists = true;
+              }
+            }
+          }
+        }
+      } on PostgrestException catch (e) {
         developer.log(
-          'Profiles table query result: $res',
-          name: 'EmailAuthScreen',
-        );
-        exists = res != null;
-      } catch (e) {
-        developer.log(
-          'Error querying profiles table (missing table or RLS): $e',
+          'Database error checking user existence: $e',
           level: 900,
           name: 'EmailAuthScreen',
         );
-        // If the table doesn't exist yet or there's RLS blocking it, default to false.
-        exists = false;
+        // If the table is missing, rethrow to show a meaningful error to the developer/user
+        if (e.code == 'PGRST205' ||
+            e.message.contains('Could not find the table')) {
+          rethrow;
+        }
+      } catch (e) {
+        developer.log(
+          'Error checking user existence: $e',
+          level: 900,
+          name: 'EmailAuthScreen',
+        );
       }
 
       developer.log(

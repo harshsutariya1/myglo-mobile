@@ -1,67 +1,32 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 import 'src/core/routing/app_router.dart';
 import 'src/core/theme/app_theme.dart';
-
-Future<void> _initializeApp() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  developer.log('Starting app initialization...', name: 'initializeApp');
-
-  // Load environment variables securely
-  developer.log('Loading .env file...', name: 'initializeApp');
-  await dotenv.load(fileName: ".env");
-  developer.log('.env file loaded successfully.', name: 'initializeApp');
-
-  final supabaseUrl = dotenv.env['SUPABASE_URL'];
-  final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'];
-
-  // Check key availability before initialization to fail-fast in production
-  developer.log('Validating Supabase credentials...', name: 'initializeApp');
-  if (supabaseUrl == null || supabaseUrl.isEmpty) {
-    developer.log(
-      'SUPABASE_URL is missing or empty.',
-      level: 1000,
-      name: 'initializeApp',
-    );
-    throw Exception('SUPABASE_URL is missing or empty in .env file');
-  }
-  if (supabaseAnonKey == null || supabaseAnonKey.isEmpty) {
-    developer.log(
-      'SUPABASE_ANON_KEY is missing or empty.',
-      level: 1000,
-      name: 'initializeApp',
-    );
-    throw Exception('SUPABASE_ANON_KEY is missing or empty in .env file');
-  }
-  developer.log('Supabase credentials validated.', name: 'initializeApp');
-
-  developer.log('Initializing Supabase client...', name: 'initializeApp');
-  await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
-  developer.log('Supabase client initialized.', name: 'initializeApp');
-}
+import 'src/core/utils/app_init.dart';
+import 'src/core/widgets/init_error_app.dart';
 
 void main() async {
-  await _initializeApp()
-      .then((_) {
-        developer.log(
-          'App initialization completed successfully.',
-          name: 'main',
-        );
-        developer.log('Running app...', name: 'main');
-        runApp(const ProviderScope(child: MyApp()));
-      })
-      .catchError((error) {
-        developer.log(
-          'App initialization failed: $error',
-          level: 1000,
-          name: 'main',
-        );
-      });
+  try {
+    await initializeApp(
+      appRunner: () => runApp(const ProviderScope(child: MyApp())),
+    );
+    developer.log('App initialization completed successfully.', name: 'main');
+  } catch (error, stackTrace) {
+    developer.log(
+      'App initialization failed',
+      level: 1000,
+      name: 'main',
+      error: error,
+      stackTrace: stackTrace,
+    );
+    await Sentry.captureException(error, stackTrace: stackTrace);
+
+    // If initialization fails, show an error screen instead of a blank screen
+    runApp(InitErrorApp(error: error));
+  }
 }
 
 class MyApp extends ConsumerWidget {

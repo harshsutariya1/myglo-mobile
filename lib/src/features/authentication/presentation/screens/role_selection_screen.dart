@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../core/theme/app_theme.dart';
-import '../../../core/utils/snackbar_utils.dart';
-import '../domain/app_user.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/snackbar_utils.dart';
+import '../../domain/user_role.dart';
 
 class RoleSelectionScreen extends ConsumerStatefulWidget {
   const RoleSelectionScreen({super.key});
@@ -40,11 +40,11 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
       );
 
       developer.log(
-        'Role metadata updated successfully. Navigating to /main',
+        'Role metadata updated successfully. Navigating to /onboarding_details',
         name: 'RoleSelectionScreen',
       );
       if (mounted) {
-        context.go('/main');
+        context.push('/onboarding_details', extra: {'role': _selectedRole});
       }
     } catch (e) {
       developer.log(
