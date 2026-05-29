@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/routing/app_router.dart';
 import '../../../authentication/data/auth_repository.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -20,7 +21,9 @@ class SettingsScreen extends ConsumerWidget {
                 leading: const Icon(Icons.person_outline),
                 title: const Text('Account Details'),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () {},
+                onTap: () {
+                  context.goNamed(AppRoute.accountDetails.name);
+                },
               ),
               const Divider(),
               ListTile(

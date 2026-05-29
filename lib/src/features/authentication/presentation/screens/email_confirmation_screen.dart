@@ -19,11 +19,13 @@ class EmailConfirmationScreen extends ConsumerStatefulWidget {
 
 class _EmailConfirmationScreenState
     extends ConsumerState<EmailConfirmationScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
   bool _isLoading = false;
   bool _emailSent = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -33,31 +35,9 @@ class _EmailConfirmationScreenState
   }
 
   Future<void> _signUp() async {
+    if (!_formKey.currentState!.validate()) return;
+
     final password = _passwordController.text.trim();
-    final confirm = _confirmPasswordController.text.trim();
-
-    if (password.isEmpty || confirm.isEmpty) return;
-
-    if (password.length < 6) {
-      developer.log(
-        'Password validation failed: minimum length requirement not met.',
-        name: 'EmailConfirmationScreen',
-      );
-      context.showAppSnackBar(
-        'Password must be at least 6 characters',
-        isError: true,
-      );
-      return;
-    }
-
-    if (password != confirm) {
-      developer.log(
-        'Password validation failed: passwords do not match.',
-        name: 'EmailConfirmationScreen',
-      );
-      context.showAppSnackBar('Passwords do not match', isError: true);
-      return;
-    }
 
     developer.log(
       'Starting sign up process for email: ${widget.email}',
@@ -134,7 +114,7 @@ class _EmailConfirmationScreenState
         );
         if (mounted) {
           context.showAppSnackBar('Account confirmed successfully!');
-          context.go('/role');
+          context.go('/role', extra: {'email': response.user!.email, 'id': response.user!.id});
         }
       } else {
         developer.log(
@@ -203,11 +183,15 @@ class _EmailConfirmationScreenState
         title: Text(_emailSent ? 'Confirm Email' : 'Create Password'),
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: Center(
+          child: SingleChildScrollView(
+            child: Form(
+              key: _formKey,
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (!_emailSent) ...[
                 const Icon(
@@ -232,18 +216,38 @@ class _EmailConfirmationScreenState
                   style: const TextStyle(fontSize: 16, color: Colors.black54),
                 ),
                 const SizedBox(height: 32),
-                TextField(
+                TextFormField(
                   controller: _passwordController,
                   decoration: InputDecoration(
                     labelText: 'Password',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                    ),
                   ),
-                  obscureText: true,
+                  obscureText: _obscurePassword,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Password is required';
+                    }
+                    if (value.trim().length < 6) {
+                      return 'Password must be at least 6 characters';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 16),
-                TextField(
+                TextFormField(
                   controller: _confirmPasswordController,
                   decoration: InputDecoration(
                     labelText: 'Confirm Password',
@@ -252,6 +256,16 @@ class _EmailConfirmationScreenState
                     ),
                   ),
                   obscureText: true,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please confirm your password';
+                    }
+                    if (value.trim() != _passwordController.text.trim()) {
+                      return 'Passwords do not match';
+                    }
+                    return null;
+                  },
                 ),
               ] else ...[
                 const Icon(
@@ -290,6 +304,9 @@ class _EmailConfirmationScreenState
                     : Text(_emailSent ? 'Continue' : 'Sign Up'),
               ),
             ],
+          ),
+        ),
+            ),
           ),
         ),
       ),

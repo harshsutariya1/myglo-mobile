@@ -65,6 +65,28 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
     super.dispose();
   }
 
+  void _showUnconfirmedPopup() {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Email Not Confirmed'),
+        content: const Text(
+          'Please check your inbox and click the confirmation link before continuing.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text(
+              'OK',
+              style: TextStyle(color: AppTheme.burntOrange),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _handleContinue() async {
     final email = _emailController.text.trim();
     if (email.isEmpty || !_isValidEmail) return;
@@ -79,56 +101,14 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
       final supabase = ref.read(supabaseClientProvider);
 
       developer.log(
-        'Checking both customers and businesses tables to see if user exists',
+        'Checking auth.users table via RPC to see if user exists',
         name: 'EmailAuthScreen',
       );
       bool exists = false;
       try {
-        final customerRes = await supabase
-            .from('customers')
-            .select('id')
-            .eq('email', email)
-            .maybeSingle();
-
-        if (customerRes != null) {
+        final res = await supabase.rpc('check_user_exists', params: {'p_email': email});
+        if (res == true) {
           exists = true;
-        } else {
-          final businessRes = await supabase
-              .from('businesses')
-              .select('id')
-              .eq('email', email)
-              .maybeSingle();
-
-          if (businessRes != null) {
-            exists = true;
-          } else {
-            // Check auth error hack in case they registered but didn't finish onboarding.
-            // NOTE: If Supabase "Email Enumeration Protection" is ON, this will always return 'Invalid login credentials'
-            // for ANY email, causing a false positive `exists = true`.
-            try {
-              await supabase.auth.signInWithPassword(
-                email: email,
-                password: 'invalid_password_to_check_existence_123!@#',
-              );
-            } on AuthException catch (e) {
-              if (e.message.toLowerCase().contains(
-                'invalid login credentials',
-              )) {
-                exists = true;
-              }
-            }
-          }
-        }
-      } on PostgrestException catch (e) {
-        developer.log(
-          'Database error checking user existence: $e',
-          level: 900,
-          name: 'EmailAuthScreen',
-        );
-        // If the table is missing, rethrow to show a meaningful error to the developer/user
-        if (e.code == 'PGRST205' ||
-            e.message.contains('Could not find the table')) {
-          rethrow;
         }
       } catch (e) {
         developer.log(
@@ -200,12 +180,20 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
         context.go('/main');
       }
     } on AuthException catch (e) {
-      developer.log(
-        'Supabase AuthException during login: ${e.message}',
-        level: 900,
-        name: 'EmailAuthScreen',
-      );
-      if (mounted) context.showAppSnackBar(e.message, isError: true);
+      if (e.message.contains('Email not confirmed')) {
+        developer.log(
+          'Email not confirmed during login',
+          name: 'EmailAuthScreen',
+        );
+        _showUnconfirmedPopup();
+      } else {
+        developer.log(
+          'Supabase AuthException during login: ${e.message}',
+          level: 900,
+          name: 'EmailAuthScreen',
+        );
+        if (mounted) context.showAppSnackBar(e.message, isError: true);
+      }
     } catch (e) {
       developer.log(
         'Unexpected exception during login: $e',

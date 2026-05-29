@@ -5,17 +5,20 @@ import '../data/user_repository.dart';
 import '../domain/user_role.dart';
 import '../domain/business_model.dart';
 import '../domain/customer_model.dart';
+import '../domain/all_user_model.dart';
 
 /// A class that bundles the raw Supabase user, their role, and their specific profile model.
 class AppUserProfile {
   final User rawUser;
   final UserRole role;
+  final AllUserModel allUser;
   final CustomerModel? customerProfile;
   final BusinessModel? businessProfile;
 
   AppUserProfile({
     required this.rawUser,
     required this.role,
+    required this.allUser,
     this.customerProfile,
     this.businessProfile,
   });
@@ -33,19 +36,22 @@ final userProfileProvider = FutureProvider<AppUserProfile?>((ref) async {
     return null;
   }
 
-  // Determine user role from metadata (set during onboarding)
-  final rawRole = user.userMetadata?['role'] as String?;
-  final UserRole role = rawRole == UserRole.business.name
-      ? UserRole.business
-      : UserRole.customer;
-
   final userRepo = ref.watch(userRepositoryProvider);
+
+  // Fetch from all_users first to determine role and get base info
+  final allUser = await userRepo.getAllUser(user.id);
+  if (allUser == null) {
+    return null; // Not fully onboarded in terms of role
+  }
+
+  final role = allUser.role;
 
   if (role == UserRole.business) {
     final businessProfile = await userRepo.getBusiness(user.id);
     return AppUserProfile(
       rawUser: user,
       role: role,
+      allUser: allUser,
       businessProfile: businessProfile,
     );
   } else {
@@ -53,6 +59,7 @@ final userProfileProvider = FutureProvider<AppUserProfile?>((ref) async {
     return AppUserProfile(
       rawUser: user,
       role: role,
+      allUser: allUser,
       customerProfile: customerProfile,
     );
   }

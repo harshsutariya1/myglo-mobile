@@ -1,17 +1,19 @@
 class BusinessModel {
   final String id;
   final String email;
-  final String firstName;
-  final String lastName;
-  final String? phone;
+  final String? firstName;
+  final String? lastName;
+  final String? businessName;
+  final String? phoneNumber;
   final String? profilePicUrl;
 
   const BusinessModel({
     required this.id,
     required this.email,
-    required this.firstName,
-    required this.lastName,
-    this.phone,
+    this.firstName,
+    this.lastName,
+    this.businessName,
+    this.phoneNumber,
     this.profilePicUrl,
   });
 
@@ -19,10 +21,11 @@ class BusinessModel {
     return BusinessModel(
       id: json['id'] as String? ?? '',
       email: json['email'] as String? ?? '',
-      firstName: json['first_name'] as String? ?? '',
-      lastName: json['last_name'] as String? ?? '',
-      phone: json['phone'] as String?,
-      profilePicUrl: json['profile_pic_url'] as String?,
+      firstName: json['first_name'] as String?,
+      lastName: json['last_name'] as String?,
+      businessName: json['business_name'] as String?,
+      phoneNumber: json['phone_number'] as String?,
+      profilePicUrl: json['profile_pic'] as String?,
     );
   }
 
@@ -32,8 +35,9 @@ class BusinessModel {
       'email': email,
       'first_name': firstName,
       'last_name': lastName,
-      'phone': phone,
-      'profile_pic_url': profilePicUrl,
+      'business_name': businessName,
+      'phone_number': phoneNumber,
+      'profile_pic': profilePicUrl,
     };
   }
 
@@ -42,7 +46,8 @@ class BusinessModel {
     String? email,
     String? firstName,
     String? lastName,
-    String? phone,
+    String? businessName,
+    String? phoneNumber,
     String? profilePicUrl,
   }) {
     return BusinessModel(
@@ -50,36 +55,9 @@ class BusinessModel {
       email: email ?? this.email,
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,
-      phone: phone ?? this.phone,
+      businessName: businessName ?? this.businessName,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
       profilePicUrl: profilePicUrl ?? this.profilePicUrl,
     );
-  }
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-
-    return other is BusinessModel &&
-        other.id == id &&
-        other.email == email &&
-        other.firstName == firstName &&
-        other.lastName == lastName &&
-        other.phone == phone &&
-        other.profilePicUrl == profilePicUrl;
-  }
-
-  @override
-  int get hashCode {
-    return id.hashCode ^
-        email.hashCode ^
-        firstName.hashCode ^
-        lastName.hashCode ^
-        phone.hashCode ^
-        profilePicUrl.hashCode;
-  }
-
-  @override
-  String toString() {
-    return 'BusinessModel(id: $id, email: $email, firstName: $firstName, lastName: $lastName, phone: $phone, profilePicUrl: $profilePicUrl)';
   }
 }

@@ -30,8 +30,10 @@ class MainScaffold extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
           child: NavigationBar(
+            height: 55,
+            labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
             backgroundColor: Colors.transparent,
             indicatorColor: AppTheme.peach.withValues(alpha: 0.3),
             selectedIndex: currentIndex,
@@ -40,7 +42,7 @@ class MainScaffold extends StatelessWidget {
               NavigationDestination(
                 icon: Icon(Icons.home_outlined, color: Colors.white70),
                 selectedIcon: Icon(Icons.home, color: AppTheme.peach),
-                label: 'Home',
+                label: "Home",
               ),
               NavigationDestination(
                 icon: Icon(Icons.explore_outlined, color: Colors.white70),

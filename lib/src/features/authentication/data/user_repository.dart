@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../domain/business_model.dart';
 import '../domain/customer_model.dart';
+import '../domain/all_user_model.dart';
 import 'auth_repository.dart';
 
 final userRepositoryProvider = Provider<UserRepository>((ref) {
@@ -13,14 +15,75 @@ class UserRepository {
 
   UserRepository(this._client);
 
-  /// Saves a customer to the 'customers' table in Supabase
-  Future<void> saveCustomer(CustomerModel customer) async {
-    await _client.from('customers').upsert(customer.toJson());
+  /// Registers user role atomically using RPC
+  Future<void> registerUserRole({
+    required String id,
+    required String email,
+    required String role,
+  }) async {
+    await _client.rpc('register_user_role', params: {
+      'p_id': id,
+      'p_email': email,
+      'p_role': role,
+    });
   }
 
-  /// Saves a business to the 'businesses' table in Supabase
-  Future<void> saveBusiness(BusinessModel business) async {
-    await _client.from('businesses').upsert(business.toJson());
+  /// Updates onboarding details atomically using RPC
+  Future<void> updateOnboardingDetails({
+    required String id,
+    required String role,
+    required String firstName,
+    required String lastName,
+    String? phone,
+    String? profilePic,
+    String? businessName,
+  }) async {
+    await _client.rpc('update_onboarding_details', params: {
+      'p_id': id,
+      'p_role': role,
+      'p_first_name': firstName,
+      'p_last_name': lastName,
+      'p_phone': phone,
+      'p_profile_pic': profilePic,
+      'p_business_name': businessName,
+    });
+  }
+
+  /// Updates specific profile details in all_users table
+  Future<void> updateUserProfile({
+    required String id,
+    String? firstName,
+    String? lastName,
+    String? phone,
+    String? profilePic,
+  }) async {
+    final updates = <String, dynamic>{};
+    if (firstName != null) updates['first_name'] = firstName;
+    if (lastName != null) updates['last_name'] = lastName;
+    if (phone != null) updates['phone_number'] = phone;
+    if (profilePic != null) updates['profile_pic'] = profilePic;
+    
+    if (updates.isNotEmpty) {
+      await _client.from('all_users').update(updates).eq('id', id);
+    }
+  }
+
+  /// Uploads a profile picture and returns the public URL
+  Future<String> uploadProfilePicture(String userId, File imageFile) async {
+    final path = '$userId/profile_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    await _client.storage.from('profile-pics').upload(path, imageFile);
+    return _client.storage.from('profile-pics').getPublicUrl(path);
+  }
+
+  /// Fetches an AllUserModel profile from the DB
+  Future<AllUserModel?> getAllUser(String id) async {
+    final response = await _client
+        .from('all_users')
+        .select()
+        .eq('id', id)
+        .maybeSingle();
+    if (response == null) return null;
+    return AllUserModel.fromJson(response);
   }
 
   /// Fetches a Customer profile from the DB

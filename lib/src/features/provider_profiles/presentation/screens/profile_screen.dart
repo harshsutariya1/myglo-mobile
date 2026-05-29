@@ -48,6 +48,7 @@ class ProfileScreen extends ConsumerWidget {
                     .trim();
           }
           final displayName = name.isEmpty ? 'Guest User' : name;
+          final profilePicUrl = appUser.allUser.profilePic;
 
           return SafeArea(
             child: Padding(
@@ -55,10 +56,11 @@ class ProfileScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 50,
                     backgroundColor: AppTheme.peach,
-                    child: Icon(Icons.person, size: 50, color: AppTheme.white),
+                    backgroundImage: profilePicUrl != null ? NetworkImage(profilePicUrl) : null,
+                    child: profilePicUrl == null ? const Icon(Icons.person, size: 50, color: AppTheme.white) : null,
                   ),
                   const SizedBox(height: 16),
                   Text(

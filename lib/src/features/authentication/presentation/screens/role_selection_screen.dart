@@ -6,9 +6,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/snackbar_utils.dart';
 import '../../domain/user_role.dart';
+import '../../data/user_repository.dart';
+import '../../application/user_profile_provider.dart';
 
 class RoleSelectionScreen extends ConsumerStatefulWidget {
-  const RoleSelectionScreen({super.key});
+  final String email;
+  final String id;
+  const RoleSelectionScreen({super.key, required this.email, required this.id});
 
   @override
   ConsumerState<RoleSelectionScreen> createState() =>
@@ -40,11 +44,26 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
       );
 
       developer.log(
+        'Registering user in all_users and specific role tables',
+        name: 'RoleSelectionScreen',
+      );
+      
+      final userRepo = ref.read(userRepositoryProvider);
+      await userRepo.registerUserRole(
+        id: widget.id,
+        email: widget.email,
+        role: _selectedRole!.name,
+      );
+
+      // Invalidate so the router sees the new profile state (avoids redirect loop)
+      ref.invalidate(userProfileProvider);
+
+      developer.log(
         'Role metadata updated successfully. Navigating to /onboarding_details',
         name: 'RoleSelectionScreen',
       );
       if (mounted) {
-        context.push('/onboarding_details', extra: {'role': _selectedRole});
+        context.go('/onboarding_details');
       }
     } catch (e) {
       developer.log(
