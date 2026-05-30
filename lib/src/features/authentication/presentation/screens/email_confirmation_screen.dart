@@ -52,7 +52,11 @@ class _EmailConfirmationScreenState
         'Calling supabase.auth.signUp...',
         name: 'EmailConfirmationScreen',
       );
-      await supabase.auth.signUp(email: widget.email, password: password);
+      await supabase.auth.signUp(
+        email: widget.email,
+        password: password,
+        emailRedirectTo: 'https://www.myglo.app',
+      );
 
       developer.log(
         'Sign up successful, awaiting email confirmation.',
