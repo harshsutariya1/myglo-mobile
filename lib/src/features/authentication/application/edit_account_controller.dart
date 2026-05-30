@@ -13,9 +13,13 @@ class EditAccountController {
     String? firstName,
     String? lastName,
     String? phone,
+    String? businessName,
     File? newProfilePic,
   }) async {
     final userRepository = _ref.read(userRepositoryProvider);
+    final userProfile = _ref.read(userProfileProvider).value;
+    
+    if (userProfile == null) return;
     
     String? uploadedPicUrl;
     if (newProfilePic != null) {
@@ -24,9 +28,11 @@ class EditAccountController {
 
     await userRepository.updateUserProfile(
       id: id,
+      role: userProfile.role,
       firstName: firstName,
       lastName: lastName,
       phone: phone,
+      businessName: businessName,
       profilePic: uploadedPicUrl,
     );
 

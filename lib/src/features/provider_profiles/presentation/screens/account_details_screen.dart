@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../authentication/application/user_profile_provider.dart';
 import '../../../authentication/application/edit_account_controller.dart';
@@ -19,16 +18,19 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
   late TextEditingController _phoneController;
+  late TextEditingController _businessNameController;
   File? _newProfilePic;
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    final profile = ref.read(userProfileProvider).value?.allUser;
-    _firstNameController = TextEditingController(text: profile?.firstName ?? '');
-    _lastNameController = TextEditingController(text: profile?.lastName ?? '');
-    _phoneController = TextEditingController(text: profile?.phoneNumber ?? '');
+    final userProfile = ref.read(userProfileProvider).value;
+    final allUser = userProfile?.allUser;
+    _firstNameController = TextEditingController(text: allUser?.firstName ?? '');
+    _lastNameController = TextEditingController(text: allUser?.lastName ?? '');
+    _phoneController = TextEditingController(text: allUser?.phoneNumber ?? '');
+    _businessNameController = TextEditingController(text: userProfile?.businessProfile?.businessName ?? '');
   }
 
   @override
@@ -36,6 +38,7 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     _phoneController.dispose();
+    _businessNameController.dispose();
     super.dispose();
   }
 
@@ -50,21 +53,21 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
     }
   }
 
-  Future<void> _saveDetails() async {
-    //TODO: saving changes updates only all_user table not role based tables. 
+  Future<void> _saveDetails() async { 
     if (!_formKey.currentState!.validate()) return;
     
-    final profile = ref.read(userProfileProvider).value?.allUser;
-    if (profile == null) return;
+    final userProfile = ref.read(userProfileProvider).value;
+    if (userProfile == null) return;
 
     setState(() => _isLoading = true);
 
     try {
       await ref.read(editAccountControllerProvider).updateProfile(
-        id: profile.id,
+        id: userProfile.allUser.id,
         firstName: _firstNameController.text.trim(),
         lastName: _lastNameController.text.trim(),
         phone: _phoneController.text.trim(),
+        businessName: userProfile.isBusiness ? _businessNameController.text.trim() : null,
         newProfilePic: _newProfilePic,
       );
 
@@ -72,7 +75,6 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profile updated successfully!')),
         );
-        context.pop();
       }
     } catch (e) {
       if (mounted) {
@@ -89,7 +91,8 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final profile = ref.watch(userProfileProvider).value?.allUser;
+    final userProfile = ref.watch(userProfileProvider).value;
+    final profile = userProfile?.allUser;
 
     return Scaffold(
       appBar: AppBar(
@@ -158,6 +161,19 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
                       validator: (value) =>
                           value == null || value.isEmpty ? 'Please enter last name' : null,
                     ),
+                    if (userProfile?.isBusiness == true) ...[
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _businessNameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Business Name',
+                          border: OutlineInputBorder(),
+                        ),
+                        textCapitalization: TextCapitalization.words,
+                        validator: (value) =>
+                            value == null || value.trim().isEmpty ? 'Please enter business name' : null,
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _phoneController,

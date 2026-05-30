@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../domain/business_model.dart';
 import '../domain/customer_model.dart';
 import '../domain/all_user_model.dart';
+import '../domain/user_role.dart';
 import 'auth_repository.dart';
 
 final userRepositoryProvider = Provider<UserRepository>((ref) {
@@ -49,13 +50,15 @@ class UserRepository {
     });
   }
 
-  /// Updates specific profile details in all_users table
+  /// Updates specific profile details in all_users and role-based tables
   Future<void> updateUserProfile({
     required String id,
+    required UserRole role,
     String? firstName,
     String? lastName,
     String? phone,
     String? profilePic,
+    String? businessName,
   }) async {
     final updates = <String, dynamic>{};
     if (firstName != null) updates['first_name'] = firstName;
@@ -66,13 +69,27 @@ class UserRepository {
     if (updates.isNotEmpty) {
       await _client.from('all_users').update(updates).eq('id', id);
     }
-  }
 
+    if (role == UserRole.business) {
+      final businessUpdates = Map<String, dynamic>.from(updates);
+      if (businessName != null) businessUpdates['business_name'] = businessName;
+      if (businessUpdates.isNotEmpty) {
+        await _client.from('businesses').update(businessUpdates).eq('id', id);
+      }
+    } else if (updates.isNotEmpty) {
+      await _client.from('customers').update(updates).eq('id', id);
+    }
+  }
   /// Uploads a profile picture and returns the public URL
   Future<String> uploadProfilePicture(String userId, File imageFile) async {
-    final path = '$userId/profile_${DateTime.now().millisecondsSinceEpoch}.jpg';
-    await _client.storage.from('profile-pics').upload(path, imageFile);
-    return _client.storage.from('profile-pics').getPublicUrl(path);
+    final path = '$userId.jpg';
+    await _client.storage.from('profile-pics').upload(
+      path, 
+      imageFile,
+      fileOptions: const FileOptions(upsert: true),
+    );
+    final baseUrl = _client.storage.from('profile-pics').getPublicUrl(path);
+    return '$baseUrl?t=${DateTime.now().millisecondsSinceEpoch}';
   }
 
   /// Fetches an AllUserModel profile from the DB

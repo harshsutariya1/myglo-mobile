@@ -38,14 +38,21 @@ class ProfileScreen extends ConsumerWidget {
           }
 
           final String name;
+          final String? subtitle;
           if (appUser.isBusiness) {
-            name =
-                '${appUser.businessProfile?.firstName ?? ''} ${appUser.businessProfile?.lastName ?? ''}'
-                    .trim();
+            final bName = appUser.businessProfile?.businessName?.trim() ?? '';
+            final fullName = '${appUser.businessProfile?.firstName ?? ''} ${appUser.businessProfile?.lastName ?? ''}'.trim();
+            
+            if (bName.isNotEmpty) {
+              name = bName;
+              subtitle = fullName;
+            } else {
+              name = fullName;
+              subtitle = null;
+            }
           } else {
-            name =
-                '${appUser.customerProfile?.firstName ?? ''} ${appUser.customerProfile?.lastName ?? ''}'
-                    .trim();
+            name = '${appUser.customerProfile?.firstName ?? ''} ${appUser.customerProfile?.lastName ?? ''}'.trim();
+            subtitle = null;
           }
           final displayName = name.isEmpty ? 'Guest User' : name;
           final profilePicUrl = appUser.allUser.profilePic;
@@ -71,6 +78,13 @@ class ProfileScreen extends ConsumerWidget {
                       color: AppTheme.darkRed,
                     ),
                   ),
+                  if (subtitle != null && subtitle.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(fontSize: 16, color: Colors.black54),
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   Text(
                     appUser.rawUser.email ?? '',

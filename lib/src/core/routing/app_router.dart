@@ -74,6 +74,9 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // 1. Not in all_users table -> Role Selection
       if (profile == null) {
+        if (userProfileState.isLoading) {
+          return AppRoute.splash.path;
+        }
         if (state.uri.path != AppRoute.roleSelection.path) {
           return '${AppRoute.roleSelection.path}?email=${session.user.email}&id=${session.user.id}';
         }

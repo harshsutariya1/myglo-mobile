@@ -73,27 +73,18 @@ class _OnboardingDetailsScreenState
 
       String? profilePicUrl;
 
+      final userRepo = ref.read(userRepositoryProvider);
+
       // Upload profile picture if selected
       if (_profileImage != null) {
         developer.log('Uploading profile picture...', name: 'OnboardingDetailsScreen');
-        final fileExt = _profileImage!.path.split('.').last;
-        final fileName = '${user.id}_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
-        
-        await supabase.storage.from('profile-pics').upload(
-              fileName,
-              _profileImage!,
-              fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
-            );
-
-        profilePicUrl = supabase.storage.from('profile-pics').getPublicUrl(fileName);
+        profilePicUrl = await userRepo.uploadProfilePicture(user.id, _profileImage!);
       }
 
       developer.log(
         'Calling userRepository.updateOnboardingDetails',
         name: 'OnboardingDetailsScreen',
       );
-
-      final userRepo = ref.read(userRepositoryProvider);
       
       await userRepo.updateOnboardingDetails(
         id: user.id,
