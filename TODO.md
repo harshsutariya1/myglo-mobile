@@ -1,3 +1,0 @@
-# General TODOs
-
-- [ ] Initial task

@@ -51,6 +51,7 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
   }
 
   Future<void> _saveDetails() async {
+    //TODO: saving changes updates only all_user table not role based tables. 
     if (!_formKey.currentState!.validate()) return;
     
     final profile = ref.read(userProfileProvider).value?.allUser;
