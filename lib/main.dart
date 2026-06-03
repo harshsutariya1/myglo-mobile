@@ -1,21 +1,46 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
-import 'home_page.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
-void main() {
-  runApp(const MyApp());
+import 'src/core/routing/app_router.dart';
+import 'src/core/theme/app_theme.dart';
+import 'src/core/utils/app_init.dart';
+import 'src/core/widgets/init_error_app.dart';
+
+void main() async {
+  try {
+    await initializeApp(
+      appRunner: () => runApp(const ProviderScope(child: MyApp())),
+    );
+    developer.log('App initialization completed successfully.', name: 'main');
+  } catch (error, stackTrace) {
+    developer.log(
+      'App initialization failed',
+      level: 1000,
+      name: 'main',
+      error: error,
+      stackTrace: stackTrace,
+    );
+    await Sentry.captureException(error, stackTrace: stackTrace);
+
+    // If initialization fails, show an error screen instead of a blank screen
+    runApp(InitErrorApp(error: error));
+  }
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(routerProvider);
+
+    return MaterialApp.router(
+      title: 'MyGlo',
+      theme: AppTheme.lightTheme,
+      routerConfig: router,
+      debugShowCheckedModeBanner: false,
     );
   }
 }
