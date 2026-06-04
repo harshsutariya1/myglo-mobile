@@ -43,6 +43,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       final authState = ref.read(authStateProvider);
       final userProfileState = ref.read(userProfileProvider);
 
+      if (authState.hasError || userProfileState.hasError) {
+        // If there's a fatal error in providers, redirect to intro or splash
+        return AppRoute.intro.path;
+      }
+
       if (authState.isLoading) return AppRoute.splash.path;
 
       final session = authState.value?.session;

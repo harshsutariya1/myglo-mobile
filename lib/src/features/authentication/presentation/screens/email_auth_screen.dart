@@ -7,6 +7,7 @@ import '../../../../core/constants/app_assets.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/snackbar_utils.dart';
 import '../../data/auth_repository.dart';
+import '../controllers/email_auth_controller.dart';
 
 class EmailAuthScreen extends ConsumerStatefulWidget {
   const EmailAuthScreen({super.key});
@@ -168,9 +169,8 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
     setState(() => _isLoading = true);
 
     try {
-      final supabase = ref.read(supabaseClientProvider);
-      developer.log('Calling signInWithPassword...', name: 'EmailAuthScreen');
-      await supabase.auth.signInWithPassword(email: email, password: password);
+      developer.log('Calling login on emailAuthController...', name: 'EmailAuthScreen');
+      await ref.read(emailAuthControllerProvider.notifier).login(email, password);
 
       developer.log(
         'Login successful. Navigating to /main.',
@@ -188,11 +188,11 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
         _showUnconfirmedPopup();
       } else {
         developer.log(
-          'Supabase AuthException during login: ${e.message}',
+          'AuthException during login: ${e.message}',
           level: 900,
           name: 'EmailAuthScreen',
         );
-        if (mounted) context.showAppSnackBar(e.message, isError: true);
+        if (mounted) context.showAppSnackBar('Authentication failed. Please check your credentials.', isError: true);
       }
     } catch (e) {
       developer.log(
@@ -200,7 +200,7 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
         level: 1000,
         name: 'EmailAuthScreen',
       );
-      if (mounted) context.showAppSnackBar(e.toString(), isError: true);
+      if (mounted) context.showAppSnackBar('An unexpected error occurred. Please try again later.', isError: true);
     } finally {
       developer.log('handleLogin completed', name: 'EmailAuthScreen');
       if (mounted) setState(() => _isLoading = false);
@@ -209,6 +209,7 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(emailAuthControllerProvider);
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -264,11 +265,11 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
                           labelText: 'Email',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Colors.black12),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Colors.black12),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
                           ),
                         ),
                         keyboardType: TextInputType.emailAddress,
@@ -294,8 +295,8 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Padding(
-                                padding: EdgeInsets.only(
+                              Padding(
+                                padding: const EdgeInsets.only(
                                   left: 4.0,
                                   bottom: 8.0,
                                   top: 4.0,
@@ -303,7 +304,7 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
                                 child: Text(
                                   'Account found! Please enter your password.',
                                   style: TextStyle(
-                                    color: Colors.green,
+                                    color: Theme.of(context).colorScheme.primary,
                                     fontWeight: FontWeight.w600,
                                     fontSize: 13,
                                   ),
@@ -315,14 +316,14 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
                                   labelText: 'Password',
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Colors.black12,
+                                    borderSide: BorderSide(
+                                      color: Theme.of(context).colorScheme.outlineVariant,
                                     ),
                                   ),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Colors.black12,
+                                    borderSide: BorderSide(
+                                      color: Theme.of(context).colorScheme.outlineVariant,
                                     ),
                                   ),
                                 ),
