@@ -34,5 +34,37 @@ class AuthRepository {
     await _client.auth.signOut();
   }
 
+  Future<AuthResponse> signInWithPassword({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      return await _client.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+    } on AuthException catch (e) {
+      throw AuthException(e.message, statusCode: e.statusCode);
+    } catch (e) {
+      throw Exception('Unexpected error during sign in: $e');
+    }
+  }
+
+  Future<void> updateUserRole({required String role}) async {
+    try {
+      final user = _client.auth.currentUser;
+      if (user == null) {
+        throw AuthException('No authenticated user found');
+      }
+      await _client.auth.updateUser(
+        UserAttributes(data: {'role': role}),
+      );
+    } on AuthException catch (e) {
+      throw AuthException(e.message, statusCode: e.statusCode);
+    } catch (e) {
+      throw Exception('Unexpected error during role update: $e');
+    }
+  }
+
   User? get currentUser => _client.auth.currentUser;
 }

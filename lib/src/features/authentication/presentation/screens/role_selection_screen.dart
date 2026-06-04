@@ -2,11 +2,11 @@ import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/snackbar_utils.dart';
 import '../../domain/user_role.dart';
 import '../../data/user_repository.dart';
+import '../../data/auth_repository.dart';
 import '../../application/user_profile_provider.dart';
 
 class RoleSelectionScreen extends ConsumerStatefulWidget {
@@ -33,22 +33,21 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final supabase = Supabase.instance.client;
+      final authRepo = ref.read(authRepositoryProvider);
+      final userRepo = ref.read(userRepositoryProvider);
+      final container = ProviderScope.containerOf(context);
 
       developer.log(
-        'Calling supabase.auth.updateUser to set role metadata',
+        'Calling authRepo.updateUserRole to set role metadata',
         name: 'RoleSelectionScreen',
       );
-      await supabase.auth.updateUser(
-        UserAttributes(data: {'role': _selectedRole!.name}),
-      );
+      await authRepo.updateUserRole(role: _selectedRole!.name);
 
       developer.log(
         'Registering user in all_users and specific role tables',
         name: 'RoleSelectionScreen',
       );
       
-      final userRepo = ref.read(userRepositoryProvider);
       await userRepo.registerUserRole(
         id: widget.id,
         email: widget.email,
@@ -56,10 +55,10 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
       );
 
       // Invalidate so the router sees the new profile state (avoids redirect loop)
-      ref.invalidate(userProfileProvider);
+      container.invalidate(userProfileProvider);
 
       developer.log(
-        'Role metadata updated successfully. Navigating to /onboarding_details',
+        'Role metadata updated successfully.',
         name: 'RoleSelectionScreen',
       );
       if (mounted) {
@@ -72,7 +71,7 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
         name: 'RoleSelectionScreen',
       );
       if (mounted) {
-        context.showAppSnackBar(e.toString(), isError: true);
+        context.showAppSnackBar('Failed to update role. Please try again.', isError: true);
       }
     } finally {
       developer.log('Role submission completed', name: 'RoleSelectionScreen');
@@ -150,7 +149,7 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? AppTheme.burntOrange : Colors.black12,
+            color: isSelected ? AppTheme.burntOrange : Theme.of(context).colorScheme.outlineVariant,
             width: isSelected ? 2 : 1,
           ),
           color: AppTheme.white,
@@ -183,7 +182,7 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
               isSelected
                   ? Icons.radio_button_checked
                   : Icons.radio_button_unchecked,
-              color: isSelected ? AppTheme.burntOrange : Colors.black26,
+              color: isSelected ? AppTheme.burntOrange : Theme.of(context).colorScheme.outline,
             ),
           ],
         ),

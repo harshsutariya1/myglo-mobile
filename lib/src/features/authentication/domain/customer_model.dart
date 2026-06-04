@@ -1,57 +1,18 @@
-class CustomerModel {
-  final String id;
-  final String email;
-  final String? firstName;
-  final String? lastName;
-  final String? phoneNumber;
-  final String? profilePicUrl;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  const CustomerModel({
-    required this.id,
-    required this.email,
-    this.firstName,
-    this.lastName,
-    this.phoneNumber,
-    this.profilePicUrl,
-  });
+part 'customer_model.freezed.dart';
+part 'customer_model.g.dart';
 
-  factory CustomerModel.fromJson(Map<String, dynamic> json) {
-    return CustomerModel(
-      id: json['id'] as String? ?? '',
-      email: json['email'] as String? ?? '',
-      firstName: json['first_name'] as String?,
-      lastName: json['last_name'] as String?,
-      phoneNumber: json['phone_number'] as String?,
-      profilePicUrl: json['profile_pic'] as String?,
-    );
-  }
+@freezed
+abstract class CustomerModel with _$CustomerModel {
+  const factory CustomerModel({
+    required String id,
+    required String email,
+    @JsonKey(name: 'first_name') String? firstName,
+    @JsonKey(name: 'last_name') String? lastName,
+    @JsonKey(name: 'phone_number') String? phoneNumber,
+    @JsonKey(name: 'profile_pic') String? profilePicUrl,
+  }) = _CustomerModel;
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'email': email,
-      'first_name': firstName,
-      'last_name': lastName,
-      'phone_number': phoneNumber,
-      'profile_pic': profilePicUrl,
-    };
-  }
-
-  CustomerModel copyWith({
-    String? id,
-    String? email,
-    String? firstName,
-    String? lastName,
-    String? phoneNumber,
-    String? profilePicUrl,
-  }) {
-    return CustomerModel(
-      id: id ?? this.id,
-      email: email ?? this.email,
-      firstName: firstName ?? this.firstName,
-      lastName: lastName ?? this.lastName,
-      phoneNumber: phoneNumber ?? this.phoneNumber,
-      profilePicUrl: profilePicUrl ?? this.profilePicUrl,
-    );
-  }
+  factory CustomerModel.fromJson(Map<String, dynamic> json) => _$CustomerModelFromJson(json);
 }
