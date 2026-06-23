@@ -45,6 +45,8 @@ dependencies:
   freezed_annotation: any
   riverpod_annotation: any
   cached_network_image: ^3.4.1
+  shorebird_code_push: ^2.0.6
+  restart_app: ^1.8.3
 
 dev_dependencies:
   sentry_dart_plugin: ^3.4.0
@@ -77,6 +79,7 @@ flutter:
     - assets/UI/
     - assets/graphics/
     - assets/logo/
+    - shorebird.yaml
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -7,6 +7,7 @@ import 'src/core/routing/app_router.dart';
 import 'src/core/theme/app_theme.dart';
 import 'src/core/utils/app_init.dart';
 import 'src/core/widgets/init_error_app.dart';
+import 'src/core/widgets/shorebird_update_listener.dart';
 
 void main() async {
   try {
@@ -36,11 +37,13 @@ class MyApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
 
-    return MaterialApp.router(
-      title: 'MyGlo',
-      theme: AppTheme.lightTheme,
-      routerConfig: router,
-      debugShowCheckedModeBanner: false,
+    return ShorebirdUpdateListener(
+      child: MaterialApp.router(
+        title: 'MyGlo',
+        theme: AppTheme.lightTheme,
+        routerConfig: router,
+        debugShowCheckedModeBanner: false,
+      ),
     );
   }
 }
