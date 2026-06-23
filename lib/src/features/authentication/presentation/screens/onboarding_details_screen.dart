@@ -1,15 +1,13 @@
 import 'dart:io';
-import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/snackbar_utils.dart';
 import '../../domain/user_role.dart';
-import '../../application/user_profile_provider.dart';
-import '../../data/user_repository.dart';
+import '../controllers/onboarding_controller.dart';
+import '../widgets/onboarding_form.dart';
 
 class OnboardingDetailsScreen extends ConsumerStatefulWidget {
   final UserRole role;
@@ -30,7 +28,6 @@ class _OnboardingDetailsScreenState
   final _businessNameController = TextEditingController();
 
   File? _profileImage;
-  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -51,76 +48,45 @@ class _OnboardingDetailsScreenState
         });
       }
     } catch (e) {
-      if (mounted) context.showAppSnackBar('Failed to pick image', isError: true);
+      if (mounted) {
+        context.showAppSnackBar('Failed to pick image', isError: true);
+      }
     }
   }
 
   Future<void> _submitDetails() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final firstName = _firstNameController.text.trim();
-    final lastName = _lastNameController.text.trim();
-    final phoneText = _phoneController.text.trim();
-    final phone = phoneText.isEmpty ? null : phoneText;
-    final businessName = _businessNameController.text.trim();
+    final controller = ref.read(onboardingControllerProvider.notifier);
 
-    setState(() => _isLoading = true);
+    await controller.submitDetails(
+      role: widget.role,
+      firstName: _firstNameController.text.trim(),
+      lastName: _lastNameController.text.trim(),
+      phone: _phoneController.text.trim().isEmpty
+          ? null
+          : _phoneController.text.trim(),
+      businessName: _businessNameController.text.trim(),
+      profileImage: _profileImage,
+    );
 
-    try {
-      final supabase = Supabase.instance.client;
-      final user = supabase.auth.currentUser;
-      if (user == null) throw Exception('No user found');
-
-      String? profilePicUrl;
-
-      final userRepo = ref.read(userRepositoryProvider);
-
-      // Upload profile picture if selected
-      if (_profileImage != null) {
-        developer.log('Uploading profile picture...', name: 'OnboardingDetailsScreen');
-        profilePicUrl = await userRepo.uploadProfilePicture(user.id, _profileImage!);
+    final state = ref.read(onboardingControllerProvider);
+    if (state.hasError) {
+      if (mounted) {
+        context.showAppSnackBar(state.error.toString(), isError: true);
       }
-
-      developer.log(
-        'Calling userRepository.updateOnboardingDetails',
-        name: 'OnboardingDetailsScreen',
-      );
-      
-      await userRepo.updateOnboardingDetails(
-        id: user.id,
-        role: widget.role.name,
-        firstName: firstName,
-        lastName: lastName,
-        phone: phone,
-        profilePic: profilePicUrl,
-        businessName: widget.role == UserRole.business ? businessName : null,
-      );
-
-      // Invalidate the profile provider so it re-fetches with new data
-      ref.invalidate(userProfileProvider);
-
-      developer.log(
-        'Successfully saved onboarding details',
-        name: 'OnboardingDetailsScreen',
-      );
-
+    } else {
       if (mounted) {
         context.go('/main');
       }
-    } catch (e) {
-      developer.log(
-        'Error saving details: $e',
-        level: 1000,
-        name: 'OnboardingDetailsScreen',
-      );
-      if (mounted) context.showAppSnackBar(e.toString(), isError: true);
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(onboardingControllerProvider);
+    final isLoading = state.isLoading;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Complete Your Profile')),
       body: SafeArea(
@@ -131,127 +97,69 @@ class _OnboardingDetailsScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-              const Text(
-                'Let\'s get to know you!',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.darkRed,
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              Center(
-                child: GestureDetector(
-                  onTap: _pickImage,
-                  child: CircleAvatar(
-                    radius: 50,
-                    backgroundColor: AppTheme.burntOrange.withValues(alpha: 0.2),
-                    backgroundImage: _profileImage != null ? FileImage(_profileImage!) : null,
-                    child: _profileImage == null
-                        ? const Icon(
-                            Icons.add_a_photo,
-                            size: 40,
-                            color: AppTheme.burntOrange,
-                          )
-                        : null,
+                const Text(
+                  'Let\'s get to know you!',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.darkRed,
                   ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              const Center(
-                child: Text(
-                  'Add a profile picture (Optional)',
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ),
-              const SizedBox(height: 32),
+                const SizedBox(height: 32),
 
-              TextFormField(
-                controller: _firstNameController,
-                decoration: const InputDecoration(
-                  labelText: 'First name',
-                  border: OutlineInputBorder(),
-                ),
-                textCapitalization: TextCapitalization.words,
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'First name is required';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              TextFormField(
-                controller: _lastNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Last name',
-                  border: OutlineInputBorder(),
-                ),
-                textCapitalization: TextCapitalization.words,
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Last name is required';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              if (widget.role == UserRole.business) ...[
-                TextFormField(
-                  controller: _businessNameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Business Name',
-                    border: OutlineInputBorder(),
+                Center(
+                  child: GestureDetector(
+                    onTap: _pickImage,
+                    child: CircleAvatar(
+                      radius: 50,
+                      backgroundColor: AppTheme.burntOrange.withValues(
+                        alpha: 0.2,
+                      ),
+                      backgroundImage: _profileImage != null
+                          ? FileImage(_profileImage!)
+                          : null,
+                      child: _profileImage == null
+                          ? const Icon(
+                              Icons.add_a_photo,
+                              size: 40,
+                              color: AppTheme.burntOrange,
+                            )
+                          : null,
+                    ),
                   ),
-                  textCapitalization: TextCapitalization.words,
-                  autovalidateMode: AutovalidateMode.onUserInteraction,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Business name is required';
-                    }
-                    return null;
-                  },
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
+                const Center(
+                  child: Text(
+                    'Add a profile picture (Optional)',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+                const SizedBox(height: 32),
+
+                OnboardingForm(
+                  role: widget.role,
+                  firstNameController: _firstNameController,
+                  lastNameController: _lastNameController,
+                  businessNameController: _businessNameController,
+                  phoneController: _phoneController,
+                ),
+
+                const SizedBox(height: 32),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: isLoading ? null : _submitDetails,
+                    child: isLoading
+                        ? const CircularProgressIndicator()
+                        : const Text('Complete'),
+                  ),
+                ),
               ],
-
-              TextFormField(
-                controller: _phoneController,
-                decoration: const InputDecoration(
-                  labelText: 'Phone number (Optional)',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.phone,
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                validator: (value) {
-                  if (value != null && value.trim().isNotEmpty) {
-                    if (value.trim().length < 7) {
-                      return 'Please enter a valid phone number';
-                    }
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 32),
-
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _submitDetails,
-                  child: _isLoading
-                      ? const CircularProgressIndicator()
-                      : const Text('Complete'),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }

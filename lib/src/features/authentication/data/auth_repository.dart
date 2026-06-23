@@ -50,15 +50,31 @@ class AuthRepository {
     }
   }
 
+  Future<AuthResponse> signUp({
+    required String email,
+    required String password,
+    String? emailRedirectTo,
+  }) async {
+    try {
+      return await _client.auth.signUp(
+        email: email,
+        password: password,
+        emailRedirectTo: emailRedirectTo,
+      );
+    } on AuthException catch (e) {
+      throw AuthException(e.message, statusCode: e.statusCode);
+    } catch (e) {
+      throw Exception('Unexpected error during sign up: $e');
+    }
+  }
+
   Future<void> updateUserRole({required String role}) async {
     try {
       final user = _client.auth.currentUser;
       if (user == null) {
         throw AuthException('No authenticated user found');
       }
-      await _client.auth.updateUser(
-        UserAttributes(data: {'role': role}),
-      );
+      await _client.auth.updateUser(UserAttributes(data: {'role': role}));
     } on AuthException catch (e) {
       throw AuthException(e.message, statusCode: e.statusCode);
     } catch (e) {
@@ -67,4 +83,16 @@ class AuthRepository {
   }
 
   User? get currentUser => _client.auth.currentUser;
+
+  Future<bool> checkUserExists(String email) async {
+    try {
+      final res = await _client.rpc(
+        'check_user_exists',
+        params: {'p_email': email},
+      );
+      return res == true;
+    } catch (e) {
+      throw Exception('Failed to check user existence: $e');
+    }
+  }
 }

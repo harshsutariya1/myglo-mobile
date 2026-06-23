@@ -22,11 +22,10 @@ class UserRepository {
     required String email,
     required String role,
   }) async {
-    await _client.rpc('register_user_role', params: {
-      'p_id': id,
-      'p_email': email,
-      'p_role': role,
-    });
+    await _client.rpc(
+      'register_user_role',
+      params: {'p_id': id, 'p_email': email, 'p_role': role},
+    );
   }
 
   /// Updates onboarding details atomically using RPC
@@ -39,15 +38,18 @@ class UserRepository {
     String? profilePic,
     String? businessName,
   }) async {
-    await _client.rpc('update_onboarding_details', params: {
-      'p_id': id,
-      'p_role': role,
-      'p_first_name': firstName,
-      'p_last_name': lastName,
-      'p_phone': phone,
-      'p_profile_pic': profilePic,
-      'p_business_name': businessName,
-    });
+    await _client.rpc(
+      'update_onboarding_details',
+      params: {
+        'p_id': id,
+        'p_role': role,
+        'p_first_name': firstName,
+        'p_last_name': lastName,
+        'p_phone': phone,
+        'p_profile_pic': profilePic,
+        'p_business_name': businessName,
+      },
+    );
   }
 
   /// Updates specific profile details in all_users and role-based tables
@@ -65,7 +67,7 @@ class UserRepository {
     if (lastName != null) updates['last_name'] = lastName;
     if (phone != null) updates['phone_number'] = phone;
     if (profilePic != null) updates['profile_pic'] = profilePic;
-    
+
     if (updates.isNotEmpty) {
       await _client.from('all_users').update(updates).eq('id', id);
     }
@@ -80,14 +82,13 @@ class UserRepository {
       await _client.from('customers').update(updates).eq('id', id);
     }
   }
+
   /// Uploads a profile picture and returns the public URL
   Future<String> uploadProfilePicture(String userId, File imageFile) async {
     final path = '$userId.jpg';
-    await _client.storage.from('profile-pics').upload(
-      path, 
-      imageFile,
-      fileOptions: const FileOptions(upsert: true),
-    );
+    await _client.storage
+        .from('profile-pics')
+        .upload(path, imageFile, fileOptions: const FileOptions(upsert: true));
     final baseUrl = _client.storage.from('profile-pics').getPublicUrl(path);
     return '$baseUrl?t=${DateTime.now().millisecondsSinceEpoch}';
   }

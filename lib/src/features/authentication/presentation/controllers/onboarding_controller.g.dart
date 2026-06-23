@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'email_auth_controller.dart';
+part of 'onboarding_controller.dart';
 
 // **************************************************************************
 // RiverpodGenerator
@@ -9,34 +9,34 @@ part of 'email_auth_controller.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
-@ProviderFor(EmailAuthController)
-final emailAuthControllerProvider = EmailAuthControllerProvider._();
+@ProviderFor(OnboardingController)
+final onboardingControllerProvider = OnboardingControllerProvider._();
 
-final class EmailAuthControllerProvider
-    extends $AsyncNotifierProvider<EmailAuthController, void> {
-  EmailAuthControllerProvider._()
+final class OnboardingControllerProvider
+    extends $AsyncNotifierProvider<OnboardingController, void> {
+  OnboardingControllerProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
-        name: r'emailAuthControllerProvider',
+        name: r'onboardingControllerProvider',
         isAutoDispose: true,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
 
   @override
-  String debugGetCreateSourceHash() => _$emailAuthControllerHash();
+  String debugGetCreateSourceHash() => _$onboardingControllerHash();
 
   @$internal
   @override
-  EmailAuthController create() => EmailAuthController();
+  OnboardingController create() => OnboardingController();
 }
 
-String _$emailAuthControllerHash() =>
-    r'673867271bc925d67a0e9e774b7fd24b4eacf137';
+String _$onboardingControllerHash() =>
+    r'3ed0ee6c014e0bb34c0cc50d33fb63b3ff41ec5e';
 
-abstract class _$EmailAuthController extends $AsyncNotifier<void> {
+abstract class _$OnboardingController extends $AsyncNotifier<void> {
   FutureOr<void> build();
   @$mustCallSuper
   @override

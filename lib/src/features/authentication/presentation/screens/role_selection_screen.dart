@@ -47,7 +47,7 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
         'Registering user in all_users and specific role tables',
         name: 'RoleSelectionScreen',
       );
-      
+
       await userRepo.registerUserRole(
         id: widget.id,
         email: widget.email,
@@ -71,7 +71,10 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
         name: 'RoleSelectionScreen',
       );
       if (mounted) {
-        context.showAppSnackBar('Failed to update role. Please try again.', isError: true);
+        context.showAppSnackBar(
+          'Failed to update role. Please try again.',
+          isError: true,
+        );
       }
     } finally {
       developer.log('Role submission completed', name: 'RoleSelectionScreen');
@@ -149,7 +152,9 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? AppTheme.burntOrange : Theme.of(context).colorScheme.outlineVariant,
+            color: isSelected
+                ? AppTheme.burntOrange
+                : Theme.of(context).colorScheme.outlineVariant,
             width: isSelected ? 2 : 1,
           ),
           color: AppTheme.white,
@@ -182,7 +187,9 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
               isSelected
                   ? Icons.radio_button_checked
                   : Icons.radio_button_unchecked,
-              color: isSelected ? AppTheme.burntOrange : Theme.of(context).colorScheme.outline,
+              color: isSelected
+                  ? AppTheme.burntOrange
+                  : Theme.of(context).colorScheme.outline,
             ),
           ],
         ),

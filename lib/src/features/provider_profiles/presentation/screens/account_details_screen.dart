@@ -5,12 +5,14 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../authentication/application/user_profile_provider.dart';
 import '../../../authentication/application/edit_account_controller.dart';
+import '../widgets/profile_pic_picker.dart';
 
 class AccountDetailsScreen extends ConsumerStatefulWidget {
   const AccountDetailsScreen({super.key});
 
   @override
-  ConsumerState<AccountDetailsScreen> createState() => _AccountDetailsScreenState();
+  ConsumerState<AccountDetailsScreen> createState() =>
+      _AccountDetailsScreenState();
 }
 
 class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
@@ -27,10 +29,14 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
     super.initState();
     final userProfile = ref.read(userProfileProvider).value;
     final allUser = userProfile?.allUser;
-    _firstNameController = TextEditingController(text: allUser?.firstName ?? '');
+    _firstNameController = TextEditingController(
+      text: allUser?.firstName ?? '',
+    );
     _lastNameController = TextEditingController(text: allUser?.lastName ?? '');
     _phoneController = TextEditingController(text: allUser?.phoneNumber ?? '');
-    _businessNameController = TextEditingController(text: userProfile?.businessProfile?.businessName ?? '');
+    _businessNameController = TextEditingController(
+      text: userProfile?.businessProfile?.businessName ?? '',
+    );
   }
 
   @override
@@ -44,8 +50,11 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
-    
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+    );
+
     if (pickedFile != null) {
       setState(() {
         _newProfilePic = File(pickedFile.path);
@@ -53,23 +62,27 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
     }
   }
 
-  Future<void> _saveDetails() async { 
+  Future<void> _saveDetails() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     final userProfile = ref.read(userProfileProvider).value;
     if (userProfile == null) return;
 
     setState(() => _isLoading = true);
 
     try {
-      await ref.read(editAccountControllerProvider).updateProfile(
-        id: userProfile.allUser.id,
-        firstName: _firstNameController.text.trim(),
-        lastName: _lastNameController.text.trim(),
-        phone: _phoneController.text.trim(),
-        businessName: userProfile.isBusiness ? _businessNameController.text.trim() : null,
-        newProfilePic: _newProfilePic,
-      );
+      await ref
+          .read(editAccountControllerProvider)
+          .updateProfile(
+            id: userProfile.allUser.id,
+            firstName: _firstNameController.text.trim(),
+            lastName: _lastNameController.text.trim(),
+            phone: _phoneController.text.trim(),
+            businessName: userProfile.isBusiness
+                ? _businessNameController.text.trim()
+                : null,
+            newProfilePic: _newProfilePic,
+          );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -78,9 +91,9 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) {
@@ -95,9 +108,7 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
     final profile = userProfile?.allUser;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Account Details'),
-      ),
+      appBar: AppBar(title: const Text('Account Details')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -106,40 +117,10 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
                 key: _formKey,
                 child: Column(
                   children: [
-                    GestureDetector(
-                      onTap: _pickImage,
-                      child: Stack(
-                        children: [
-                          CircleAvatar(
-                            radius: 50,
-                            backgroundColor: Colors.grey[200],
-                            backgroundImage: _newProfilePic != null
-                                ? FileImage(_newProfilePic!) as ImageProvider
-                                : (profile?.profilePic != null && profile!.profilePic!.isNotEmpty
-                                    ? NetworkImage(profile.profilePic!)
-                                    : null),
-                            child: (_newProfilePic == null && (profile?.profilePic == null || profile!.profilePic!.isEmpty))
-                                ? const Icon(Icons.person, size: 50, color: Colors.grey)
-                                : null,
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
-                                color: AppTheme.burntOrange,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.camera_alt,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                    ProfilePicPicker(
+                      newProfilePic: _newProfilePic,
+                      existingProfilePicUrl: profile?.profilePic,
+                      onPickImage: _pickImage,
                     ),
                     const SizedBox(height: 32),
                     TextFormField(
@@ -148,8 +129,9 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
                         labelText: 'First Name',
                         border: OutlineInputBorder(),
                       ),
-                      validator: (value) =>
-                          value == null || value.isEmpty ? 'Please enter first name' : null,
+                      validator: (value) => value == null || value.isEmpty
+                          ? 'Please enter first name'
+                          : null,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
@@ -158,8 +140,9 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
                         labelText: 'Last Name',
                         border: OutlineInputBorder(),
                       ),
-                      validator: (value) =>
-                          value == null || value.isEmpty ? 'Please enter last name' : null,
+                      validator: (value) => value == null || value.isEmpty
+                          ? 'Please enter last name'
+                          : null,
                     ),
                     if (userProfile?.isBusiness == true) ...[
                       const SizedBox(height: 16),
@@ -171,7 +154,9 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
                         ),
                         textCapitalization: TextCapitalization.words,
                         validator: (value) =>
-                            value == null || value.trim().isEmpty ? 'Please enter business name' : null,
+                            value == null || value.trim().isEmpty
+                            ? 'Please enter business name'
+                            : null,
                       ),
                     ],
                     const SizedBox(height: 16),
@@ -198,7 +183,10 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
                         onPressed: _saveDetails,
                         child: const Text(
                           'Save Changes',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
                       ),
                     ),

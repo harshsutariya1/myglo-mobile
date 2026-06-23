@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../data/auth_repository.dart';
 
@@ -33,6 +34,16 @@ class EmailAuthController extends _$EmailAuthController {
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;
+    }
+  }
+
+  Future<bool> checkUserExists(String email) async {
+    try {
+      final repository = ref.read(authRepositoryProvider);
+      return await repository.checkUserExists(email);
+    } catch (e) {
+      developer.log('Error checking user existence in controller: $e');
+      return false; // Safely return false or handle error
     }
   }
 }

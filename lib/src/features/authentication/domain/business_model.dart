@@ -15,5 +15,6 @@ abstract class BusinessModel with _$BusinessModel {
     @JsonKey(name: 'profile_pic') String? profilePicUrl,
   }) = _BusinessModel;
 
-  factory BusinessModel.fromJson(Map<String, dynamic> json) => _$BusinessModelFromJson(json);
+  factory BusinessModel.fromJson(Map<String, dynamic> json) =>
+      _$BusinessModelFromJson(json);
 }

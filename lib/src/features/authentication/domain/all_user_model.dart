@@ -16,5 +16,6 @@ abstract class AllUserModel with _$AllUserModel {
     @JsonKey(name: 'profile_pic') String? profilePic,
   }) = _AllUserModel;
 
-  factory AllUserModel.fromJson(Map<String, dynamic> json) => _$AllUserModelFromJson(json);
+  factory AllUserModel.fromJson(Map<String, dynamic> json) =>
+      _$AllUserModelFromJson(json);
 }

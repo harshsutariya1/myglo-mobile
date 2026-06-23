@@ -16,6 +16,7 @@ import '../../features/provider_profiles/presentation/screens/settings_screen.da
 import '../../features/provider_profiles/presentation/screens/account_details_screen.dart';
 import '../../features/authentication/application/user_profile_provider.dart';
 import '../widgets/main_scaffold.dart';
+import 'app_router_guard.dart';
 
 /// Defines all the route names and paths in the app.
 enum AppRoute {
@@ -39,70 +40,7 @@ enum AppRoute {
 final routerProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
     initialLocation: AppRoute.splash.path,
-    redirect: (context, state) {
-      final authState = ref.read(authStateProvider);
-      final userProfileState = ref.read(userProfileProvider);
-
-      if (authState.hasError || userProfileState.hasError) {
-        // If there's a fatal error in providers, redirect to intro or splash
-        return AppRoute.intro.path;
-      }
-
-      if (authState.isLoading) return AppRoute.splash.path;
-
-      final session = authState.value?.session;
-      final isAuth = session != null;
-
-      final isUnauthRoute =
-          state.uri.path == AppRoute.auth.path ||
-          state.uri.path == AppRoute.intro.path ||
-          state.uri.path == AppRoute.confirmEmail.path;
-
-      final isAuthRouteOrSplash =
-          isUnauthRoute ||
-          state.uri.path == AppRoute.splash.path ||
-          state.uri.path == AppRoute.roleSelection.path ||
-          state.uri.path == AppRoute.onboardingDetails.path;
-
-      // Redirect to intro if not authenticated.
-      if (!isAuth) {
-        if (!isUnauthRoute) return AppRoute.intro.path;
-        return null;
-      }
-
-      // If user is authenticated, check their onboarding status
-      if (userProfileState.isLoading && !userProfileState.hasValue) {
-        return AppRoute.splash.path; // Show splash while loading profile
-      }
-
-      final profile = userProfileState.value;
-
-      // 1. Not in all_users table -> Role Selection
-      if (profile == null) {
-        if (userProfileState.isLoading) {
-          return AppRoute.splash.path;
-        }
-        if (state.uri.path != AppRoute.roleSelection.path) {
-          return '${AppRoute.roleSelection.path}?email=${session.user.email}&id=${session.user.id}';
-        }
-        return null;
-      }
-
-      // 2. In all_users but missing details -> Onboarding
-      if (profile.allUser.firstName == null || profile.allUser.firstName!.isEmpty) {
-        if (state.uri.path != AppRoute.onboardingDetails.path) {
-          return AppRoute.onboardingDetails.path;
-        }
-        return null;
-      }
-
-      // 3. Fully onboarded -> Redirect to main if on auth screens
-      if (isAuthRouteOrSplash) {
-        return AppRoute.main.path;
-      }
-
-      return null;
-    },
+    redirect: (context, state) => appRouterRedirect(context, state, ref),
     routes: [
       GoRoute(
         path: AppRoute.splash.path,
@@ -124,7 +62,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: AppRoute.confirmEmail.name,
         builder: (context, state) {
           final extra = state.extra as Map<String, dynamic>? ?? {};
-          return EmailConfirmationScreen(email: extra['email'] as String? ?? '');
+          return EmailConfirmationScreen(
+            email: extra['email'] as String? ?? '',
+          );
         },
       ),
       GoRoute(
@@ -192,16 +132,9 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 
-  ref.listen(
-    authStateProvider,
-    (_, _) => router.refresh(),
-  );
+  ref.listen(authStateProvider, (_, _) => router.refresh());
 
-  ref.listen(
-    userProfileProvider,
-    (_, _) => router.refresh(),
-  );
+  ref.listen(userProfileProvider, (_, _) => router.refresh());
 
   return router;
 });
-

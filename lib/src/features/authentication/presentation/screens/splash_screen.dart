@@ -21,7 +21,9 @@ class SplashScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   child: LinearProgressIndicator(
                     color: theme.colorScheme.primary,
-                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
+                    backgroundColor: theme.colorScheme.primary.withValues(
+                      alpha: 0.15,
+                    ),
                     minHeight: 4,
                   ),
                 ),

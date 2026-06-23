@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
+import 'widgets/home_search_bar.dart';
+import 'widgets/category_list.dart';
+import 'widgets/provider_item.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -44,9 +47,9 @@ class HomeScreen extends StatelessWidget {
                 ),
                 margin: const EdgeInsets.only(top: 4, bottom: 24),
               ),
-              _buildSearchBar(),
+              const HomeSearchBar(),
               const SizedBox(height: 32),
-              _buildCategories(),
+              const CategoryList(),
               const SizedBox(height: 32),
               const Text(
                 'Near me',
@@ -57,7 +60,7 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              _buildProviderItem(
+              const ProviderItem(
                 initials: 'LL',
                 color: AppTheme.primaryPink,
                 category: 'LASHES',
@@ -65,7 +68,7 @@ class HomeScreen extends StatelessWidget {
                 location: 'Melbourne CBD • 2km',
               ),
               const SizedBox(height: 16),
-              _buildProviderItem(
+              ProviderItem(
                 initials: 'KB',
                 color: AppTheme.primaryPink.withValues(alpha: 0.8),
                 category: 'EYELASHES',
@@ -73,7 +76,7 @@ class HomeScreen extends StatelessWidget {
                 location: 'Melbourne CBD • 2km',
               ),
               const SizedBox(height: 16),
-              _buildProviderItemWithImage(
+              const ProviderItemWithImage(
                 category: 'NAILS',
                 name: 'Pure Pamper',
                 location: 'Melbourne CBD • 2km',
@@ -86,197 +89,6 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildSearchBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(32),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: const TextField(
-        decoration: InputDecoration(
-          icon: Icon(Icons.search, color: Colors.black54),
-          hintText: 'What are you looking for?',
-          border: InputBorder.none,
-          hintStyle: TextStyle(color: Colors.black38),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCategories() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        _buildCategoryCard('Hair', Icons.cut_outlined, const Color(0xFFF3E5F5)),
-        _buildCategoryCard(
-          'Makeup',
-          Icons.face_retouching_natural,
-          const Color(0xFFE0F7FA),
-        ),
-        _buildCategoryCard(
-          'Eyebrows',
-          Icons.visibility_outlined,
-          const Color(0xFFF1F8E9),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCategoryCard(String title, IconData icon, Color color) {
-    return Expanded(
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        padding: const EdgeInsets.symmetric(vertical: 24),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, size: 32, color: AppTheme.darkRed),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: const TextStyle(
-                color: AppTheme.darkRed,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProviderItem({
-    required String initials,
-    required Color color,
-    required String category,
-    required String name,
-    required String location,
-  }) {
-    return Row(
-      children: [
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            initials,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                category,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black54,
-                  letterSpacing: 1.2,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                name,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.darkRed,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                location,
-                style: const TextStyle(fontSize: 14, color: Colors.black54),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildProviderItemWithImage({
-    required String category,
-    required String name,
-    required String location,
-    required String status,
-    required Color statusColor,
-  }) {
-    return Row(
-      children: [
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            color: Colors.grey[300],
-            borderRadius: BorderRadius.circular(20),
-          ),
-          alignment: Alignment.center,
-          child: const Icon(Icons.image, size: 40, color: Colors.white),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    category,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black54,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  Text(
-                    status,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: statusColor,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                name,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.darkRed,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                location,
-                style: const TextStyle(fontSize: 14, color: Colors.black54),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

@@ -18,12 +18,15 @@ class EditAccountController {
   }) async {
     final userRepository = _ref.read(userRepositoryProvider);
     final userProfile = _ref.read(userProfileProvider).value;
-    
+
     if (userProfile == null) return;
-    
+
     String? uploadedPicUrl;
     if (newProfilePic != null) {
-      uploadedPicUrl = await userRepository.uploadProfilePicture(id, newProfilePic);
+      uploadedPicUrl = await userRepository.uploadProfilePicture(
+        id,
+        newProfilePic,
+      );
     }
 
     await userRepository.updateUserProfile(
