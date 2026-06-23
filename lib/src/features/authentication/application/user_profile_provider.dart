@@ -41,6 +41,18 @@ final userProfileProvider = FutureProvider<AppUserProfile?>((ref) async {
   // Fetch from all_users first to determine role and get base info
   final allUser = await userRepo.getAllUser(user.id);
   if (allUser == null) {
+    try {
+      // Verify if the user still exists in Supabase auth.
+      // This catches cases where the user was deleted from the database
+      // but their local session hasn't expired yet.
+      await ref.read(supabaseClientProvider).auth.getUser();
+    } on AuthException catch (_) {
+      // User is invalid or deleted, sign them out locally
+      await ref.read(supabaseClientProvider).auth.signOut();
+      return null;
+    } catch (_) {
+      // Ignore other errors (like network issues) to avoid signing out unnecessarily
+    }
     return null; // Not fully onboarded in terms of role
   }
 

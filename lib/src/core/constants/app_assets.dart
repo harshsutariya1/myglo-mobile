@@ -10,6 +10,8 @@ class AppAssets {
   static const String iconLogo1 = 'assets/logo/MyGlo_logo3.png';
   static const String iconLogo3D_1 = 'assets/logo/MyGlo3D_3.png';
   static const String iconLogo3D_2 = 'assets/logo/MyGlo3D_4.png';
+  static const String iconLogo3D_3 = 'assets/logo/MyGlo3D_5.png';
+  static const String iconLogo3D_4 = 'assets/logo/MyGlo3D_6.png';
 
   // Graphics
   static const String underlineGraphic = 'assets/graphics/underline.png';
