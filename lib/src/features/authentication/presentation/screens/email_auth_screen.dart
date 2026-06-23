@@ -2,6 +2,7 @@ import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/snackbar_utils.dart';
 import '../controllers/email_auth_controller.dart';
@@ -173,8 +174,9 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
       if (mounted) {
         context.go('/main');
       }
-    } catch (e) {
-      if (e.toString().contains('Email not confirmed')) {
+    } on AuthException catch (e) {
+      if (e.message.toLowerCase().contains('email not confirmed') ||
+          e.code == 'email_not_confirmed') {
         developer.log(
           'Email not confirmed during login',
           name: 'EmailAuthScreen',
@@ -182,7 +184,7 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
         _showUnconfirmedPopup();
       } else {
         developer.log(
-          'Exception during login: $e',
+          'AuthException during login: ${e.message}',
           level: 900,
           name: 'EmailAuthScreen',
         );
@@ -192,6 +194,15 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
             isError: true,
           );
         }
+      }
+    } catch (e) {
+      developer.log(
+        'Exception during login: $e',
+        level: 900,
+        name: 'EmailAuthScreen',
+      );
+      if (mounted) {
+        context.showAppSnackBar('An unexpected error occurred.', isError: true);
       }
     } finally {
       developer.log('handleLogin completed', name: 'EmailAuthScreen');

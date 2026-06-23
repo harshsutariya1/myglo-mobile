@@ -25,6 +25,33 @@ class AppUserProfile {
 
   bool get isCustomer => role == UserRole.customer;
   bool get isBusiness => role == UserRole.business;
+
+  String get displayName {
+    String name;
+    if (isBusiness) {
+      final bName = businessProfile?.businessName?.trim() ?? '';
+      final fullName =
+          '${businessProfile?.firstName ?? ''} ${businessProfile?.lastName ?? ''}'
+              .trim();
+      name = bName.isNotEmpty ? bName : fullName;
+    } else {
+      name =
+          '${customerProfile?.firstName ?? ''} ${customerProfile?.lastName ?? ''}'
+              .trim();
+    }
+    return name.isEmpty ? 'Guest User' : name;
+  }
+
+  String? get displaySubtitle {
+    if (isBusiness) {
+      final bName = businessProfile?.businessName?.trim() ?? '';
+      final fullName =
+          '${businessProfile?.firstName ?? ''} ${businessProfile?.lastName ?? ''}'
+              .trim();
+      return bName.isNotEmpty ? fullName : null;
+    }
+    return null;
+  }
 }
 
 /// Watches the auth state and retrieves the corresponding user profile data from the database.

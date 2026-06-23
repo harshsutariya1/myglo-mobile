@@ -38,12 +38,16 @@ class EmailAuthController extends _$EmailAuthController {
   }
 
   Future<bool> checkUserExists(String email) async {
+    state = const AsyncLoading();
     try {
       final repository = ref.read(authRepositoryProvider);
-      return await repository.checkUserExists(email);
-    } catch (e) {
+      final exists = await repository.checkUserExists(email);
+      state = const AsyncData(null);
+      return exists;
+    } catch (e, st) {
       developer.log('Error checking user existence in controller: $e');
-      return false; // Safely return false or handle error
+      state = AsyncError(e, st);
+      rethrow;
     }
   }
 }

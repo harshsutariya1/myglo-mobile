@@ -35,7 +35,7 @@ final class EmailConfirmationControllerProvider
 }
 
 String _$emailConfirmationControllerHash() =>
-    r'1d64f10d08818fa463865acbb208679c836e6226';
+    r'0242cf2cf21f5413dd854732ac4eca6e0be8b8a4';
 
 abstract class _$EmailConfirmationController extends $AsyncNotifier<bool> {
   FutureOr<bool> build();

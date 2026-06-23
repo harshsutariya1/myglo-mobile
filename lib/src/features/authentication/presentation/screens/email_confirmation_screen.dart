@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/snackbar_utils.dart';
 import '../controllers/email_confirmation_controller.dart';
@@ -48,12 +49,12 @@ class _EmailConfirmationScreenState
     final controller = ref.read(emailConfirmationControllerProvider.notifier);
 
     try {
-      final response = await controller.checkConfirmation(
+      final response = await controller.signIn(
         email: widget.email,
         password: _passwordController.text.trim(),
       );
 
-      if (response != null && response.user != null) {
+      if (response.user != null) {
         if (mounted) {
           context.showAppSnackBar('Account confirmed successfully!');
           context.go(
@@ -61,15 +62,16 @@ class _EmailConfirmationScreenState
             extra: {'email': response.user!.email, 'id': response.user!.id},
           );
         }
-      } else {
+      }
+    } on AuthException catch (e) {
+      if (e.message.toLowerCase().contains('email not confirmed') ||
+          e.code == 'email_not_confirmed') {
         _showUnconfirmedPopup();
+      } else {
+        if (mounted) context.showAppSnackBar(e.message, isError: true);
       }
     } catch (e) {
-      if (e.toString().contains('Email not confirmed')) {
-        _showUnconfirmedPopup();
-      } else {
-        if (mounted) context.showAppSnackBar(e.toString(), isError: true);
-      }
+      if (mounted) context.showAppSnackBar(e.toString(), isError: true);
     }
   }
 

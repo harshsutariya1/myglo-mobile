@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/config/app_config.dart';
 import '../../data/auth_repository.dart';
 
 part 'email_confirmation_controller.g.dart';
@@ -18,7 +19,7 @@ class EmailConfirmationController extends _$EmailConfirmationController {
       await authRepository.signUp(
         email: email,
         password: password,
-        emailRedirectTo: 'https://www.myglo.app/welcome',
+        emailRedirectTo: AppConfig.emailConfirmationRedirectUrl,
       );
       state = const AsyncData(true); // true means email sent
     } on AuthException catch (e, st) {
@@ -28,7 +29,7 @@ class EmailConfirmationController extends _$EmailConfirmationController {
     }
   }
 
-  Future<AuthResponse?> checkConfirmation({
+  Future<AuthResponse> signIn({
     required String email,
     required String password,
   }) async {
@@ -43,13 +44,10 @@ class EmailConfirmationController extends _$EmailConfirmationController {
       return response;
     } on AuthException catch (e, st) {
       state = AsyncError(e, st);
-      if (e.message.contains('Email not confirmed')) {
-        rethrow; // Reraise for UI to catch and show popup
-      }
-      return null;
+      rethrow;
     } catch (e, st) {
       state = AsyncError(e, st);
-      return null;
+      rethrow;
     }
   }
 }

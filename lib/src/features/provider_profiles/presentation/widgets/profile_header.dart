@@ -9,30 +9,8 @@ class ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String name;
-    String? subtitle;
-
-    if (appUser.isBusiness) {
-      final bName = appUser.businessProfile?.businessName?.trim() ?? '';
-      final fullName =
-          '${appUser.businessProfile?.firstName ?? ''} ${appUser.businessProfile?.lastName ?? ''}'
-              .trim();
-
-      if (bName.isNotEmpty) {
-        name = bName;
-        subtitle = fullName;
-      } else {
-        name = fullName;
-        subtitle = null;
-      }
-    } else {
-      name =
-          '${appUser.customerProfile?.firstName ?? ''} ${appUser.customerProfile?.lastName ?? ''}'
-              .trim();
-      subtitle = null;
-    }
-
-    final displayName = name.isEmpty ? 'Guest User' : name;
+    final displayName = appUser.displayName;
+    final subtitle = appUser.displaySubtitle;
     final profilePicUrl = appUser.allUser.profilePic;
 
     return Column(
