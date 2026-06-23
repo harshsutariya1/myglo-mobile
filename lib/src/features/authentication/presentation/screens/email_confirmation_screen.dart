@@ -20,8 +20,8 @@ class EmailConfirmationScreen extends ConsumerStatefulWidget {
 class _EmailConfirmationScreenState
     extends ConsumerState<EmailConfirmationScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
+  final _passwordController = TextEditingController(text: "123456");
+  final _confirmPasswordController = TextEditingController(text: "123456");
 
   bool _isLoading = false;
   bool _emailSent = false;
@@ -55,7 +55,7 @@ class _EmailConfirmationScreenState
       await supabase.auth.signUp(
         email: widget.email,
         password: password,
-        emailRedirectTo: 'https://www.myglo.app',
+        emailRedirectTo: 'https://www.myglo.app/welcome',
       );
 
       developer.log(

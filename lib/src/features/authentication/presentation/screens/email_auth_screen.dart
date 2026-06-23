@@ -19,7 +19,7 @@ class EmailAuthScreen extends ConsumerStatefulWidget {
 class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
     with SingleTickerProviderStateMixin {
   final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final _passwordController = TextEditingController(text: "123456");
 
   bool _isLoading = false;
   bool _isValidEmail = false;
@@ -229,7 +229,7 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
                   children: [
                     const SizedBox(height: 32),
                     Image.asset(
-                      AppAssets.iconLogo1,
+                      AppAssets.iconLogo3D_2,
                       height: 80,
                       errorBuilder: (context, error, stackTrace) => const Icon(
                         Icons.star,
