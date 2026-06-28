@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/authentication/data/auth_repository.dart';
-import '../../features/authentication/application/user_profile_provider.dart';
+import '../../features/shared/authentication/models/auth_repository.dart';
+import '../../features/shared/authentication/controllers/user_profile_provider.dart';
 import 'app_router.dart';
 
 /// Handles the redirection logic for the application based on authentication

@@ -42,7 +42,7 @@ final class ShorebirdUpdateServiceProvider
 }
 
 String _$shorebirdUpdateServiceHash() =>
-    r'8a97556c6853d97c31f51fd786c17b4d9aa6d50a';
+    r'c114bccf67a4ed584bfb9c6488f37aba6d7b4317';
 
 abstract class _$ShorebirdUpdateService
     extends $Notifier<ShorebirdUpdateState> {
