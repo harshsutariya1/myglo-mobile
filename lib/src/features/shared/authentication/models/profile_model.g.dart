@@ -1,34 +1,38 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'all_user_model.dart';
+part of 'profile_model.dart';
 
 // **************************************************************************
 // JsonSerializableGenerator
 // **************************************************************************
 
-_AllUserModel _$AllUserModelFromJson(Map<String, dynamic> json) =>
-    _AllUserModel(
+_ProfileModel _$ProfileModelFromJson(Map<String, dynamic> json) =>
+    _ProfileModel(
       id: json['id'] as String,
-      email: json['email'] as String,
       role: $enumDecode(_$UserRoleEnumMap, json['role']),
       firstName: json['first_name'] as String?,
       lastName: json['last_name'] as String?,
+      email: json['email'] as String,
       phoneNumber: json['phone_number'] as String?,
       profilePic: json['profile_pic'] as String?,
+      isEmailPublic: json['is_email_public'] as bool? ?? false,
+      isPhonePublic: json['is_phone_public'] as bool? ?? false,
     );
 
-Map<String, dynamic> _$AllUserModelToJson(_AllUserModel instance) =>
+Map<String, dynamic> _$ProfileModelToJson(_ProfileModel instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'email': instance.email,
       'role': _$UserRoleEnumMap[instance.role]!,
       'first_name': instance.firstName,
       'last_name': instance.lastName,
+      'email': instance.email,
       'phone_number': instance.phoneNumber,
       'profile_pic': instance.profilePic,
+      'is_email_public': instance.isEmailPublic,
+      'is_phone_public': instance.isPhonePublic,
     };
 
 const _$UserRoleEnumMap = {
   UserRole.customer: 'customer',
-  UserRole.business: 'business',
+  UserRole.provider: 'provider',
 };

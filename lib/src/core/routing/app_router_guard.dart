@@ -58,10 +58,10 @@ String? appRouterRedirect(BuildContext context, GoRouterState state, Ref ref) {
   }
 
   // 2. In all_users but missing details -> Onboarding
-  if (profile.allUser.firstName == null ||
-      profile.allUser.firstName!.isEmpty ||
-      profile.allUser.lastName == null ||
-      profile.allUser.lastName!.isEmpty) {
+  if (profile.profile.firstName == null ||
+      profile.profile.firstName!.isEmpty ||
+      profile.profile.lastName == null ||
+      profile.profile.lastName!.isEmpty) {
     if (state.uri.path != AppRoute.onboardingDetails.path) {
       return AppRoute.onboardingDetails.path;
     }

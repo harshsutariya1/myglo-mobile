@@ -11,7 +11,7 @@ class ProfileHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final displayName = appUser.displayName;
     final subtitle = appUser.displaySubtitle;
-    final profilePicUrl = appUser.allUser.profilePic;
+    final profilePicUrl = appUser.profile.profilePic;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,

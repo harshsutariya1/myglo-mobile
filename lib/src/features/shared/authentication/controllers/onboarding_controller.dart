@@ -19,7 +19,8 @@ class OnboardingController extends _$OnboardingController {
     required String firstName,
     required String lastName,
     required String? phone,
-    required String? businessName,
+    required String? providerName,
+    required String? addressText,
     required File? profileImage,
   }) async {
     state = const AsyncLoading();
@@ -46,7 +47,8 @@ class OnboardingController extends _$OnboardingController {
         lastName: lastName,
         phone: phone,
         profilePic: profilePicUrl,
-        businessName: role == UserRole.business ? businessName : null,
+        providerName: role == UserRole.provider ? providerName : null,
+        addressText: role == UserRole.provider ? addressText : null,
       );
 
       ref.invalidate(userProfileProvider);

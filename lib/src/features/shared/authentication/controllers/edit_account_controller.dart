@@ -13,7 +13,8 @@ class EditAccountController {
     String? firstName,
     String? lastName,
     String? phone,
-    String? businessName,
+    String? providerName,
+    String? addressText,
     File? newProfilePic,
   }) async {
     final userRepository = _ref.read(userRepositoryProvider);
@@ -35,7 +36,8 @@ class EditAccountController {
       firstName: firstName,
       lastName: lastName,
       phone: phone,
-      businessName: businessName,
+      providerName: providerName,
+      addressText: addressText,
       profilePic: uploadedPicUrl,
     );
 

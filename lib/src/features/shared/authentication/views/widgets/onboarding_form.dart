@@ -5,7 +5,8 @@ class OnboardingForm extends StatelessWidget {
   final UserRole role;
   final TextEditingController firstNameController;
   final TextEditingController lastNameController;
-  final TextEditingController businessNameController;
+  final TextEditingController providerNameController;
+  final TextEditingController addressTextController;
   final TextEditingController phoneController;
 
   const OnboardingForm({
@@ -13,7 +14,8 @@ class OnboardingForm extends StatelessWidget {
     required this.role,
     required this.firstNameController,
     required this.lastNameController,
-    required this.businessNameController,
+    required this.providerNameController,
+    required this.addressTextController,
     required this.phoneController,
   });
 
@@ -54,18 +56,34 @@ class OnboardingForm extends StatelessWidget {
           },
         ),
         const SizedBox(height: 16),
-        if (role == UserRole.business) ...[
+        if (role == UserRole.provider) ...[
           TextFormField(
-            controller: businessNameController,
+            controller: providerNameController,
             decoration: const InputDecoration(
-              labelText: 'Business Name',
+              labelText: 'Provider Name',
               border: OutlineInputBorder(),
             ),
             textCapitalization: TextCapitalization.words,
             autovalidateMode: AutovalidateMode.onUserInteraction,
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'Business name is required';
+                return 'Provider name is required';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: addressTextController,
+            decoration: const InputDecoration(
+              labelText: 'Physical Address',
+              border: OutlineInputBorder(),
+            ),
+            textCapitalization: TextCapitalization.words,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Address is required';
               }
               return null;
             },

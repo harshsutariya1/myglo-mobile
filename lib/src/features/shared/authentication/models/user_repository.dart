@@ -1,9 +1,8 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'business_model.dart';
-import 'customer_model.dart';
-import 'all_user_model.dart';
+import 'provider_details_model.dart';
+import 'profile_model.dart';
 import 'user_role.dart';
 import 'auth_repository.dart';
 
@@ -36,7 +35,10 @@ class UserRepository {
     required String lastName,
     String? phone,
     String? profilePic,
-    String? businessName,
+    String? providerName,
+    String? addressText,
+    double? latitude,
+    double? longitude,
   }) async {
     await _client.rpc(
       'update_onboarding_details',
@@ -47,12 +49,15 @@ class UserRepository {
         'p_last_name': lastName,
         'p_phone': phone,
         'p_profile_pic': profilePic,
-        'p_business_name': businessName,
+        'p_provider_name': providerName,
+        'p_address_text': addressText,
+        'p_latitude': latitude,
+        'p_longitude': longitude,
       },
     );
   }
 
-  /// Updates specific profile details in all_users and role-based tables
+  /// Updates specific profile details in profiles and role-based tables
   Future<void> updateUserProfile({
     required String id,
     required UserRole role,
@@ -60,7 +65,10 @@ class UserRepository {
     String? lastName,
     String? phone,
     String? profilePic,
-    String? businessName,
+    String? providerName,
+    String? addressText,
+    double? latitude,
+    double? longitude,
   }) async {
     final updates = <String, dynamic>{};
     if (firstName != null) updates['first_name'] = firstName;
@@ -69,17 +77,19 @@ class UserRepository {
     if (profilePic != null) updates['profile_pic'] = profilePic;
 
     if (updates.isNotEmpty) {
-      await _client.from('all_users').update(updates).eq('id', id);
+      await _client.from('profiles').update(updates).eq('id', id);
     }
 
-    if (role == UserRole.business) {
-      final businessUpdates = Map<String, dynamic>.from(updates);
-      if (businessName != null) businessUpdates['business_name'] = businessName;
-      if (businessUpdates.isNotEmpty) {
-        await _client.from('businesses').update(businessUpdates).eq('id', id);
+    if (role == UserRole.provider) {
+      final providerUpdates = <String, dynamic>{};
+      if (providerName != null) providerUpdates['provider_name'] = providerName;
+      if (addressText != null) providerUpdates['address_text'] = addressText;
+      if (latitude != null) providerUpdates['latitude'] = latitude;
+      if (longitude != null) providerUpdates['longitude'] = longitude;
+      
+      if (providerUpdates.isNotEmpty) {
+        await _client.from('provider_details').update(providerUpdates).eq('id', id);
       }
-    } else if (updates.isNotEmpty) {
-      await _client.from('customers').update(updates).eq('id', id);
     }
   }
 
@@ -93,36 +103,36 @@ class UserRepository {
     return '$baseUrl?t=${DateTime.now().millisecondsSinceEpoch}';
   }
 
-  /// Fetches an AllUserModel profile from the DB
-  Future<AllUserModel?> getAllUser(String id) async {
+  /// Fetches a ProfileModel profile from the DB for the currently authenticated user
+  Future<ProfileModel?> getProfile(String id) async {
     final response = await _client
-        .from('all_users')
+        .from('profiles')
         .select()
         .eq('id', id)
         .maybeSingle();
     if (response == null) return null;
-    return AllUserModel.fromJson(response);
+    return ProfileModel.fromJson(response);
   }
 
-  /// Fetches a Customer profile from the DB
-  Future<CustomerModel?> getCustomer(String id) async {
+  /// Fetches a ProfileModel profile from the DB for other users
+  Future<ProfileModel?> getPublicProfile(String id) async {
     final response = await _client
-        .from('customers')
+        .from('public_profiles')
         .select()
         .eq('id', id)
         .maybeSingle();
     if (response == null) return null;
-    return CustomerModel.fromJson(response);
+    return ProfileModel.fromJson(response);
   }
 
-  /// Fetches a Business profile from the DB
-  Future<BusinessModel?> getBusiness(String id) async {
+  /// Fetches a Provider details profile from the DB
+  Future<ProviderDetailsModel?> getProviderDetails(String id) async {
     final response = await _client
-        .from('businesses')
+        .from('provider_details')
         .select()
         .eq('id', id)
         .maybeSingle();
     if (response == null) return null;
-    return BusinessModel.fromJson(response);
+    return ProviderDetailsModel.fromJson(response);
   }
 }

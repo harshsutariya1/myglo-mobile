@@ -20,7 +20,8 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
   late TextEditingController _phoneController;
-  late TextEditingController _businessNameController;
+  late TextEditingController _providerNameController;
+  late TextEditingController _addressTextController;
   File? _newProfilePic;
   bool _isLoading = false;
 
@@ -28,14 +29,17 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
   void initState() {
     super.initState();
     final userProfile = ref.read(userProfileProvider).value;
-    final allUser = userProfile?.allUser;
+    final profile = userProfile?.profile;
     _firstNameController = TextEditingController(
-      text: allUser?.firstName ?? '',
+      text: profile?.firstName ?? '',
     );
-    _lastNameController = TextEditingController(text: allUser?.lastName ?? '');
-    _phoneController = TextEditingController(text: allUser?.phoneNumber ?? '');
-    _businessNameController = TextEditingController(
-      text: userProfile?.businessProfile?.businessName ?? '',
+    _lastNameController = TextEditingController(text: profile?.lastName ?? '');
+    _phoneController = TextEditingController(text: profile?.phoneNumber ?? '');
+    _providerNameController = TextEditingController(
+      text: userProfile?.providerDetails?.providerName ?? '',
+    );
+    _addressTextController = TextEditingController(
+      text: userProfile?.providerDetails?.addressText ?? '',
     );
   }
 
@@ -44,7 +48,8 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     _phoneController.dispose();
-    _businessNameController.dispose();
+    _providerNameController.dispose();
+    _addressTextController.dispose();
     super.dispose();
   }
 
@@ -74,12 +79,15 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
       await ref
           .read(editAccountControllerProvider)
           .updateProfile(
-            id: userProfile.allUser.id,
+            id: userProfile.profile.id,
             firstName: _firstNameController.text.trim(),
             lastName: _lastNameController.text.trim(),
             phone: _phoneController.text.trim(),
-            businessName: userProfile.isBusiness
-                ? _businessNameController.text.trim()
+            providerName: userProfile.isProvider
+                ? _providerNameController.text.trim()
+                : null,
+            addressText: userProfile.isProvider
+                ? _addressTextController.text.trim()
                 : null,
             newProfilePic: _newProfilePic,
           );
@@ -105,7 +113,7 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final userProfile = ref.watch(userProfileProvider).value;
-    final profile = userProfile?.allUser;
+    final profile = userProfile?.profile;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Account Details')),
@@ -144,18 +152,31 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
                           ? 'Please enter last name'
                           : null,
                     ),
-                    if (userProfile?.isBusiness == true) ...[
+                    if (userProfile?.isProvider == true) ...[
                       const SizedBox(height: 16),
                       TextFormField(
-                        controller: _businessNameController,
+                        controller: _providerNameController,
                         decoration: const InputDecoration(
-                          labelText: 'Business Name',
+                          labelText: 'Provider Name',
                           border: OutlineInputBorder(),
                         ),
                         textCapitalization: TextCapitalization.words,
                         validator: (value) =>
                             value == null || value.trim().isEmpty
-                            ? 'Please enter business name'
+                            ? 'Please enter provider name'
+                            : null,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _addressTextController,
+                        decoration: const InputDecoration(
+                          labelText: 'Physical Address',
+                          border: OutlineInputBorder(),
+                        ),
+                        textCapitalization: TextCapitalization.words,
+                        validator: (value) =>
+                            value == null || value.trim().isEmpty
+                            ? 'Please enter physical address'
                             : null,
                       ),
                     ],

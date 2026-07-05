@@ -114,10 +114,10 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
               ),
               const SizedBox(height: 16),
               _buildRoleCard(
-                title: 'I\'m a business',
+                title: 'I\'m a provider',
                 subtitle: 'Selling my beauty services',
                 icon: Icons.work_outline,
-                role: UserRole.business,
+                role: UserRole.provider,
               ),
               const Spacer(),
               SizedBox(

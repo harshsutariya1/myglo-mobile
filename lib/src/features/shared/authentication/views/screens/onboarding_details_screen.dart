@@ -25,7 +25,8 @@ class _OnboardingDetailsScreenState
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _businessNameController = TextEditingController();
+  final _providerNameController = TextEditingController();
+  final _addressTextController = TextEditingController();
 
   File? _profileImage;
 
@@ -34,7 +35,8 @@ class _OnboardingDetailsScreenState
     _firstNameController.dispose();
     _lastNameController.dispose();
     _phoneController.dispose();
-    _businessNameController.dispose();
+    _providerNameController.dispose();
+    _addressTextController.dispose();
     super.dispose();
   }
 
@@ -66,7 +68,8 @@ class _OnboardingDetailsScreenState
       phone: _phoneController.text.trim().isEmpty
           ? null
           : _phoneController.text.trim(),
-      businessName: _businessNameController.text.trim(),
+      providerName: _providerNameController.text.trim(),
+      addressText: _addressTextController.text.trim(),
       profileImage: _profileImage,
     );
 
@@ -141,7 +144,8 @@ class _OnboardingDetailsScreenState
                   role: widget.role,
                   firstNameController: _firstNameController,
                   lastNameController: _lastNameController,
-                  businessNameController: _businessNameController,
+                  providerNameController: _providerNameController,
+                  addressTextController: _addressTextController,
                   phoneController: _phoneController,
                 ),
 
