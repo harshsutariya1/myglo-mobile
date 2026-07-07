@@ -1,0 +1,314 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../shared/authentication/controllers/user_profile_provider.dart';
+import '../../../providers/provider_profiles/views/widgets/profile_pic_picker.dart';
+import '../controllers/edit_customer_profile_controller.dart';
+
+class EditCustomerProfileScreen extends ConsumerStatefulWidget {
+  const EditCustomerProfileScreen({super.key});
+
+  @override
+  ConsumerState<EditCustomerProfileScreen> createState() =>
+      _EditCustomerProfileScreenState();
+}
+
+class _EditCustomerProfileScreenState
+    extends ConsumerState<EditCustomerProfileScreen> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _firstNameController;
+  late TextEditingController _lastNameController;
+  late TextEditingController _phoneController;
+  late TextEditingController _bioController;
+
+  bool _isEmailPublic = false;
+  bool _isPhonePublic = false;
+
+  File? _newProfilePic;
+  final ImagePicker _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    final profileState = ref.read(userProfileProvider).value;
+    final profile = profileState?.profile;
+
+    _firstNameController = TextEditingController(text: profile?.firstName ?? '');
+    _lastNameController = TextEditingController(text: profile?.lastName ?? '');
+    _phoneController = TextEditingController(text: profile?.phoneNumber ?? '');
+    _bioController = TextEditingController(text: profile?.bio ?? '');
+    
+    _isEmailPublic = profile?.isEmailPublic ?? false;
+    _isPhonePublic = profile?.isPhonePublic ?? false;
+  }
+
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _phoneController.dispose();
+    _bioController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _newProfilePic = File(pickedFile.path);
+      });
+    }
+  }
+
+  Future<void> _saveProfile() async {
+    if (!_formKey.currentState!.validate()) return;
+    
+    final profileState = ref.read(userProfileProvider).value;
+    if (profileState == null) return;
+
+    final success = await ref
+        .read(editCustomerProfileControllerProvider.notifier)
+        .saveProfile(
+          id: profileState.rawUser.id,
+          firstName: _firstNameController.text.trim(),
+          lastName: _lastNameController.text.trim(),
+          phone: _phoneController.text.trim(),
+          bio: _bioController.text.trim(),
+          isEmailPublic: _isEmailPublic,
+          isPhonePublic: _isPhonePublic,
+          newProfilePic: _newProfilePic,
+        );
+
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Profile updated successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pop(context);
+    } else {
+      final errorState = ref.read(editCustomerProfileControllerProvider);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            errorState.error?.toString() ?? 'Failed to update profile'
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final userProfile = ref.watch(userProfileProvider).value;
+    final editState = ref.watch(editCustomerProfileControllerProvider);
+    final isLoading = editState.isLoading;
+
+    return Scaffold(
+      backgroundColor: AppTheme.white,
+      appBar: AppBar(
+        backgroundColor: AppTheme.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: AppTheme.darkRed),
+        title: const Text(
+          'Edit Profile',
+          style: TextStyle(
+            color: AppTheme.darkRed,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      body: userProfile == null
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.darkRed))
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: ProfilePicPicker(
+                        newProfilePic: _newProfilePic,
+                        existingProfilePicUrl: userProfile.profile.profilePic,
+                        onPickImage: _pickImage,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    
+                    // Basic Information Section
+                    const Text(
+                      'Basic Information',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.darkRed,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      controller: _firstNameController,
+                      label: 'First Name',
+                      icon: Icons.person_outline,
+                      validator: (val) => val == null || val.isEmpty
+                          ? 'First name is required'
+                          : null,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      controller: _lastNameController,
+                      label: 'Last Name',
+                      icon: Icons.person_outline,
+                      validator: (val) => val == null || val.isEmpty
+                          ? 'Last name is required'
+                          : null,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      controller: _bioController,
+                      label: 'Bio',
+                      icon: Icons.info_outline,
+                      maxLines: 3,
+                    ),
+                    
+                    const SizedBox(height: 32),
+                    
+                    // Contact Information Section
+                    const Text(
+                      'Contact Information',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.darkRed,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      controller: _phoneController,
+                      label: 'Phone Number',
+                      icon: Icons.phone_outlined,
+                      keyboardType: TextInputType.phone,
+                    ),
+                    
+                    const SizedBox(height: 32),
+                    
+                    // Privacy Settings Section
+                    const Text(
+                      'Privacy Settings',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.darkRed,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SwitchListTile(
+                      title: const Text('Make Email Public'),
+                      subtitle: const Text(
+                        'Allow others to see your email address',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                      value: _isEmailPublic,
+                      activeThumbColor: AppTheme.primaryPink,
+                      contentPadding: EdgeInsets.zero,
+                      onChanged: (val) {
+                        setState(() => _isEmailPublic = val);
+                      },
+                    ),
+                    SwitchListTile(
+                      title: const Text('Make Phone Number Public'),
+                      subtitle: const Text(
+                        'Allow others to see your phone number',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                      value: _isPhonePublic,
+                      activeThumbColor: AppTheme.primaryPink,
+                      contentPadding: EdgeInsets.zero,
+                      onChanged: (val) {
+                        setState(() => _isPhonePublic = val);
+                      },
+                    ),
+                    
+                    const SizedBox(height: 48),
+                    
+                    // Save Button
+                    ElevatedButton(
+                      onPressed: isLoading ? null : _saveProfile,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.darkRed,
+                        foregroundColor: AppTheme.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: isLoading
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: AppTheme.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              'Save Changes',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    int maxLines = 1,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      maxLines: maxLines,
+      keyboardType: keyboardType,
+      validator: validator,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: maxLines == 1 ? Icon(icon, color: Colors.grey) : null,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppTheme.primaryPink, width: 2),
+        ),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
+      ),
+    );
+  }
+}

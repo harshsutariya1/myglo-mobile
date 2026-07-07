@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../../core/theme/app_theme.dart';
 
 class ProfilePicPicker extends StatelessWidget {
@@ -26,8 +27,8 @@ class ProfilePicPicker extends StatelessWidget {
             backgroundImage: newProfilePic != null
                 ? FileImage(newProfilePic!) as ImageProvider
                 : (existingProfilePicUrl != null &&
-                          existingProfilePicUrl!.isNotEmpty
-                      ? NetworkImage(existingProfilePicUrl!)
+                  existingProfilePicUrl!.isNotEmpty
+                      ? CachedNetworkImageProvider(existingProfilePicUrl!) as ImageProvider
                       : null),
             child:
                 (newProfilePic == null &&

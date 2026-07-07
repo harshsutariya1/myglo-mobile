@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
-import 'widgets/home_search_bar.dart';
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+class ProviderHomeScreen extends StatelessWidget {
+  const ProviderHomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +26,7 @@ class HomeScreen extends StatelessWidget {
                   children: [
                     TextSpan(text: 'Welcome '),
                     TextSpan(
-                      text: 'back',
+                      text: 'provider',
                       style: TextStyle(
                         fontStyle: FontStyle.italic,
                         fontWeight: FontWeight.w400,
@@ -44,10 +43,9 @@ class HomeScreen extends StatelessWidget {
                   fit: BoxFit.contain,
                 ),
               ),
-              const HomeSearchBar(),
               const SizedBox(height: 32),
               const Text(
-                'Near me',
+                'Today\'s Schedule',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -62,13 +60,13 @@ class HomeScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        Icons.location_off_outlined,
+                        Icons.check_circle_outline,
                         size: 64,
-                        color: Colors.grey.shade400,
+                        color: Colors.green.shade400,
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'No service provider found near you',
+                        'You have no appointments today.\nTime to relax!',
                         style: TextStyle(
                           fontSize: 16,
                           color: Colors.grey.shade600,
@@ -80,7 +78,6 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              // Padding at the bottom for the navigation bar
               const SizedBox(height: 100),
             ],
           ),

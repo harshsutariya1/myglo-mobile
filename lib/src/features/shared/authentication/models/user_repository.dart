@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:uuid/uuid.dart';
 import 'provider_details_model.dart';
 import 'profile_model.dart';
 import 'user_role.dart';
@@ -65,6 +68,9 @@ class UserRepository {
     String? lastName,
     String? phone,
     String? profilePic,
+    String? bio,
+    bool? isEmailPublic,
+    bool? isPhonePublic,
     String? providerName,
     String? addressText,
     double? latitude,
@@ -75,6 +81,9 @@ class UserRepository {
     if (lastName != null) updates['last_name'] = lastName;
     if (phone != null) updates['phone_number'] = phone;
     if (profilePic != null) updates['profile_pic'] = profilePic;
+    if (bio != null) updates['bio'] = bio;
+    if (isEmailPublic != null) updates['is_email_public'] = isEmailPublic;
+    if (isPhonePublic != null) updates['is_phone_public'] = isPhonePublic;
 
     if (updates.isNotEmpty) {
       await _client.from('profiles').update(updates).eq('id', id);
@@ -95,10 +104,26 @@ class UserRepository {
 
   /// Uploads a profile picture and returns the public URL
   Future<String> uploadProfilePicture(String userId, File imageFile) async {
+    final tempDir = await getTemporaryDirectory();
+    final targetPath = '${tempDir.path}/${const Uuid().v4()}.jpg';
+    
+    // Compress the image before uploading to save storage and bandwidth
+    var compressedFile = await FlutterImageCompress.compressAndGetFile(
+      imageFile.absolute.path,
+      targetPath,
+      quality: 70, // 70% quality is a good balance for profile pics
+      minWidth: 512, // Profile pics don't need to be huge
+      minHeight: 512,
+    );
+
+    if (compressedFile == null) {
+      throw Exception('Failed to compress profile picture');
+    }
+
     final path = '$userId.jpg';
     await _client.storage
         .from('profile-pics')
-        .upload(path, imageFile, fileOptions: const FileOptions(upsert: true));
+        .upload(path, File(compressedFile.path), fileOptions: const FileOptions(upsert: true));
     final baseUrl = _client.storage.from('profile-pics').getPublicUrl(path);
     return '$baseUrl?t=${DateTime.now().millisecondsSinceEpoch}';
   }

@@ -9,7 +9,6 @@ abstract class ProviderDetailsModel with _$ProviderDetailsModel {
     required String id,
     @JsonKey(name: 'provider_name') String? providerName,
     @JsonKey(name: 'address_text') String? addressText,
-    String? bio,
     double? latitude,
     double? longitude,
   }) = _ProviderDetailsModel;

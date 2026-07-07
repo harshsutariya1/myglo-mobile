@@ -14,5 +14,5 @@ class AppAssets {
   static const String iconLogo3D_4 = 'assets/logo/MyGlo3D_6.png';
 
   // Graphics
-  static const String underlineGraphic = 'assets/graphics/underline.png';
+  static const String underlineGraphic = 'assets/graphics/Underline.png';
 }

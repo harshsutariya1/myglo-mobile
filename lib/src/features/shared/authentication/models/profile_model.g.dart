@@ -15,6 +15,9 @@ _ProfileModel _$ProfileModelFromJson(Map<String, dynamic> json) =>
       email: json['email'] as String,
       phoneNumber: json['phone_number'] as String?,
       profilePic: json['profile_pic'] as String?,
+      bio: json['bio'] as String?,
+      followersCount: (json['followers_count'] as num?)?.toInt() ?? 0,
+      followingCount: (json['following_count'] as num?)?.toInt() ?? 0,
       isEmailPublic: json['is_email_public'] as bool? ?? false,
       isPhonePublic: json['is_phone_public'] as bool? ?? false,
     );
@@ -28,6 +31,9 @@ Map<String, dynamic> _$ProfileModelToJson(_ProfileModel instance) =>
       'email': instance.email,
       'phone_number': instance.phoneNumber,
       'profile_pic': instance.profilePic,
+      'bio': instance.bio,
+      'followers_count': instance.followersCount,
+      'following_count': instance.followingCount,
       'is_email_public': instance.isEmailPublic,
       'is_phone_public': instance.isPhonePublic,
     };

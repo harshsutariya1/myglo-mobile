@@ -68,9 +68,36 @@ String? appRouterRedirect(BuildContext context, GoRouterState state, Ref ref) {
     return null;
   }
 
-  // 3. Fully onboarded -> Redirect to main if on auth screens
+  final isCustomer = profile.isCustomer;
+  final isProvider = profile.isProvider;
+
+  // 3. Role-based route guarding
+  final currentPath = state.uri.path;
+
+  final customerRoutes = [
+    AppRoute.customerHome.path,
+    AppRoute.bookings.path,
+    AppRoute.customerProfile.path,
+  ];
+
+  final providerRoutes = [
+    AppRoute.providerHome.path,
+    AppRoute.businessTools.path,
+    AppRoute.providerProfile.path,
+    AppRoute.settings.path, // Assuming settings are provider specific for now
+  ];
+
+  if (isCustomer && providerRoutes.any((route) => currentPath.startsWith(route))) {
+    return AppRoute.customerHome.path;
+  }
+
+  if (isProvider && customerRoutes.any((route) => currentPath.startsWith(route))) {
+    return AppRoute.providerHome.path;
+  }
+
+  // 4. Fully onboarded -> Redirect to home if on auth screens
   if (isAuthRouteOrSplash) {
-    return AppRoute.main.path;
+    return isProvider ? AppRoute.providerHome.path : AppRoute.customerHome.path;
   }
 
   return null;

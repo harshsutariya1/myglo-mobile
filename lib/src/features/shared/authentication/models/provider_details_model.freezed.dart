@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ProviderDetailsModel {
 
- String get id;@JsonKey(name: 'provider_name') String? get providerName;@JsonKey(name: 'address_text') String? get addressText; String? get bio; double? get latitude; double? get longitude;
+ String get id;@JsonKey(name: 'provider_name') String? get providerName;@JsonKey(name: 'address_text') String? get addressText; double? get latitude; double? get longitude;
 /// Create a copy of ProviderDetailsModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $ProviderDetailsModelCopyWith<ProviderDetailsModel> get copyWith => _$ProviderDe
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProviderDetailsModel&&(identical(other.id, id) || other.id == id)&&(identical(other.providerName, providerName) || other.providerName == providerName)&&(identical(other.addressText, addressText) || other.addressText == addressText)&&(identical(other.bio, bio) || other.bio == bio)&&(identical(other.latitude, latitude) || other.latitude == latitude)&&(identical(other.longitude, longitude) || other.longitude == longitude));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProviderDetailsModel&&(identical(other.id, id) || other.id == id)&&(identical(other.providerName, providerName) || other.providerName == providerName)&&(identical(other.addressText, addressText) || other.addressText == addressText)&&(identical(other.latitude, latitude) || other.latitude == latitude)&&(identical(other.longitude, longitude) || other.longitude == longitude));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,providerName,addressText,bio,latitude,longitude);
+int get hashCode => Object.hash(runtimeType,id,providerName,addressText,latitude,longitude);
 
 @override
 String toString() {
-  return 'ProviderDetailsModel(id: $id, providerName: $providerName, addressText: $addressText, bio: $bio, latitude: $latitude, longitude: $longitude)';
+  return 'ProviderDetailsModel(id: $id, providerName: $providerName, addressText: $addressText, latitude: $latitude, longitude: $longitude)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $ProviderDetailsModelCopyWith<$Res>  {
   factory $ProviderDetailsModelCopyWith(ProviderDetailsModel value, $Res Function(ProviderDetailsModel) _then) = _$ProviderDetailsModelCopyWithImpl;
 @useResult
 $Res call({
- String id,@JsonKey(name: 'provider_name') String? providerName,@JsonKey(name: 'address_text') String? addressText, String? bio, double? latitude, double? longitude
+ String id,@JsonKey(name: 'provider_name') String? providerName,@JsonKey(name: 'address_text') String? addressText, double? latitude, double? longitude
 });
 
 
@@ -65,12 +65,11 @@ class _$ProviderDetailsModelCopyWithImpl<$Res>
 
 /// Create a copy of ProviderDetailsModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? providerName = freezed,Object? addressText = freezed,Object? bio = freezed,Object? latitude = freezed,Object? longitude = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? providerName = freezed,Object? addressText = freezed,Object? latitude = freezed,Object? longitude = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,providerName: freezed == providerName ? _self.providerName : providerName // ignore: cast_nullable_to_non_nullable
 as String?,addressText: freezed == addressText ? _self.addressText : addressText // ignore: cast_nullable_to_non_nullable
-as String?,bio: freezed == bio ? _self.bio : bio // ignore: cast_nullable_to_non_nullable
 as String?,latitude: freezed == latitude ? _self.latitude : latitude // ignore: cast_nullable_to_non_nullable
 as double?,longitude: freezed == longitude ? _self.longitude : longitude // ignore: cast_nullable_to_non_nullable
 as double?,
@@ -158,10 +157,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'provider_name')  String? providerName, @JsonKey(name: 'address_text')  String? addressText,  String? bio,  double? latitude,  double? longitude)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'provider_name')  String? providerName, @JsonKey(name: 'address_text')  String? addressText,  double? latitude,  double? longitude)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProviderDetailsModel() when $default != null:
-return $default(_that.id,_that.providerName,_that.addressText,_that.bio,_that.latitude,_that.longitude);case _:
+return $default(_that.id,_that.providerName,_that.addressText,_that.latitude,_that.longitude);case _:
   return orElse();
 
 }
@@ -179,10 +178,10 @@ return $default(_that.id,_that.providerName,_that.addressText,_that.bio,_that.la
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'provider_name')  String? providerName, @JsonKey(name: 'address_text')  String? addressText,  String? bio,  double? latitude,  double? longitude)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'provider_name')  String? providerName, @JsonKey(name: 'address_text')  String? addressText,  double? latitude,  double? longitude)  $default,) {final _that = this;
 switch (_that) {
 case _ProviderDetailsModel():
-return $default(_that.id,_that.providerName,_that.addressText,_that.bio,_that.latitude,_that.longitude);case _:
+return $default(_that.id,_that.providerName,_that.addressText,_that.latitude,_that.longitude);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -199,10 +198,10 @@ return $default(_that.id,_that.providerName,_that.addressText,_that.bio,_that.la
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'provider_name')  String? providerName, @JsonKey(name: 'address_text')  String? addressText,  String? bio,  double? latitude,  double? longitude)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'provider_name')  String? providerName, @JsonKey(name: 'address_text')  String? addressText,  double? latitude,  double? longitude)?  $default,) {final _that = this;
 switch (_that) {
 case _ProviderDetailsModel() when $default != null:
-return $default(_that.id,_that.providerName,_that.addressText,_that.bio,_that.latitude,_that.longitude);case _:
+return $default(_that.id,_that.providerName,_that.addressText,_that.latitude,_that.longitude);case _:
   return null;
 
 }
@@ -214,13 +213,12 @@ return $default(_that.id,_that.providerName,_that.addressText,_that.bio,_that.la
 @JsonSerializable()
 
 class _ProviderDetailsModel implements ProviderDetailsModel {
-  const _ProviderDetailsModel({required this.id, @JsonKey(name: 'provider_name') this.providerName, @JsonKey(name: 'address_text') this.addressText, this.bio, this.latitude, this.longitude});
+  const _ProviderDetailsModel({required this.id, @JsonKey(name: 'provider_name') this.providerName, @JsonKey(name: 'address_text') this.addressText, this.latitude, this.longitude});
   factory _ProviderDetailsModel.fromJson(Map<String, dynamic> json) => _$ProviderDetailsModelFromJson(json);
 
 @override final  String id;
 @override@JsonKey(name: 'provider_name') final  String? providerName;
 @override@JsonKey(name: 'address_text') final  String? addressText;
-@override final  String? bio;
 @override final  double? latitude;
 @override final  double? longitude;
 
@@ -237,16 +235,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProviderDetailsModel&&(identical(other.id, id) || other.id == id)&&(identical(other.providerName, providerName) || other.providerName == providerName)&&(identical(other.addressText, addressText) || other.addressText == addressText)&&(identical(other.bio, bio) || other.bio == bio)&&(identical(other.latitude, latitude) || other.latitude == latitude)&&(identical(other.longitude, longitude) || other.longitude == longitude));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProviderDetailsModel&&(identical(other.id, id) || other.id == id)&&(identical(other.providerName, providerName) || other.providerName == providerName)&&(identical(other.addressText, addressText) || other.addressText == addressText)&&(identical(other.latitude, latitude) || other.latitude == latitude)&&(identical(other.longitude, longitude) || other.longitude == longitude));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,providerName,addressText,bio,latitude,longitude);
+int get hashCode => Object.hash(runtimeType,id,providerName,addressText,latitude,longitude);
 
 @override
 String toString() {
-  return 'ProviderDetailsModel(id: $id, providerName: $providerName, addressText: $addressText, bio: $bio, latitude: $latitude, longitude: $longitude)';
+  return 'ProviderDetailsModel(id: $id, providerName: $providerName, addressText: $addressText, latitude: $latitude, longitude: $longitude)';
 }
 
 
@@ -257,7 +255,7 @@ abstract mixin class _$ProviderDetailsModelCopyWith<$Res> implements $ProviderDe
   factory _$ProviderDetailsModelCopyWith(_ProviderDetailsModel value, $Res Function(_ProviderDetailsModel) _then) = __$ProviderDetailsModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id,@JsonKey(name: 'provider_name') String? providerName,@JsonKey(name: 'address_text') String? addressText, String? bio, double? latitude, double? longitude
+ String id,@JsonKey(name: 'provider_name') String? providerName,@JsonKey(name: 'address_text') String? addressText, double? latitude, double? longitude
 });
 
 
@@ -274,12 +272,11 @@ class __$ProviderDetailsModelCopyWithImpl<$Res>
 
 /// Create a copy of ProviderDetailsModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? providerName = freezed,Object? addressText = freezed,Object? bio = freezed,Object? latitude = freezed,Object? longitude = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? providerName = freezed,Object? addressText = freezed,Object? latitude = freezed,Object? longitude = freezed,}) {
   return _then(_ProviderDetailsModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,providerName: freezed == providerName ? _self.providerName : providerName // ignore: cast_nullable_to_non_nullable
 as String?,addressText: freezed == addressText ? _self.addressText : addressText // ignore: cast_nullable_to_non_nullable
-as String?,bio: freezed == bio ? _self.bio : bio // ignore: cast_nullable_to_non_nullable
 as String?,latitude: freezed == latitude ? _self.latitude : latitude // ignore: cast_nullable_to_non_nullable
 as double?,longitude: freezed == longitude ? _self.longitude : longitude // ignore: cast_nullable_to_non_nullable
 as double?,

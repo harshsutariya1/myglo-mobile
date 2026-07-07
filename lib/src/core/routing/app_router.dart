@@ -10,10 +10,16 @@ import '../../features/shared/authentication/views/screens/onboarding_details_sc
 import '../../features/shared/authentication/models/user_role.dart';
 import '../../features/shared/authentication/views/screens/splash_screen.dart';
 import '../../features/shared/authentication/views/screens/intro_screen.dart';
+
 import '../../features/customers/home/views/home_screen.dart';
+import '../../features/providers/home/views/provider_home_screen.dart';
+import '../../features/customers/bookings/views/bookings_screen.dart';
+import '../../features/providers/business_tools/views/business_tools_screen.dart';
+import '../../features/customers/customer_profile/views/customer_profile_screen.dart';
 import '../../features/providers/provider_profiles/views/screens/profile_screen.dart';
 import '../../features/providers/provider_profiles/views/screens/settings_screen.dart';
 import '../../features/providers/provider_profiles/views/screens/account_details_screen.dart';
+
 import '../../features/shared/authentication/controllers/user_profile_provider.dart';
 import '../widgets/main_scaffold.dart';
 import 'app_router_guard.dart';
@@ -26,10 +32,13 @@ enum AppRoute {
   confirmEmail(path: '/confirm_email'),
   roleSelection(path: '/role'),
   onboardingDetails(path: '/onboarding_details'),
-  main(path: '/main'),
+  customerHome(path: '/customer_home'),
+  providerHome(path: '/provider_home'),
   discover(path: '/discover'),
   bookings(path: '/bookings'),
-  profile(path: '/profile'),
+  businessTools(path: '/business_tools'),
+  customerProfile(path: '/customer_profile'),
+  providerProfile(path: '/provider_profile'),
   settings(path: 'settings'),
   accountDetails(path: 'account-details');
 
@@ -80,7 +89,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoute.onboardingDetails.path,
         name: AppRoute.onboardingDetails.name,
         builder: (context, state) {
-          // Safely determine role from the provider directly
           final profile = ref.read(userProfileProvider).value;
           final role = profile?.role ?? UserRole.customer;
           return OnboardingDetailsScreen(role: role);
@@ -92,9 +100,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
         routes: [
           GoRoute(
-            path: AppRoute.main.path,
-            name: AppRoute.main.name,
+            path: AppRoute.customerHome.path,
+            name: AppRoute.customerHome.name,
             builder: (context, state) => const HomeScreen(),
+          ),
+          GoRoute(
+            path: AppRoute.providerHome.path,
+            name: AppRoute.providerHome.name,
+            builder: (context, state) => const ProviderHomeScreen(),
           ),
           GoRoute(
             path: AppRoute.discover.path,
@@ -105,12 +118,21 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoute.bookings.path,
             name: AppRoute.bookings.name,
-            builder: (context, state) =>
-                const Scaffold(body: Center(child: Text('Bookings'))),
+            builder: (context, state) => const BookingsScreen(),
           ),
           GoRoute(
-            path: AppRoute.profile.path,
-            name: AppRoute.profile.name,
+            path: AppRoute.businessTools.path,
+            name: AppRoute.businessTools.name,
+            builder: (context, state) => const BusinessToolsScreen(),
+          ),
+          GoRoute(
+            path: AppRoute.customerProfile.path,
+            name: AppRoute.customerProfile.name,
+            builder: (context, state) => const CustomerProfileScreen(),
+          ),
+          GoRoute(
+            path: AppRoute.providerProfile.path,
+            name: AppRoute.providerProfile.name,
             builder: (context, state) => const ProfileScreen(),
             routes: [
               GoRoute(
@@ -133,7 +155,6 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 
   ref.listen(authStateProvider, (_, _) => router.refresh());
-
   ref.listen(userProfileProvider, (_, _) => router.refresh());
 
   return router;
