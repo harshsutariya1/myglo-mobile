@@ -17,31 +17,31 @@ class CustomerProfileScreen extends ConsumerWidget {
     final profileState = ref.watch(userProfileProvider);
 
     return Scaffold(
-      backgroundColor: AppTheme.white,
+      backgroundColor: context.colorScheme.surface,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'My Profile',
           style: TextStyle(
-            color: AppTheme.darkRed,
+            color: context.colorScheme.onSurface,
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: AppTheme.white,
+        backgroundColor: context.colorScheme.surface,
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.add_box_outlined, color: AppTheme.darkRed),
+            icon: Icon(Icons.add_box_outlined, color: context.colorScheme.onSurface),
             onPressed: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const UploadPostScreen(),
+                  builder: (context) => UploadPostScreen(),
                 ),
               );
             },
           ),
           IconButton(
-            icon: const Icon(Icons.settings_outlined, color: AppTheme.darkRed),
+            icon: Icon(Icons.settings_outlined, color: context.colorScheme.onSurface),
             onPressed: () {
               showModalBottomSheet(
                 context: context,
@@ -125,7 +125,7 @@ class CustomerProfileScreen extends ConsumerWidget {
           }
 
           return RefreshIndicator(
-            color: AppTheme.darkRed,
+            color: context.colorScheme.onSurface,
             onRefresh: () async {
               debugPrint('Customer profile refreshed');
               ref.invalidate(userProfileProvider);
@@ -147,7 +147,7 @@ class CustomerProfileScreen extends ConsumerWidget {
                         children: [
                           CircleAvatar(
                             radius: 45,
-                            backgroundColor: AppTheme.primaryPink.withValues(alpha: 0.2),
+                            backgroundColor: context.colorScheme.primary.withValues(alpha: 0.2),
                             backgroundImage: profile.profile.profilePic != null
                                 ? CachedNetworkImageProvider(profile.profile.profilePic!)
                                 : null,
@@ -156,9 +156,9 @@ class CustomerProfileScreen extends ConsumerWidget {
                                     profile.displayName.isNotEmpty
                                         ? profile.displayName[0].toUpperCase()
                                         : '?',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 36,
-                                      color: AppTheme.darkRed,
+                                      color: context.colorScheme.onSurface,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   )
@@ -169,20 +169,20 @@ class CustomerProfileScreen extends ConsumerWidget {
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
                                 _CustomerPostCount(userId: profile.profile.id),
-                                _buildStatColumn('Followers', profile.profile.followersCount.toString()),
-                                _buildStatColumn('Following', profile.profile.followingCount.toString()),
+                                _buildStatColumn(context, 'Followers', profile.profile.followersCount.toString()),
+                                _buildStatColumn(context, 'Following', profile.profile.followingCount.toString()),
                               ],
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16),
                       Text(
                         profile.displayName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.darkRed,
+                          color: context.colorScheme.onSurface,
                         ),
                       ),
                       if (profile.profile.bio != null && profile.profile.bio!.isNotEmpty) ...[
@@ -208,7 +208,7 @@ class CustomerProfileScreen extends ConsumerWidget {
                             );
                           },
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: AppTheme.darkRed,
+                            foregroundColor: context.colorScheme.onSurface,
                             side: BorderSide(color: Colors.grey.shade300),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
@@ -223,27 +223,27 @@ class CustomerProfileScreen extends ConsumerWidget {
                 ),
                 const Divider(height: 1),
                 _CustomerPostsGrid(userId: profile.profile.id),
-                const SizedBox(height: 24),
+                SizedBox(height: 24),
               ],
             ),
           ));
         },
-        loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.darkRed)),
+        loading: () => Center(child: CircularProgressIndicator(color: context.colorScheme.onSurface)),
         error: (err, _) => Center(child: Text('Error: $err')),
       ),
     );
   }
 
-  Widget _buildStatColumn(String label, String count) {
+  Widget _buildStatColumn(BuildContext context, String label, String count) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           count,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: AppTheme.darkRed,
+            color: context.colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 4),
@@ -273,10 +273,10 @@ class _CustomerPostCount extends ConsumerWidget {
       children: [
         Text(
           postsState.value?.length.toString() ?? '-',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: AppTheme.darkRed,
+            color: context.colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 4),
@@ -313,21 +313,21 @@ class _CustomerPostsGrid extends ConsumerWidget {
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppTheme.primaryPink.withValues(alpha: 0.3), width: 2),
+                    border: Border.all(color: context.colorScheme.primary.withValues(alpha: 0.3), width: 2),
                   ),
                   child: Icon(
                     Icons.grid_off_rounded,
                     size: 48,
-                    color: AppTheme.darkRed.withValues(alpha: 0.5),
+                    color: context.colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
                 ),
-                const SizedBox(height: 24),
-                const Text(
+                SizedBox(height: 24),
+                Text(
                   'No posts available',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.darkRed,
+                    color: context.colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -350,8 +350,8 @@ class _CustomerPostsGrid extends ConsumerWidget {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.darkRed,
-                    foregroundColor: AppTheme.white,
+                    backgroundColor: context.colorScheme.onSurface,
+                    foregroundColor: context.colorScheme.surface,
                     padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(24),
@@ -422,10 +422,10 @@ class _CustomerPostsGrid extends ConsumerWidget {
           },
         );
       },
-      loading: () => const Padding(
+      loading: () => Padding(
         padding: EdgeInsets.all(40.0),
         child: Center(
-          child: CircularProgressIndicator(color: AppTheme.primaryPink),
+          child: CircularProgressIndicator(color: context.colorScheme.primary),
         ),
       ),
       error: (err, stack) => Padding(

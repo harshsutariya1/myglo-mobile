@@ -194,7 +194,7 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
                       width: double.infinity,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryPink,
+                          backgroundColor: context.colorScheme.primary,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(

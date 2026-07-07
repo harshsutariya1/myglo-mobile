@@ -34,16 +34,16 @@ class ProfilePicPicker extends StatelessWidget {
                 (newProfilePic == null &&
                     (existingProfilePicUrl == null ||
                         existingProfilePicUrl!.isEmpty))
-                ? const Icon(Icons.person, size: 50, color: Colors.grey)
+                ? Icon(Icons.person, size: 50, color: Colors.grey)
                 : null,
           ),
           Positioned(
             bottom: 0,
             right: 0,
             child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(
-                color: AppTheme.burntOrange,
+              padding: EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: context.colorScheme.secondary,
                 shape: BoxShape.circle,
               ),
               child: const Icon(

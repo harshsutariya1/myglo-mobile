@@ -80,16 +80,16 @@ class _EmailConfirmationScreenState
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Email Not Confirmed'),
-        content: const Text(
+        title: Text('Email Not Confirmed'),
+        content: Text(
           'Please check your inbox and click the confirmation link before continuing.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text(
+            child: Text(
               'OK',
-              style: TextStyle(color: AppTheme.burntOrange),
+              style: TextStyle(color: context.colorScheme.secondary),
             ),
           ),
         ],

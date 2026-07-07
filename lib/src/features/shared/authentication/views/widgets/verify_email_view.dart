@@ -12,19 +12,19 @@ class VerifyEmailView extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Icon(
+        Icon(
           Icons.mark_email_unread_outlined,
           size: 80,
-          color: AppTheme.primaryPink,
+          color: context.colorScheme.primary,
         ),
-        const SizedBox(height: 24),
-        const Text(
+        SizedBox(height: 24),
+        Text(
           'Verify your email',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: AppTheme.darkRed,
+            color: context.colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 16),

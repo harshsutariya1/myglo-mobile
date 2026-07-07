@@ -2,26 +2,28 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../shared/authentication/controllers/user_profile_provider.dart';
-import '../../../providers/provider_profiles/views/widgets/profile_pic_picker.dart';
-import '../controllers/edit_customer_profile_controller.dart';
+import '../../../../../core/theme/app_theme.dart';
+import '../../../../shared/authentication/controllers/user_profile_provider.dart';
+import '../widgets/profile_pic_picker.dart';
+import '../../controllers/edit_provider_profile_controller.dart';
 
-class EditCustomerProfileScreen extends ConsumerStatefulWidget {
-  const EditCustomerProfileScreen({super.key});
+class EditProviderProfileScreen extends ConsumerStatefulWidget {
+  const EditProviderProfileScreen({super.key});
 
   @override
-  ConsumerState<EditCustomerProfileScreen> createState() =>
-      _EditCustomerProfileScreenState();
+  ConsumerState<EditProviderProfileScreen> createState() =>
+      _EditProviderProfileScreenState();
 }
 
-class _EditCustomerProfileScreenState
-    extends ConsumerState<EditCustomerProfileScreen> {
+class _EditProviderProfileScreenState
+    extends ConsumerState<EditProviderProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
+  late TextEditingController _providerNameController;
   late TextEditingController _phoneController;
   late TextEditingController _bioController;
+  late TextEditingController _addressTextController;
 
   bool _isEmailPublic = false;
   bool _isPhonePublic = false;
@@ -34,11 +36,14 @@ class _EditCustomerProfileScreenState
     super.initState();
     final profileState = ref.read(userProfileProvider).value;
     final profile = profileState?.profile;
+    final providerDetails = profileState?.providerDetails;
 
     _firstNameController = TextEditingController(text: profile?.firstName ?? '');
     _lastNameController = TextEditingController(text: profile?.lastName ?? '');
+    _providerNameController = TextEditingController(text: providerDetails?.providerName ?? '');
     _phoneController = TextEditingController(text: profile?.phoneNumber ?? '');
     _bioController = TextEditingController(text: profile?.bio ?? '');
+    _addressTextController = TextEditingController(text: providerDetails?.addressText ?? '');
     
     _isEmailPublic = profile?.isEmailPublic ?? false;
     _isPhonePublic = profile?.isPhonePublic ?? false;
@@ -48,8 +53,10 @@ class _EditCustomerProfileScreenState
   void dispose() {
     _firstNameController.dispose();
     _lastNameController.dispose();
+    _providerNameController.dispose();
     _phoneController.dispose();
     _bioController.dispose();
+    _addressTextController.dispose();
     super.dispose();
   }
 
@@ -69,11 +76,13 @@ class _EditCustomerProfileScreenState
     if (profileState == null) return;
 
     final success = await ref
-        .read(editCustomerProfileControllerProvider.notifier)
+        .read(editProviderProfileControllerProvider.notifier)
         .saveProfile(
           id: profileState.rawUser.id,
           firstName: _firstNameController.text.trim(),
           lastName: _lastNameController.text.trim(),
+          providerName: _providerNameController.text.trim(),
+          addressText: _addressTextController.text.trim(),
           phone: _phoneController.text.trim(),
           bio: _bioController.text.trim(),
           isEmailPublic: _isEmailPublic,
@@ -92,7 +101,7 @@ class _EditCustomerProfileScreenState
       );
       Navigator.pop(context);
     } else {
-      final errorState = ref.read(editCustomerProfileControllerProvider);
+      final errorState = ref.read(editProviderProfileControllerProvider);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -107,7 +116,7 @@ class _EditCustomerProfileScreenState
   @override
   Widget build(BuildContext context) {
     final userProfile = ref.watch(userProfileProvider).value;
-    final editState = ref.watch(editCustomerProfileControllerProvider);
+    final editState = ref.watch(editProviderProfileControllerProvider);
     final isLoading = editState.isLoading;
 
     return Scaffold(
@@ -117,7 +126,7 @@ class _EditCustomerProfileScreenState
         elevation: 0,
         iconTheme: IconThemeData(color: context.colorScheme.onSurface),
         title: Text(
-          'Edit Profile',
+          'Edit Business Profile',
           style: TextStyle(
             color: context.colorScheme.onSurface,
             fontWeight: FontWeight.bold,
@@ -142,9 +151,32 @@ class _EditCustomerProfileScreenState
                     ),
                     SizedBox(height: 32),
                     
+                    // Business Information Section
+                    Text(
+                      'Business Information',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: context.colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      controller: _providerNameController,
+                      label: 'Business / Salon Name',
+                      icon: Icons.storefront,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      controller: _addressTextController,
+                      label: 'Business Address',
+                      icon: Icons.location_on_outlined,
+                    ),
+                    const SizedBox(height: 32),
+                    
                     // Basic Information Section
                     Text(
-                      'Basic Information',
+                      'Personal Information',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,

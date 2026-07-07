@@ -83,8 +83,8 @@ class _ProviderSearchBottomSheetState extends ConsumerState<ProviderSearchBottom
     
     return Container(
       height: MediaQuery.of(context).size.height * 0.7 + bottomInset,
-      decoration: const BoxDecoration(
-        color: AppTheme.white,
+      decoration: BoxDecoration(
+        color: context.colorScheme.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.only(bottom: bottomInset),
@@ -99,13 +99,13 @@ class _ProviderSearchBottomSheetState extends ConsumerState<ProviderSearchBottom
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          const SizedBox(height: 16),
-          const Text(
+          SizedBox(height: 16),
+          Text(
             'Search Providers',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: AppTheme.darkRed,
+              color: context.colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 16),
@@ -133,16 +133,16 @@ class _ProviderSearchBottomSheetState extends ConsumerState<ProviderSearchBottom
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                contentPadding: EdgeInsets.symmetric(vertical: 0),
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          const Divider(),
+          SizedBox(height: 8),
+          Divider(),
           Expanded(
             child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: AppTheme.primaryPink),
+                ? Center(
+                    child: CircularProgressIndicator(color: context.colorScheme.primary),
                   )
                 : _results.isEmpty
                     ? Center(

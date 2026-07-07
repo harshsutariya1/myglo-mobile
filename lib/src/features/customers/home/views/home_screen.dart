@@ -8,21 +8,21 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.white,
+      backgroundColor: context.colorScheme.surface,
       body: SafeArea(
         bottom: false,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+          padding: EdgeInsets.all(24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               RichText(
-                text: const TextSpan(
+                text: TextSpan(
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.darkRed,
+                    color: context.colorScheme.onSurface,
                   ),
                   children: [
                     TextSpan(text: 'Welcome '),
@@ -44,14 +44,14 @@ class HomeScreen extends StatelessWidget {
                   fit: BoxFit.contain,
                 ),
               ),
-              const HomeSearchBar(),
-              const SizedBox(height: 32),
-              const Text(
+              HomeSearchBar(),
+              SizedBox(height: 32),
+              Text(
                 'Near me',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.darkRed,
+                  color: context.colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 32),

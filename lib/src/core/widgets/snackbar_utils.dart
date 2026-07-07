@@ -10,14 +10,14 @@ extension SnackBarExtension on BuildContext {
           children: [
             Icon(
               isError ? Icons.error_outline : Icons.check_circle_outline,
-              color: AppTheme.white,
+              color: colorScheme.surface,
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 message,
-                style: const TextStyle(
-                  color: AppTheme.white,
+                style: TextStyle(
+                  color: colorScheme.surface,
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
@@ -25,7 +25,7 @@ extension SnackBarExtension on BuildContext {
             ),
           ],
         ),
-        backgroundColor: isError ? AppTheme.burntOrange : AppTheme.darkRed,
+        backgroundColor: isError ? colorScheme.secondary : colorScheme.onSurface,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),

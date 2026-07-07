@@ -60,7 +60,7 @@ class _ShorebirdUpdateListenerState
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.burntOrange,
+              backgroundColor: context.colorScheme.secondary,
               foregroundColor: Colors.white,
             ),
             onPressed: () {

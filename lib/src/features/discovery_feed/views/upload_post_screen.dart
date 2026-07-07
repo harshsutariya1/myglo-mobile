@@ -29,6 +29,17 @@ class _UploadPostScreenState extends ConsumerState<UploadPostScreen> {
   bool _isLoadingServices = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final profile = ref.read(userProfileProvider).value;
+      if (profile != null && profile.isProvider) {
+        _fetchServices(profile.rawUser.id);
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _captionController.dispose();
     super.dispose();
@@ -87,7 +98,7 @@ class _UploadPostScreenState extends ConsumerState<UploadPostScreen> {
       authorId: userProfile.rawUser.id,
       images: _images,
       caption: _captionController.text.trim(),
-      taggedProviderId: _selectedProvider?.id,
+      taggedProviderId: userProfile.isProvider ? null : _selectedProvider?.id,
       serviceId: _selectedService?.id,
     );
 
@@ -110,19 +121,21 @@ class _UploadPostScreenState extends ConsumerState<UploadPostScreen> {
   Widget build(BuildContext context) {
     final uploadState = ref.watch(uploadPostControllerProvider);
     final isUploading = uploadState.isLoading;
+    final userProfile = ref.watch(userProfileProvider).value;
+    final isProvider = userProfile?.isProvider ?? false;
 
     return Scaffold(
-      backgroundColor: AppTheme.white,
+      backgroundColor: context.colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: AppTheme.white,
+        backgroundColor: context.colorScheme.surface,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppTheme.darkRed),
-        title: const Text('Create Post', style: TextStyle(color: AppTheme.darkRed, fontWeight: FontWeight.bold)),
+        iconTheme: IconThemeData(color: context.colorScheme.onSurface),
+        title: Text('Create Post', style: TextStyle(color: context.colorScheme.onSurface, fontWeight: FontWeight.bold)),
         actions: [
           if (isUploading)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: AppTheme.darkRed, strokeWidth: 2))),
+              child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: context.colorScheme.onSurface, strokeWidth: 2))),
             )
           else
             TextButton(
@@ -130,7 +143,7 @@ class _UploadPostScreenState extends ConsumerState<UploadPostScreen> {
               child: Text(
                 'Post',
                 style: TextStyle(
-                  color: _images.isNotEmpty ? AppTheme.darkRed : Colors.grey,
+                  color: _images.isNotEmpty ? context.colorScheme.onSurface : Colors.grey,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
@@ -144,15 +157,34 @@ class _UploadPostScreenState extends ConsumerState<UploadPostScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Caption Input
-            TextField(
-              controller: _captionController,
-              maxLines: null,
-              decoration: const InputDecoration(
-                hintText: 'Write a caption...',
-                border: InputBorder.none,
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(
+                  radius: 22,
+                  backgroundColor: Colors.grey.shade200,
+                  backgroundImage: userProfile?.profile.profilePic != null
+                      ? NetworkImage(userProfile!.profile.profilePic!)
+                      : null,
+                  child: userProfile?.profile.profilePic == null
+                      ? const Icon(Icons.person, color: Colors.grey)
+                      : null,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: TextField(
+                    controller: _captionController,
+                    maxLines: null,
+                    decoration: InputDecoration(
+                      hintText: 'Write a caption...',
+                      hintStyle: TextStyle(color: Colors.grey.shade400),
+                      border: InputBorder.none,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
 
             // Image Selection Grid
             if (_images.isNotEmpty) ...[
@@ -231,101 +263,133 @@ class _UploadPostScreenState extends ConsumerState<UploadPostScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
             ],
 
-            const Divider(),
-            const SizedBox(height: 16),
+            Divider(),
+            SizedBox(height: 24),
 
-            // Provider Tagging (Autocomplete)
-            const Text('Tag Provider (Optional)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.darkRed)),
-            const SizedBox(height: 8),
-            _selectedProvider == null
-                ? InkWell(
-                    onTap: () async {
-                      final selected = await ProviderSearchBottomSheet.show(context);
-                      if (selected != null) {
-                        setState(() {
-                          _selectedProvider = selected;
-                        });
-                        _fetchServices(selected.id);
-                      }
-                    },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade300),
+            if (!isProvider) ...[
+              // Provider Tagging (Autocomplete)
+              Text('Tag Provider (Optional)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: context.colorScheme.onSurface)),
+              const SizedBox(height: 12),
+              _selectedProvider == null
+                  ? InkWell(
+                      onTap: () async {
+                        final selected = await ProviderSearchBottomSheet.show(context);
+                        if (selected != null) {
+                          setState(() {
+                            _selectedProvider = selected;
+                            _selectedService = null;
+                          });
+                          _fetchServices(selected.id);
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.search, color: Colors.grey),
+                            const SizedBox(width: 12),
+                            Text('Search for a provider...', style: TextStyle(color: Colors.grey.shade600, fontSize: 16)),
+                          ],
+                        ),
                       ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.search, color: Colors.grey),
-                          const SizedBox(width: 12),
-                          Text('Search for a provider...', style: TextStyle(color: Colors.grey.shade600, fontSize: 16)),
+                    )
+                  : Container(
+                      decoration: BoxDecoration(
+                        color: context.colorScheme.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: context.colorScheme.primary.withValues(alpha: 0.5)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
                         ],
                       ),
-                    ),
-                  )
-                : Container(
-                    decoration: BoxDecoration(
-                      color: AppTheme.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.primaryPink.withValues(alpha: 0.5)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        leading: CircleAvatar(
+                          backgroundColor: Colors.grey.shade200,
+                          backgroundImage: _selectedProvider!.profilePic != null
+                              ? NetworkImage(_selectedProvider!.profilePic!)
+                              : null,
+                          child: _selectedProvider!.profilePic == null
+                              ? const Icon(Icons.business, color: Colors.grey)
+                              : null,
                         ),
-                      ],
-                    ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      leading: CircleAvatar(
-                        backgroundColor: Colors.grey.shade200,
-                        backgroundImage: _selectedProvider!.profilePic != null
-                            ? NetworkImage(_selectedProvider!.profilePic!)
-                            : null,
-                        child: _selectedProvider!.profilePic == null
-                            ? const Icon(Icons.business, color: Colors.grey)
-                            : null,
-                      ),
-                      title: Text(
-                        _selectedProvider!.providerName,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.close, color: Colors.grey),
-                        onPressed: () {
-                          setState(() {
-                            _selectedProvider = null;
-                            _selectedService = null;
-                            _providerServices = [];
-                          });
-                        },
+                        title: Text(
+                          _selectedProvider!.providerName,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.close, color: Colors.grey),
+                          onPressed: () {
+                            setState(() {
+                              _selectedProvider = null;
+                              _selectedService = null;
+                              _providerServices = [];
+                            });
+                          },
+                        ),
                       ),
                     ),
-                  ),
 
-            // Service Selection
-            if (_selectedProvider != null) ...[
-              const SizedBox(height: 24),
-              const Text('Tag Service (Optional)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.darkRed)),
-              const SizedBox(height: 8),
+              // Service Selection
+              if (_selectedProvider != null) ...[
+                SizedBox(height: 24),
+                Text('Tag Service (Optional)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: context.colorScheme.onSurface)),
+                const SizedBox(height: 12),
+                if (_isLoadingServices)
+                  Center(child: CircularProgressIndicator())
+                else if (_providerServices.isEmpty)
+                  Text('This provider has no services listed.', style: TextStyle(color: Colors.grey))
+                else
+                  DropdownButtonFormField<ServiceModel>(
+                    initialValue: _selectedService,
+                    hint: Text('Select a service'),
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.colorScheme.primary)),
+                    ),
+                    items: _providerServices.map((service) {
+                      return DropdownMenuItem(
+                        value: service,
+                        child: Text(service.name),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedService = value;
+                      });
+                    },
+                  ),
+              ],
+            ] else ...[
+              // For providers, just show the Service Selection
+              Text('Tag Service (Optional)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: context.colorScheme.onSurface)),
+              const SizedBox(height: 12),
               if (_isLoadingServices)
-                const Center(child: CircularProgressIndicator())
+                Center(child: CircularProgressIndicator())
               else if (_providerServices.isEmpty)
-                const Text('This provider has no services listed.', style: TextStyle(color: Colors.grey))
+                Text('You have no services listed yet.', style: TextStyle(color: Colors.grey))
               else
                 DropdownButtonFormField<ServiceModel>(
                   initialValue: _selectedService,
-                  hint: const Text('Select a service'),
+                  hint: Text('Select a service'),
                   isExpanded: true,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.primaryPink)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: context.colorScheme.primary)),
                   ),
                   items: _providerServices.map((service) {
                     return DropdownMenuItem(

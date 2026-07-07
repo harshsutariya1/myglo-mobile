@@ -23,18 +23,18 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
     ref.watch(deletePostControllerProvider);
     
     return Scaffold(
-      backgroundColor: AppTheme.white,
+      backgroundColor: context.colorScheme.surface,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Post',
           style: TextStyle(
-            color: AppTheme.darkRed,
+            color: context.colorScheme.onSurface,
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: AppTheme.white,
+        backgroundColor: context.colorScheme.surface,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppTheme.darkRed),
+        iconTheme: IconThemeData(color: context.colorScheme.onSurface),
         actions: [
           if (widget.isAuthor)
             IconButton(
@@ -65,8 +65,8 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                         return CachedNetworkImage(
                           imageUrl: widget.post.mediaUrls[index],
                           fit: BoxFit.cover,
-                          placeholder: (context, url) => const Center(
-                            child: CircularProgressIndicator(color: AppTheme.primaryPink),
+                          placeholder: (context, url) => Center(
+                            child: CircularProgressIndicator(color: context.colorScheme.primary),
                           ),
                           errorWidget: (context, url, error) => Container(
                             color: Colors.grey.shade200,
@@ -92,7 +92,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: _currentImageIndex == index
-                                  ? AppTheme.darkRed
+                                  ? context.colorScheme.onSurface
                                   : Colors.white.withValues(alpha: 0.5),
                               boxShadow: const [
                                 BoxShadow(color: Colors.black26, blurRadius: 4),
@@ -120,7 +120,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
               ),
 
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -129,36 +129,36 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                     children: [
                       IconButton(
                         onPressed: () {},
-                        icon: const Icon(Icons.favorite_border, color: AppTheme.darkRed, size: 28),
-                        constraints: const BoxConstraints(),
+                        icon: Icon(Icons.favorite_border, color: context.colorScheme.onSurface, size: 28),
+                        constraints: BoxConstraints(),
                         padding: EdgeInsets.zero,
                       ),
-                      const SizedBox(width: 16),
+                      SizedBox(width: 16),
                       IconButton(
                         onPressed: () {},
-                        icon: const Icon(Icons.chat_bubble_outline, color: AppTheme.darkRed, size: 26),
+                        icon: Icon(Icons.chat_bubble_outline, color: context.colorScheme.onSurface, size: 26),
                         constraints: const BoxConstraints(),
                         padding: EdgeInsets.zero,
                       ),
                       const Spacer(),
                       if (widget.post.taggedProviderId != null)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryPink.withValues(alpha: 0.1),
+                            color: context.colorScheme.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppTheme.primaryPink.withValues(alpha: 0.5)),
+                            border: Border.all(color: context.colorScheme.primary.withValues(alpha: 0.5)),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.storefront, size: 16, color: AppTheme.darkRed),
+                              Icon(Icons.storefront, size: 16, color: context.colorScheme.onSurface),
                               SizedBox(width: 4),
                               Text(
                                 'Provider Tagged',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: AppTheme.darkRed,
+                                  color: context.colorScheme.onSurface,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -251,11 +251,11 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                 navigator.pop(); // Go back to profile
               } else {
                 scaffoldMessenger.showSnackBar(
-                  const SnackBar(content: Text('Failed to delete post')),
+                  SnackBar(content: Text('Failed to delete post')),
                 );
               }
             },
-            child: const Text('Delete', style: TextStyle(color: AppTheme.darkRed)),
+            child: Text('Delete', style: TextStyle(color: context.colorScheme.onSurface)),
           ),
         ],
       ),

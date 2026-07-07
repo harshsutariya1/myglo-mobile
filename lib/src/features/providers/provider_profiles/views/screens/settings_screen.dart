@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../../core/theme/app_theme.dart';
-import '../../../../../core/routing/app_router.dart';
 import '../../../../../core/services/shorebird_update_service.dart';
 import '../../../../shared/authentication/models/auth_repository.dart';
 import 'package:restart_app/restart_app.dart';
+import 'edit_provider_profile_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -20,11 +20,16 @@ class SettingsScreen extends ConsumerWidget {
           child: Column(
             children: [
               ListTile(
-                leading: const Icon(Icons.person_outline),
-                title: const Text('Account Details'),
+                leading: const Icon(Icons.edit_outlined),
+                title: const Text('Edit Profile'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
-                  context.goNamed(AppRoute.accountDetails.name);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const EditProviderProfileScreen(),
+                    ),
+                  );
                 },
               ),
               const Divider(),
@@ -121,13 +126,13 @@ class SettingsScreen extends ConsumerWidget {
                   );
                 },
               ),
-              const Spacer(),
+              Spacer(),
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppTheme.burntOrange,
-                    side: const BorderSide(color: AppTheme.burntOrange),
+                    foregroundColor: context.colorScheme.secondary,
+                    side: BorderSide(color: context.colorScheme.secondary),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -151,7 +156,7 @@ class SettingsScreen extends ConsumerWidget {
                           ),
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.burntOrange,
+                              backgroundColor: context.colorScheme.secondary,
                               foregroundColor: Colors.white,
                             ),
                             onPressed: () => Navigator.of(context).pop(true),

@@ -9,7 +9,7 @@ class IntroScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.white,
+      backgroundColor: context.colorScheme.surface,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
@@ -18,20 +18,20 @@ class IntroScreen extends StatelessWidget {
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: AppTheme.peach.withValues(alpha: 0.5),
+                    color: context.colorScheme.tertiary.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(32),
                   ),
                   child: Center(
                     // Placeholder for the device mockup image
                     child: Padding(
-                      padding: const EdgeInsets.all(32.0),
+                      padding: EdgeInsets.all(32.0),
                       child: Image.asset(
                         AppAssets.iconLogo3D_2,
                         errorBuilder: (context, error, stackTrace) =>
-                            const Icon(
+                            Icon(
                               Icons.phone_iphone,
                               size: 200,
-                              color: AppTheme.white,
+                              color: context.colorScheme.surface,
                             ),
                       ),
                     ),
@@ -48,15 +48,15 @@ class IntroScreen extends StatelessWidget {
                   child: const Text('Get started'),
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               TextButton(
                 onPressed: () {
                   context.go('/main');
                 },
-                child: const Text(
+                child: Text(
                   'Continue as guest',
                   style: TextStyle(
-                    color: AppTheme.burntOrange,
+                    color: context.colorScheme.secondary,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),

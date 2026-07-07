@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ServiceModel {
 
- String get id;@JsonKey(name: 'provider_id') String get providerId; String get name; String get description; double get price;@JsonKey(name: 'duration_minutes') int get durationMinutes;@JsonKey(name: 'created_at') DateTime get createdAt;
+ String get id;@JsonKey(name: 'provider_id') String get providerId; String get name; String get description; double get price;@JsonKey(name: 'duration_minutes') int get durationMinutes;@JsonKey(name: 'created_at') DateTime get createdAt;@JsonKey(name: 'category') String? get category;@JsonKey(name: 'image_url') String? get imageUrl;
 /// Create a copy of ServiceModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $ServiceModelCopyWith<ServiceModel> get copyWith => _$ServiceModelCopyWithImpl<S
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ServiceModel&&(identical(other.id, id) || other.id == id)&&(identical(other.providerId, providerId) || other.providerId == providerId)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.price, price) || other.price == price)&&(identical(other.durationMinutes, durationMinutes) || other.durationMinutes == durationMinutes)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ServiceModel&&(identical(other.id, id) || other.id == id)&&(identical(other.providerId, providerId) || other.providerId == providerId)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.price, price) || other.price == price)&&(identical(other.durationMinutes, durationMinutes) || other.durationMinutes == durationMinutes)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.category, category) || other.category == category)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,providerId,name,description,price,durationMinutes,createdAt);
+int get hashCode => Object.hash(runtimeType,id,providerId,name,description,price,durationMinutes,createdAt,category,imageUrl);
 
 @override
 String toString() {
-  return 'ServiceModel(id: $id, providerId: $providerId, name: $name, description: $description, price: $price, durationMinutes: $durationMinutes, createdAt: $createdAt)';
+  return 'ServiceModel(id: $id, providerId: $providerId, name: $name, description: $description, price: $price, durationMinutes: $durationMinutes, createdAt: $createdAt, category: $category, imageUrl: $imageUrl)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $ServiceModelCopyWith<$Res>  {
   factory $ServiceModelCopyWith(ServiceModel value, $Res Function(ServiceModel) _then) = _$ServiceModelCopyWithImpl;
 @useResult
 $Res call({
- String id,@JsonKey(name: 'provider_id') String providerId, String name, String description, double price,@JsonKey(name: 'duration_minutes') int durationMinutes,@JsonKey(name: 'created_at') DateTime createdAt
+ String id,@JsonKey(name: 'provider_id') String providerId, String name, String description, double price,@JsonKey(name: 'duration_minutes') int durationMinutes,@JsonKey(name: 'created_at') DateTime createdAt,@JsonKey(name: 'category') String? category,@JsonKey(name: 'image_url') String? imageUrl
 });
 
 
@@ -65,7 +65,7 @@ class _$ServiceModelCopyWithImpl<$Res>
 
 /// Create a copy of ServiceModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? providerId = null,Object? name = null,Object? description = null,Object? price = null,Object? durationMinutes = null,Object? createdAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? providerId = null,Object? name = null,Object? description = null,Object? price = null,Object? durationMinutes = null,Object? createdAt = null,Object? category = freezed,Object? imageUrl = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,providerId: null == providerId ? _self.providerId : providerId // ignore: cast_nullable_to_non_nullable
@@ -74,7 +74,9 @@ as String,description: null == description ? _self.description : description // 
 as String,price: null == price ? _self.price : price // ignore: cast_nullable_to_non_nullable
 as double,durationMinutes: null == durationMinutes ? _self.durationMinutes : durationMinutes // ignore: cast_nullable_to_non_nullable
 as int,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
-as DateTime,
+as DateTime,category: freezed == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
+as String?,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -159,10 +161,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'provider_id')  String providerId,  String name,  String description,  double price, @JsonKey(name: 'duration_minutes')  int durationMinutes, @JsonKey(name: 'created_at')  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'provider_id')  String providerId,  String name,  String description,  double price, @JsonKey(name: 'duration_minutes')  int durationMinutes, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'category')  String? category, @JsonKey(name: 'image_url')  String? imageUrl)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ServiceModel() when $default != null:
-return $default(_that.id,_that.providerId,_that.name,_that.description,_that.price,_that.durationMinutes,_that.createdAt);case _:
+return $default(_that.id,_that.providerId,_that.name,_that.description,_that.price,_that.durationMinutes,_that.createdAt,_that.category,_that.imageUrl);case _:
   return orElse();
 
 }
@@ -180,10 +182,10 @@ return $default(_that.id,_that.providerId,_that.name,_that.description,_that.pri
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'provider_id')  String providerId,  String name,  String description,  double price, @JsonKey(name: 'duration_minutes')  int durationMinutes, @JsonKey(name: 'created_at')  DateTime createdAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'provider_id')  String providerId,  String name,  String description,  double price, @JsonKey(name: 'duration_minutes')  int durationMinutes, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'category')  String? category, @JsonKey(name: 'image_url')  String? imageUrl)  $default,) {final _that = this;
 switch (_that) {
 case _ServiceModel():
-return $default(_that.id,_that.providerId,_that.name,_that.description,_that.price,_that.durationMinutes,_that.createdAt);case _:
+return $default(_that.id,_that.providerId,_that.name,_that.description,_that.price,_that.durationMinutes,_that.createdAt,_that.category,_that.imageUrl);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -200,10 +202,10 @@ return $default(_that.id,_that.providerId,_that.name,_that.description,_that.pri
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'provider_id')  String providerId,  String name,  String description,  double price, @JsonKey(name: 'duration_minutes')  int durationMinutes, @JsonKey(name: 'created_at')  DateTime createdAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'provider_id')  String providerId,  String name,  String description,  double price, @JsonKey(name: 'duration_minutes')  int durationMinutes, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'category')  String? category, @JsonKey(name: 'image_url')  String? imageUrl)?  $default,) {final _that = this;
 switch (_that) {
 case _ServiceModel() when $default != null:
-return $default(_that.id,_that.providerId,_that.name,_that.description,_that.price,_that.durationMinutes,_that.createdAt);case _:
+return $default(_that.id,_that.providerId,_that.name,_that.description,_that.price,_that.durationMinutes,_that.createdAt,_that.category,_that.imageUrl);case _:
   return null;
 
 }
@@ -215,7 +217,7 @@ return $default(_that.id,_that.providerId,_that.name,_that.description,_that.pri
 @JsonSerializable()
 
 class _ServiceModel implements ServiceModel {
-  const _ServiceModel({required this.id, @JsonKey(name: 'provider_id') required this.providerId, required this.name, required this.description, required this.price, @JsonKey(name: 'duration_minutes') required this.durationMinutes, @JsonKey(name: 'created_at') required this.createdAt});
+  const _ServiceModel({required this.id, @JsonKey(name: 'provider_id') required this.providerId, required this.name, required this.description, required this.price, @JsonKey(name: 'duration_minutes') required this.durationMinutes, @JsonKey(name: 'created_at') required this.createdAt, @JsonKey(name: 'category') this.category, @JsonKey(name: 'image_url') this.imageUrl});
   factory _ServiceModel.fromJson(Map<String, dynamic> json) => _$ServiceModelFromJson(json);
 
 @override final  String id;
@@ -225,6 +227,8 @@ class _ServiceModel implements ServiceModel {
 @override final  double price;
 @override@JsonKey(name: 'duration_minutes') final  int durationMinutes;
 @override@JsonKey(name: 'created_at') final  DateTime createdAt;
+@override@JsonKey(name: 'category') final  String? category;
+@override@JsonKey(name: 'image_url') final  String? imageUrl;
 
 /// Create a copy of ServiceModel
 /// with the given fields replaced by the non-null parameter values.
@@ -239,16 +243,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ServiceModel&&(identical(other.id, id) || other.id == id)&&(identical(other.providerId, providerId) || other.providerId == providerId)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.price, price) || other.price == price)&&(identical(other.durationMinutes, durationMinutes) || other.durationMinutes == durationMinutes)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ServiceModel&&(identical(other.id, id) || other.id == id)&&(identical(other.providerId, providerId) || other.providerId == providerId)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.price, price) || other.price == price)&&(identical(other.durationMinutes, durationMinutes) || other.durationMinutes == durationMinutes)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.category, category) || other.category == category)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,providerId,name,description,price,durationMinutes,createdAt);
+int get hashCode => Object.hash(runtimeType,id,providerId,name,description,price,durationMinutes,createdAt,category,imageUrl);
 
 @override
 String toString() {
-  return 'ServiceModel(id: $id, providerId: $providerId, name: $name, description: $description, price: $price, durationMinutes: $durationMinutes, createdAt: $createdAt)';
+  return 'ServiceModel(id: $id, providerId: $providerId, name: $name, description: $description, price: $price, durationMinutes: $durationMinutes, createdAt: $createdAt, category: $category, imageUrl: $imageUrl)';
 }
 
 
@@ -259,7 +263,7 @@ abstract mixin class _$ServiceModelCopyWith<$Res> implements $ServiceModelCopyWi
   factory _$ServiceModelCopyWith(_ServiceModel value, $Res Function(_ServiceModel) _then) = __$ServiceModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id,@JsonKey(name: 'provider_id') String providerId, String name, String description, double price,@JsonKey(name: 'duration_minutes') int durationMinutes,@JsonKey(name: 'created_at') DateTime createdAt
+ String id,@JsonKey(name: 'provider_id') String providerId, String name, String description, double price,@JsonKey(name: 'duration_minutes') int durationMinutes,@JsonKey(name: 'created_at') DateTime createdAt,@JsonKey(name: 'category') String? category,@JsonKey(name: 'image_url') String? imageUrl
 });
 
 
@@ -276,7 +280,7 @@ class __$ServiceModelCopyWithImpl<$Res>
 
 /// Create a copy of ServiceModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? providerId = null,Object? name = null,Object? description = null,Object? price = null,Object? durationMinutes = null,Object? createdAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? providerId = null,Object? name = null,Object? description = null,Object? price = null,Object? durationMinutes = null,Object? createdAt = null,Object? category = freezed,Object? imageUrl = freezed,}) {
   return _then(_ServiceModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,providerId: null == providerId ? _self.providerId : providerId // ignore: cast_nullable_to_non_nullable
@@ -285,7 +289,9 @@ as String,description: null == description ? _self.description : description // 
 as String,price: null == price ? _self.price : price // ignore: cast_nullable_to_non_nullable
 as double,durationMinutes: null == durationMinutes ? _self.durationMinutes : durationMinutes // ignore: cast_nullable_to_non_nullable
 as int,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
-as DateTime,
+as DateTime,category: freezed == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
+as String?,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

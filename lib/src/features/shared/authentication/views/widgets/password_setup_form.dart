@@ -26,15 +26,15 @@ class _PasswordSetupFormState extends State<PasswordSetupForm> {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Icon(Icons.lock_outline, size: 80, color: AppTheme.primaryPink),
-        const SizedBox(height: 24),
-        const Text(
+        Icon(Icons.lock_outline, size: 80, color: context.colorScheme.primary),
+        SizedBox(height: 24),
+        Text(
           'Set your password',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: AppTheme.darkRed,
+            color: context.colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 8),

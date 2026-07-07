@@ -13,15 +13,15 @@ class AuthHeader extends StatelessWidget {
           AppAssets.iconLogo3D_2,
           height: 80,
           errorBuilder: (context, error, stackTrace) =>
-              const Icon(Icons.star, size: 80, color: AppTheme.peach),
+              Icon(Icons.star, size: 80, color: context.colorScheme.tertiary),
         ),
-        const SizedBox(height: 16),
-        const Text(
+        SizedBox(height: 16),
+        Text(
           'Welcome to MyGlo',
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
-            color: AppTheme.darkRed,
+            color: context.colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 16),

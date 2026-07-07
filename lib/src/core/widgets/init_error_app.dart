@@ -13,26 +13,26 @@ class InitErrorApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       debugShowCheckedModeBanner: false,
       home: Scaffold(
-        backgroundColor: AppTheme.white,
+        backgroundColor: context.colorScheme.surface,
         body: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(32.0),
+            padding: EdgeInsets.all(32.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Icon(
+                Icon(
                   Icons.error_outline_rounded,
-                  color: AppTheme.darkRed,
+                  color: context.colorScheme.onSurface,
                   size: 80,
                 ),
-                const SizedBox(height: 24),
-                const Text(
+                SizedBox(height: 24),
+                Text(
                   'App Initialization Failed',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.darkRed,
+                    color: context.colorScheme.onSurface,
                   ),
                   textAlign: TextAlign.center,
                 ),

@@ -88,22 +88,22 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
       appBar: AppBar(),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: EdgeInsets.all(24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Welcome!',
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.darkRed,
+                  color: context.colorScheme.onSurface,
                 ),
               ),
-              const SizedBox(height: 16),
-              const Text(
+              SizedBox(height: 16),
+              Text(
                 'How would you like to use the app moving forward?',
-                style: TextStyle(fontSize: 18, color: AppTheme.darkRed),
+                style: TextStyle(fontSize: 18, color: context.colorScheme.onSurface),
               ),
               const SizedBox(height: 32),
               _buildRoleCard(
@@ -153,26 +153,26 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected
-                ? AppTheme.burntOrange
+                ? context.colorScheme.secondary
                 : Theme.of(context).colorScheme.outlineVariant,
             width: isSelected ? 2 : 1,
           ),
-          color: AppTheme.white,
+          color: context.colorScheme.surface,
         ),
         child: Row(
           children: [
-            Icon(icon, size: 28, color: AppTheme.darkRed),
-            const SizedBox(width: 16),
+            Icon(icon, size: 28, color: context.colorScheme.onSurface),
+            SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.darkRed,
+                      color: context.colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -188,7 +188,7 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
                   ? Icons.radio_button_checked
                   : Icons.radio_button_unchecked,
               color: isSelected
-                  ? AppTheme.burntOrange
+                  ? context.colorScheme.secondary
                   : Theme.of(context).colorScheme.outline,
             ),
           ],

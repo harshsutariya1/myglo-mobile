@@ -13,6 +13,8 @@ abstract class ServiceModel with _$ServiceModel {
     required double price,
     @JsonKey(name: 'duration_minutes') required int durationMinutes,
     @JsonKey(name: 'created_at') required DateTime createdAt,
+    @JsonKey(name: 'category') String? category,
+    @JsonKey(name: 'image_url') String? imageUrl,
   }) = _ServiceModel;
 
   factory ServiceModel.fromJson(Map<String, dynamic> json) =>

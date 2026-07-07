@@ -52,13 +52,13 @@ class ProviderItem extends StatelessWidget {
                   letterSpacing: 1.2,
                 ),
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: 4),
               Text(
                 name,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.darkRed,
+                  color: context.colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 4),
@@ -131,13 +131,13 @@ class ProviderItemWithImage extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: 4),
               Text(
                 name,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.darkRed,
+                  color: context.colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 4),

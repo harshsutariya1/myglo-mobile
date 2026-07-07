@@ -42,9 +42,9 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
       child: Banner(
         message: 'DEMO',
         location: BannerLocation.topEnd,
-        color: AppTheme.primaryPink,
+        color: context.colorScheme.primary,
         child: Scaffold(
-          backgroundColor: AppTheme.white,
+          backgroundColor: context.colorScheme.surface,
       body: SafeArea(
         bottom: false,
         child: SingleChildScrollView(
@@ -64,13 +64,13 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                       children: [
                         Row(
                           children: [
-                            const Flexible(
+                            Flexible(
                               child: Text(
                                 'My appointments',
                                 style: TextStyle(
                                   fontSize: 28,
                                   fontWeight: FontWeight.bold,
-                                  color: AppTheme.darkRed,
+                                  color: context.colorScheme.onSurface,
                                 ),
                               ),
                             ),
@@ -88,7 +88,7 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.notifications_outlined, color: AppTheme.darkRed, size: 28),
+                    icon: Icon(Icons.notifications_outlined, color: context.colorScheme.onSurface, size: 28),
                     onPressed: () {},
                   ),
                 ],
@@ -108,12 +108,12 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Complete your profile',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: AppTheme.darkRed,
+                              color: context.colorScheme.onSurface,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -133,19 +133,19 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
-                          const CircularProgressIndicator(
+                          CircularProgressIndicator(
                             value: 0.75,
                             backgroundColor: Colors.white,
-                            color: AppTheme.burntOrange,
+                            color: context.colorScheme.secondary,
                             strokeWidth: 6,
                           ),
                           Center(
-                            child: const Text(
+                            child: Text(
                               '75%',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
-                                color: AppTheme.darkRed,
+                                color: context.colorScheme.onSurface,
                               ),
                             ),
                           ),
@@ -178,7 +178,7 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                           child: Text(
                             'Upcoming',
                             style: TextStyle(
-                              color: _selectedTabIndex == 0 ? AppTheme.burntOrange : Colors.grey.shade500,
+                              color: _selectedTabIndex == 0 ? context.colorScheme.secondary : Colors.grey.shade500,
                               fontWeight: _selectedTabIndex == 0 ? FontWeight.bold : FontWeight.normal,
                               fontSize: 16,
                             ),
@@ -198,7 +198,7 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                           child: Text(
                             'Completed',
                             style: TextStyle(
-                              color: _selectedTabIndex == 1 ? AppTheme.burntOrange : Colors.grey.shade500,
+                              color: _selectedTabIndex == 1 ? context.colorScheme.secondary : Colors.grey.shade500,
                               fontWeight: _selectedTabIndex == 1 ? FontWeight.bold : FontWeight.normal,
                               fontSize: 16,
                             ),
@@ -260,10 +260,10 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                 ),
                 Text(
                   dayOfMonth,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.darkRed,
+                    color: context.colorScheme.onSurface,
                   ),
                 ),
                 Text(
@@ -295,13 +295,13 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Text(
                   appt['service'],
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.darkRed,
+                    color: context.colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 4),

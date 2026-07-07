@@ -11,22 +11,22 @@ class BusinessToolsScreen extends StatelessWidget {
       child: Banner(
         message: 'DEMO',
         location: BannerLocation.topEnd,
-        color: AppTheme.primaryPink,
+        color: context.colorScheme.primary,
         child: Scaffold(
-          backgroundColor: AppTheme.white,
+          backgroundColor: context.colorScheme.surface,
           appBar: AppBar(
-            backgroundColor: AppTheme.white,
+            backgroundColor: context.colorScheme.surface,
             elevation: 0,
-            title: const Text(
+            title: Text(
               'Business Tools',
               style: TextStyle(
-                color: AppTheme.darkRed,
+                color: context.colorScheme.onSurface,
                 fontWeight: FontWeight.bold,
               ),
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.notifications_outlined, color: AppTheme.darkRed),
+                icon: Icon(Icons.notifications_outlined, color: context.colorScheme.onSurface),
                 onPressed: () {},
               ),
             ],
@@ -36,41 +36,42 @@ class BusinessToolsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Overview',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: AppTheme.darkRed,
+                color: context.colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: _buildStatCard('Total Earnings', '\$1,240', Icons.attach_money, true)),
+                Expanded(child: _buildStatCard(context, 'Total Earnings', '\$1,240', Icons.attach_money, true)),
                 const SizedBox(width: 16),
-                Expanded(child: _buildStatCard('Total Bookings', '24', Icons.calendar_month, false)),
+                Expanded(child: _buildStatCard(context, 'Total Bookings', '24', Icons.calendar_month, false)),
               ],
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: _buildStatCard('Profile Views', '156', Icons.visibility, false)),
+                Expanded(child: _buildStatCard(context, 'Profile Views', '156', Icons.visibility, false)),
                 const SizedBox(width: 16),
-                Expanded(child: _buildStatCard('Rating', '4.8 ★', Icons.star, false)),
+                Expanded(child: _buildStatCard(context, 'Rating', '4.8 ★', Icons.star, false)),
               ],
             ),
             const SizedBox(height: 32),
-            const Text(
+            Text(
               'Quick Actions',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: AppTheme.darkRed,
+                color: context.colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 16),
             _buildActionItem(
+              context: context,
               title: 'Manage Schedule',
               subtitle: 'Update your availability and working hours',
               icon: Icons.schedule,
@@ -78,6 +79,7 @@ class BusinessToolsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             _buildActionItem(
+              context: context,
               title: 'Services & Pricing',
               subtitle: 'Add or modify your service offerings',
               icon: Icons.design_services,
@@ -85,6 +87,7 @@ class BusinessToolsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             _buildActionItem(
+              context: context,
               title: 'Financials',
               subtitle: 'View payout history and manage bank details',
               icon: Icons.account_balance_wallet,
@@ -99,16 +102,16 @@ class BusinessToolsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, bool highlight) {
+  Widget _buildStatCard(BuildContext context, String title, String value, IconData icon, bool highlight) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: highlight ? AppTheme.primaryPink : Colors.white,
+        color: highlight ? context.colorScheme.primary : Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: highlight ? null : Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: (highlight ? AppTheme.primaryPink : Colors.black).withValues(alpha: 0.05),
+            color: (highlight ? context.colorScheme.primary : Colors.black).withValues(alpha: 0.05),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -125,7 +128,7 @@ class BusinessToolsScreen extends StatelessWidget {
             ),
             child: Icon(
               icon,
-              color: highlight ? Colors.white : AppTheme.burntOrange,
+              color: highlight ? Colors.white : context.colorScheme.secondary,
               size: 20,
             ),
           ),
@@ -135,7 +138,7 @@ class BusinessToolsScreen extends StatelessWidget {
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: highlight ? Colors.white : AppTheme.darkRed,
+              color: highlight ? Colors.white : context.colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 4),
@@ -152,6 +155,7 @@ class BusinessToolsScreen extends StatelessWidget {
   }
 
   Widget _buildActionItem({
+    required BuildContext context,
     required String title,
     required String subtitle,
     required IconData icon,
@@ -185,7 +189,7 @@ class BusinessToolsScreen extends StatelessWidget {
                 color: const Color(0xFFFFF5F5),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(icon, color: AppTheme.burntOrange, size: 24),
+              child: Icon(icon, color: context.colorScheme.secondary, size: 24),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -194,10 +198,10 @@ class BusinessToolsScreen extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.darkRed,
+                      color: context.colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 4),

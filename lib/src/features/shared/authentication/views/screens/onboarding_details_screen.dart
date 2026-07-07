@@ -100,12 +100,12 @@ class _OnboardingDetailsScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Let\'s get to know you!',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.darkRed,
+                    color: context.colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -115,17 +115,17 @@ class _OnboardingDetailsScreenState
                     onTap: _pickImage,
                     child: CircleAvatar(
                       radius: 50,
-                      backgroundColor: AppTheme.burntOrange.withValues(
+                      backgroundColor: context.colorScheme.secondary.withValues(
                         alpha: 0.2,
                       ),
                       backgroundImage: _profileImage != null
                           ? FileImage(_profileImage!)
                           : null,
                       child: _profileImage == null
-                          ? const Icon(
+                          ? Icon(
                               Icons.add_a_photo,
                               size: 40,
-                              color: AppTheme.burntOrange,
+                              color: context.colorScheme.secondary,
                             )
                           : null,
                     ),

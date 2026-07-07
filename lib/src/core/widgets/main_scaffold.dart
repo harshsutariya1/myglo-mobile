@@ -40,35 +40,35 @@ class MainScaffold extends ConsumerWidget {
             height: 55,
             labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
             backgroundColor: Colors.transparent,
-            indicatorColor: AppTheme.peach.withValues(alpha: 0.3),
+            indicatorColor: context.colorScheme.tertiary.withValues(alpha: 0.3),
             selectedIndex: currentIndex,
             onDestinationSelected: (index) => _onItemTapped(index, context, isProvider),
             destinations: [
-              const NavigationDestination(
+              NavigationDestination(
                 icon: Icon(Icons.home_outlined, color: Colors.white70),
-                selectedIcon: Icon(Icons.home, color: AppTheme.peach),
+                selectedIcon: Icon(Icons.home, color: context.colorScheme.tertiary),
                 label: "Home",
               ),
-              const NavigationDestination(
+              NavigationDestination(
                 icon: Icon(Icons.explore_outlined, color: Colors.white70),
-                selectedIcon: Icon(Icons.explore, color: AppTheme.peach),
+                selectedIcon: Icon(Icons.explore, color: context.colorScheme.tertiary),
                 label: 'Discover',
               ),
               if (isProvider)
-                const NavigationDestination(
+                NavigationDestination(
                   icon: Icon(Icons.business_center_outlined, color: Colors.white70),
-                  selectedIcon: Icon(Icons.business_center, color: AppTheme.peach),
+                  selectedIcon: Icon(Icons.business_center, color: context.colorScheme.tertiary),
                   label: 'Business',
                 )
               else
-                const NavigationDestination(
+                NavigationDestination(
                   icon: Icon(Icons.calendar_today_outlined, color: Colors.white70),
-                  selectedIcon: Icon(Icons.calendar_today, color: AppTheme.peach),
+                  selectedIcon: Icon(Icons.calendar_today, color: context.colorScheme.tertiary),
                   label: 'Bookings',
                 ),
-              const NavigationDestination(
+              NavigationDestination(
                 icon: Icon(Icons.person_outline, color: Colors.white70),
-                selectedIcon: Icon(Icons.person, color: AppTheme.peach),
+                selectedIcon: Icon(Icons.person, color: context.colorScheme.tertiary),
                 label: 'Profile',
               ),
             ],

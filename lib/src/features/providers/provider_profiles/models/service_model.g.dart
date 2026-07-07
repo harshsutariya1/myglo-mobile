@@ -15,6 +15,8 @@ _ServiceModel _$ServiceModelFromJson(Map<String, dynamic> json) =>
       price: (json['price'] as num).toDouble(),
       durationMinutes: (json['duration_minutes'] as num).toInt(),
       createdAt: DateTime.parse(json['created_at'] as String),
+      category: json['category'] as String?,
+      imageUrl: json['image_url'] as String?,
     );
 
 Map<String, dynamic> _$ServiceModelToJson(_ServiceModel instance) =>
@@ -26,4 +28,6 @@ Map<String, dynamic> _$ServiceModelToJson(_ServiceModel instance) =>
       'price': instance.price,
       'duration_minutes': instance.durationMinutes,
       'created_at': instance.createdAt.toIso8601String(),
+      'category': instance.category,
+      'image_url': instance.imageUrl,
     };

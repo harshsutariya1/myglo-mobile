@@ -14,7 +14,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.white,
+      backgroundColor: context.colorScheme.surface,
       body: SafeArea(
         bottom: false,
         child: SingleChildScrollView(
@@ -30,12 +30,12 @@ class _BookingsScreenState extends State<BookingsScreen> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Bookings',
                         style: TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.w900,
-                          color: AppTheme.darkRed,
+                          color: context.colorScheme.onSurface,
                           letterSpacing: -0.5,
                         ),
                       ),
@@ -44,7 +44,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
                         offset: const Offset(4, -4),
                         child: Icon(
                           Icons.auto_awesome,
-                          color: AppTheme.primaryPink,
+                          color: context.colorScheme.primary,
                           size: 20,
                         ),
                       ),
@@ -78,7 +78,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
                         child: Container(
                           decoration: BoxDecoration(
                             color: _isUpcomingSelected
-                                ? AppTheme.peach.withValues(alpha: 0.15)
+                                ? context.colorScheme.tertiary.withValues(alpha: 0.15)
                                 : Colors.transparent,
                             borderRadius: BorderRadius.circular(25),
                           ),
@@ -88,7 +88,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: _isUpcomingSelected ? FontWeight.w600 : FontWeight.w400,
-                              color: _isUpcomingSelected ? AppTheme.burntOrange : Colors.grey.shade500,
+                              color: _isUpcomingSelected ? context.colorScheme.secondary : Colors.grey.shade500,
                             ),
                           ),
                         ),
@@ -100,7 +100,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
                         child: Container(
                           decoration: BoxDecoration(
                             color: !_isUpcomingSelected
-                                ? AppTheme.peach.withValues(alpha: 0.15)
+                                ? context.colorScheme.tertiary.withValues(alpha: 0.15)
                                 : Colors.transparent,
                             borderRadius: BorderRadius.circular(25),
                           ),
@@ -110,7 +110,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: !_isUpcomingSelected ? FontWeight.w600 : FontWeight.w400,
-                              color: !_isUpcomingSelected ? AppTheme.burntOrange : Colors.grey.shade500,
+                              color: !_isUpcomingSelected ? context.colorScheme.secondary : Colors.grey.shade500,
                             ),
                           ),
                         ),
