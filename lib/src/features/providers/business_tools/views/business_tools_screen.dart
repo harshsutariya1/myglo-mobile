@@ -6,25 +6,31 @@ class BusinessToolsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.white,
-      appBar: AppBar(
-        backgroundColor: AppTheme.white,
-        elevation: 0,
-        title: const Text(
-          'Business Tools',
-          style: TextStyle(
-            color: AppTheme.darkRed,
-            fontWeight: FontWeight.bold,
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Banner(
+        message: 'DEMO',
+        location: BannerLocation.topEnd,
+        color: AppTheme.primaryPink,
+        child: Scaffold(
+          backgroundColor: AppTheme.white,
+          appBar: AppBar(
+            backgroundColor: AppTheme.white,
+            elevation: 0,
+            title: const Text(
+              'Business Tools',
+              style: TextStyle(
+                color: AppTheme.darkRed,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined, color: AppTheme.darkRed),
+                onPressed: () {},
+              ),
+            ],
           ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: AppTheme.darkRed),
-            onPressed: () {},
-          ),
-        ],
-      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
@@ -41,17 +47,17 @@ class BusinessToolsScreen extends StatelessWidget {
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: _buildStatCard('Total Earnings', '\$1,240', Icons.attach_money)),
+                Expanded(child: _buildStatCard('Total Earnings', '\$1,240', Icons.attach_money, true)),
                 const SizedBox(width: 16),
-                Expanded(child: _buildStatCard('Total Bookings', '24', Icons.calendar_month)),
+                Expanded(child: _buildStatCard('Total Bookings', '24', Icons.calendar_month, false)),
               ],
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: _buildStatCard('Profile Views', '156', Icons.visibility)),
+                Expanded(child: _buildStatCard('Profile Views', '156', Icons.visibility, false)),
                 const SizedBox(width: 16),
-                Expanded(child: _buildStatCard('Rating', '4.8 ★', Icons.star)),
+                Expanded(child: _buildStatCard('Rating', '4.8 ★', Icons.star, false)),
               ],
             ),
             const SizedBox(height: 32),
@@ -70,14 +76,14 @@ class BusinessToolsScreen extends StatelessWidget {
               icon: Icons.schedule,
               onTap: () {},
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             _buildActionItem(
               title: 'Services & Pricing',
               subtitle: 'Add or modify your service offerings',
               icon: Icons.design_services,
               onTap: () {},
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             _buildActionItem(
               title: 'Financials',
               subtitle: 'View payout history and manage bank details',
@@ -87,29 +93,49 @@ class BusinessToolsScreen extends StatelessWidget {
             const SizedBox(height: 100), // Bottom navigation bar padding
           ],
         ),
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon) {
+  Widget _buildStatCard(String title, String value, IconData icon, bool highlight) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.primaryPink.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.primaryPink.withValues(alpha: 0.3)),
+        color: highlight ? AppTheme.primaryPink : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: highlight ? null : Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: (highlight ? AppTheme.primaryPink : Colors.black).withValues(alpha: 0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: AppTheme.darkRed, size: 24),
-          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: highlight ? Colors.white.withValues(alpha: 0.2) : const Color(0xFFFFF5F5),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              icon,
+              color: highlight ? Colors.white : AppTheme.burntOrange,
+              size: 20,
+            ),
+          ),
+          const SizedBox(height: 16),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: AppTheme.darkRed,
+              color: highlight ? Colors.white : AppTheme.darkRed,
             ),
           ),
           const SizedBox(height: 4),
@@ -117,7 +143,7 @@ class BusinessToolsScreen extends StatelessWidget {
             title,
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey.shade700,
+              color: highlight ? Colors.white.withValues(alpha: 0.9) : Colors.grey.shade600,
             ),
           ),
         ],
@@ -133,17 +159,17 @@ class BusinessToolsScreen extends StatelessWidget {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(20),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
             ),
           ],
           border: Border.all(
@@ -154,12 +180,12 @@ class BusinessToolsScreen extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppTheme.primaryPink.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(12),
+                color: const Color(0xFFFFF5F5),
+                borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(icon, color: AppTheme.darkRed),
+              child: Icon(icon, color: AppTheme.burntOrange, size: 24),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -179,13 +205,13 @@ class BusinessToolsScreen extends StatelessWidget {
                     subtitle,
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.grey.shade600,
+                      color: Colors.grey.shade500,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: Colors.grey),
+            Icon(Icons.chevron_right, color: Colors.grey.shade400),
           ],
         ),
       ),
