@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class AnimatedPasswordField extends StatelessWidget {
+class AnimatedPasswordField extends StatefulWidget {
   final Animation<double> animation;
   final TextEditingController controller;
 
@@ -11,16 +11,23 @@ class AnimatedPasswordField extends StatelessWidget {
   });
 
   @override
+  State<AnimatedPasswordField> createState() => _AnimatedPasswordFieldState();
+}
+
+class _AnimatedPasswordFieldState extends State<AnimatedPasswordField> {
+  bool _obscureText = true;
+
+  @override
   Widget build(BuildContext context) {
     return ClipRect(
       child: AnimatedBuilder(
-        animation: animation,
+        animation: widget.animation,
         builder: (context, child) {
           return Align(
             alignment: Alignment.topCenter,
-            heightFactor: animation.value,
+            heightFactor: widget.animation.value,
             child: FractionalTranslation(
-              translation: Offset(0, animation.value - 1.0),
+              translation: Offset(0, widget.animation.value - 1.0),
               child: child,
             ),
           );
@@ -30,23 +37,8 @@ class AnimatedPasswordField extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.only(
-                  left: 4.0,
-                  bottom: 8.0,
-                  top: 4.0,
-                ),
-                child: Text(
-                  'Account found! Please enter your password.',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
               TextField(
-                controller: controller,
+                controller: widget.controller,
                 decoration: InputDecoration(
                   labelText: 'Password',
                   border: OutlineInputBorder(
@@ -61,8 +53,29 @@ class AnimatedPasswordField extends StatelessWidget {
                       color: Theme.of(context).colorScheme.outlineVariant,
                     ),
                   ),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureText ? Icons.visibility_off : Icons.visibility,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscureText = !_obscureText;
+                      });
+                    },
+                  ),
                 ),
-                obscureText: true,
+                obscureText: _obscureText,
+              ),
+              Padding(
+                padding: const EdgeInsets.only(left: 4.0, top: 4.0),
+                child: Text(
+                  'Account found! Please enter your password.',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
               ),
             ],
           ),

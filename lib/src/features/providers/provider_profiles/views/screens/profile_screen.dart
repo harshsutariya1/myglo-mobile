@@ -397,7 +397,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 else
                   _ProviderPostsGrid(userId: appUser.rawUser.id),
 
-                const SliverToBoxAdapter(child: SizedBox(height: 40)),
+                const SliverToBoxAdapter(child: SizedBox(height: 100)),
               ],
             ),
           );

@@ -35,11 +35,13 @@ class _EditCustomerProfileScreenState
     final profileState = ref.read(userProfileProvider).value;
     final profile = profileState?.profile;
 
-    _firstNameController = TextEditingController(text: profile?.firstName ?? '');
+    _firstNameController = TextEditingController(
+      text: profile?.firstName ?? '',
+    );
     _lastNameController = TextEditingController(text: profile?.lastName ?? '');
     _phoneController = TextEditingController(text: profile?.phoneNumber ?? '');
     _bioController = TextEditingController(text: profile?.bio ?? '');
-    
+
     _isEmailPublic = profile?.isEmailPublic ?? false;
     _isPhonePublic = profile?.isPhonePublic ?? false;
   }
@@ -64,7 +66,7 @@ class _EditCustomerProfileScreenState
 
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     final profileState = ref.read(userProfileProvider).value;
     if (profileState == null) return;
 
@@ -96,7 +98,7 @@ class _EditCustomerProfileScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            errorState.error?.toString() ?? 'Failed to update profile'
+            errorState.error?.toString() ?? 'Failed to update profile',
           ),
           backgroundColor: Colors.red,
         ),
@@ -125,7 +127,11 @@ class _EditCustomerProfileScreenState
         ),
       ),
       body: userProfile == null
-          ? Center(child: CircularProgressIndicator(color: context.colorScheme.onSurface))
+          ? Center(
+              child: CircularProgressIndicator(
+                color: context.colorScheme.onSurface,
+              ),
+            )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
               child: Form(
@@ -141,7 +147,7 @@ class _EditCustomerProfileScreenState
                       ),
                     ),
                     SizedBox(height: 32),
-                    
+
                     // Basic Information Section
                     Text(
                       'Basic Information',
@@ -176,9 +182,9 @@ class _EditCustomerProfileScreenState
                       icon: Icons.info_outline,
                       maxLines: 3,
                     ),
-                    
+
                     SizedBox(height: 32),
-                    
+
                     // Contact Information Section
                     Text(
                       'Contact Information',
@@ -195,9 +201,9 @@ class _EditCustomerProfileScreenState
                       icon: Icons.phone_outlined,
                       keyboardType: TextInputType.phone,
                     ),
-                    
+
                     SizedBox(height: 32),
-                    
+
                     // Privacy Settings Section
                     Text(
                       'Privacy Settings',
@@ -234,9 +240,9 @@ class _EditCustomerProfileScreenState
                         setState(() => _isPhonePublic = val);
                       },
                     ),
-                    
+
                     const SizedBox(height: 48),
-                    
+
                     // Save Button
                     ElevatedButton(
                       onPressed: isLoading ? null : _saveProfile,
@@ -266,7 +272,7 @@ class _EditCustomerProfileScreenState
                               ),
                             ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 50),
                   ],
                 ),
               ),
