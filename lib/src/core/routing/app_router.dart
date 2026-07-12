@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -19,6 +19,7 @@ import '../../features/customers/customer_profile/views/customer_profile_screen.
 import '../../features/providers/provider_profiles/views/screens/profile_screen.dart';
 import '../../features/providers/provider_profiles/views/screens/settings_screen.dart';
 import '../../features/providers/provider_profiles/views/screens/account_details_screen.dart';
+import '../../features/discovery_feed/views/discovery_screen.dart';
 
 import '../../features/shared/authentication/controllers/user_profile_provider.dart';
 import '../widgets/main_scaffold.dart';
@@ -112,8 +113,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoute.discover.path,
             name: AppRoute.discover.name,
-            builder: (context, state) =>
-                const Scaffold(body: Center(child: Text('Discover'))),
+            builder: (context, state) => const DiscoveryScreen(),
           ),
           GoRoute(
             path: AppRoute.bookings.path,

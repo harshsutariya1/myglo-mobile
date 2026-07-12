@@ -160,4 +160,13 @@ class UserRepository {
     if (response == null) return null;
     return ProviderDetailsModel.fromJson(response);
   }
+
+  /// Fetches all available providers
+  Future<List<ProviderDetailsModel>> getAllProviders() async {
+    final response = await _client
+        .from('provider_details')
+        .select();
+        
+    return (response as List).map((e) => ProviderDetailsModel.fromJson(e)).toList();
+  }
 }

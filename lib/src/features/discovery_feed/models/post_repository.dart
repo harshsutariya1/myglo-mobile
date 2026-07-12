@@ -114,6 +114,15 @@ class PostRepository {
     return (response as List).map((e) => PostModel.fromJson(e)).toList();
   }
 
+  Future<List<PostModel>> getAllPosts() async {
+    final response = await _client
+        .from('posts')
+        .select()
+        .order('created_at', ascending: false);
+
+    return (response as List).map((e) => PostModel.fromJson(e)).toList();
+  }
+
   Future<void> deletePost(String postId, List<String> mediaUrls) async {
     // 1. Delete associated media from Storage
     if (mediaUrls.isNotEmpty) {

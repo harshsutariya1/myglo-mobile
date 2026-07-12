@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../../core/theme/app_theme.dart';
 
 class ProviderItem extends StatelessWidget {
@@ -80,6 +81,7 @@ class ProviderItemWithImage extends StatelessWidget {
   final String location;
   final String status;
   final Color statusColor;
+  final String? imageUrl;
 
   const ProviderItemWithImage({
     super.key,
@@ -88,6 +90,7 @@ class ProviderItemWithImage extends StatelessWidget {
     required this.location,
     required this.status,
     required this.statusColor,
+    this.imageUrl,
   });
 
   @override
@@ -102,7 +105,17 @@ class ProviderItemWithImage extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
           ),
           alignment: Alignment.center,
-          child: const Icon(Icons.image, size: 40, color: Colors.white),
+          clipBehavior: Clip.antiAlias,
+          child: imageUrl != null
+              ? CachedNetworkImage(
+                  imageUrl: imageUrl!,
+                  width: 80,
+                  height: 80,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => const Icon(Icons.image, size: 40, color: Colors.white),
+                  errorWidget: (context, url, error) => const Icon(Icons.broken_image, size: 40, color: Colors.white),
+                )
+              : const Icon(Icons.image, size: 40, color: Colors.white),
         ),
         const SizedBox(width: 16),
         Expanded(
