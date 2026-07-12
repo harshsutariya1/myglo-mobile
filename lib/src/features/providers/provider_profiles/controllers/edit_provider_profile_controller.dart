@@ -29,7 +29,7 @@ class EditProviderProfileController extends _$EditProviderProfileController {
     state = const AsyncLoading();
     try {
       final userRepo = ref.read(userRepositoryProvider);
-      
+
       String? profilePicUrl;
       if (newProfilePic != null) {
         profilePicUrl = await userRepo.uploadProfilePicture(id, newProfilePic);
@@ -48,10 +48,10 @@ class EditProviderProfileController extends _$EditProviderProfileController {
         isPhonePublic: isPhonePublic,
         profilePic: profilePicUrl,
       );
-      
+
       // Invalidate the profile provider so it re-fetches
       ref.invalidate(userProfileProvider);
-      
+
       state = const AsyncData(null);
       return true;
     } catch (e, st) {

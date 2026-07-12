@@ -37,14 +37,8 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.ltr,
-      child: Banner(
-        message: 'DEMO',
-        location: BannerLocation.topEnd,
-        color: context.colorScheme.primary,
-        child: Scaffold(
-          backgroundColor: context.colorScheme.surface,
+    return Scaffold(
+      backgroundColor: context.colorScheme.surface,
       body: SafeArea(
         bottom: false,
         child: SingleChildScrollView(
@@ -88,7 +82,11 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                     ),
                   ),
                   IconButton(
-                    icon: Icon(Icons.notifications_outlined, color: context.colorScheme.onSurface, size: 28),
+                    icon: Icon(
+                      Icons.notifications_outlined,
+                      color: context.colorScheme.onSurface,
+                      size: 28,
+                    ),
                     onPressed: () {},
                   ),
                 ],
@@ -171,15 +169,21 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                         onTap: () => setState(() => _selectedTabIndex = 0),
                         child: Container(
                           decoration: BoxDecoration(
-                            color: _selectedTabIndex == 0 ? const Color(0xFFFFF5F5) : Colors.transparent,
+                            color: _selectedTabIndex == 0
+                                ? const Color(0xFFFFF5F5)
+                                : Colors.transparent,
                             borderRadius: BorderRadius.circular(25),
                           ),
                           alignment: Alignment.center,
                           child: Text(
                             'Upcoming',
                             style: TextStyle(
-                              color: _selectedTabIndex == 0 ? context.colorScheme.secondary : Colors.grey.shade500,
-                              fontWeight: _selectedTabIndex == 0 ? FontWeight.bold : FontWeight.normal,
+                              color: _selectedTabIndex == 0
+                                  ? context.colorScheme.secondary
+                                  : Colors.grey.shade500,
+                              fontWeight: _selectedTabIndex == 0
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                               fontSize: 16,
                             ),
                           ),
@@ -191,15 +195,21 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                         onTap: () => setState(() => _selectedTabIndex = 1),
                         child: Container(
                           decoration: BoxDecoration(
-                            color: _selectedTabIndex == 1 ? const Color(0xFFFFF5F5) : Colors.transparent,
+                            color: _selectedTabIndex == 1
+                                ? const Color(0xFFFFF5F5)
+                                : Colors.transparent,
                             borderRadius: BorderRadius.circular(25),
                           ),
                           alignment: Alignment.center,
                           child: Text(
                             'Completed',
                             style: TextStyle(
-                              color: _selectedTabIndex == 1 ? context.colorScheme.secondary : Colors.grey.shade500,
-                              fontWeight: _selectedTabIndex == 1 ? FontWeight.bold : FontWeight.normal,
+                              color: _selectedTabIndex == 1
+                                  ? context.colorScheme.secondary
+                                  : Colors.grey.shade500,
+                              fontWeight: _selectedTabIndex == 1
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                               fontSize: 16,
                             ),
                           ),
@@ -211,11 +221,11 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
               ),
               const SizedBox(height: 24),
               // List
-              ..._upcomingAppointments.map((appt) => _buildAppointmentCard(appt)),
+              ..._upcomingAppointments.map(
+                (appt) => _buildAppointmentCard(appt),
+              ),
               const SizedBox(height: 100),
             ],
-          ),
-        ),
           ),
         ),
       ),
@@ -307,10 +317,7 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                 const SizedBox(height: 4),
                 Text(
                   appt['time'],
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                 ),
               ],
             ),

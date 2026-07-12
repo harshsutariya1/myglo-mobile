@@ -15,4 +15,8 @@ class AppAssets {
 
   // Graphics
   static const String underlineGraphic = 'assets/graphics/Underline.png';
+  static const String onboardingBg = 'assets/images/onboarding_bg.png';
+  static const String intro1 = 'assets/images/intro1.png';
+  static const String intro2 = 'assets/images/intro2.png';
+  static const String intro3 = 'assets/images/intro3.png';
 }

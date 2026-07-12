@@ -6,14 +6,8 @@ class BusinessToolsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.ltr,
-      child: Banner(
-        message: 'DEMO',
-        location: BannerLocation.topEnd,
-        color: context.colorScheme.primary,
-        child: Scaffold(
-          backgroundColor: context.colorScheme.surface,
+    return Scaffold(
+      backgroundColor: context.colorScheme.surface,
           appBar: AppBar(
             backgroundColor: context.colorScheme.surface,
             elevation: 0,
@@ -95,8 +89,6 @@ class BusinessToolsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 100), // Bottom navigation bar padding
           ],
-        ),
-          ),
         ),
       ),
     );

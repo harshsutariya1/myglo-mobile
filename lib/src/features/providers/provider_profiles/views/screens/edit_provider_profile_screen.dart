@@ -38,13 +38,19 @@ class _EditProviderProfileScreenState
     final profile = profileState?.profile;
     final providerDetails = profileState?.providerDetails;
 
-    _firstNameController = TextEditingController(text: profile?.firstName ?? '');
+    _firstNameController = TextEditingController(
+      text: profile?.firstName ?? '',
+    );
     _lastNameController = TextEditingController(text: profile?.lastName ?? '');
-    _providerNameController = TextEditingController(text: providerDetails?.providerName ?? '');
+    _providerNameController = TextEditingController(
+      text: providerDetails?.providerName ?? '',
+    );
     _phoneController = TextEditingController(text: profile?.phoneNumber ?? '');
     _bioController = TextEditingController(text: profile?.bio ?? '');
-    _addressTextController = TextEditingController(text: providerDetails?.addressText ?? '');
-    
+    _addressTextController = TextEditingController(
+      text: providerDetails?.addressText ?? '',
+    );
+
     _isEmailPublic = profile?.isEmailPublic ?? false;
     _isPhonePublic = profile?.isPhonePublic ?? false;
   }
@@ -71,7 +77,7 @@ class _EditProviderProfileScreenState
 
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     final profileState = ref.read(userProfileProvider).value;
     if (profileState == null) return;
 
@@ -105,7 +111,7 @@ class _EditProviderProfileScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            errorState.error?.toString() ?? 'Failed to update profile'
+            errorState.error?.toString() ?? 'Failed to update profile',
           ),
           backgroundColor: Colors.red,
         ),
@@ -134,7 +140,11 @@ class _EditProviderProfileScreenState
         ),
       ),
       body: userProfile == null
-          ? Center(child: CircularProgressIndicator(color: context.colorScheme.onSurface))
+          ? Center(
+              child: CircularProgressIndicator(
+                color: context.colorScheme.onSurface,
+              ),
+            )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
               child: Form(
@@ -150,7 +160,7 @@ class _EditProviderProfileScreenState
                       ),
                     ),
                     SizedBox(height: 32),
-                    
+
                     // Business Information Section
                     Text(
                       'Business Information',
@@ -173,7 +183,7 @@ class _EditProviderProfileScreenState
                       icon: Icons.location_on_outlined,
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // Basic Information Section
                     Text(
                       'Personal Information',
@@ -208,9 +218,9 @@ class _EditProviderProfileScreenState
                       icon: Icons.info_outline,
                       maxLines: 3,
                     ),
-                    
+
                     SizedBox(height: 32),
-                    
+
                     // Contact Information Section
                     Text(
                       'Contact Information',
@@ -227,9 +237,9 @@ class _EditProviderProfileScreenState
                       icon: Icons.phone_outlined,
                       keyboardType: TextInputType.phone,
                     ),
-                    
+
                     SizedBox(height: 32),
-                    
+
                     // Privacy Settings Section
                     Text(
                       'Privacy Settings',
@@ -266,9 +276,9 @@ class _EditProviderProfileScreenState
                         setState(() => _isPhonePublic = val);
                       },
                     ),
-                    
+
                     const SizedBox(height: 48),
-                    
+
                     // Save Button
                     ElevatedButton(
                       onPressed: isLoading ? null : _saveProfile,
