@@ -13,8 +13,11 @@ String? appRouterRedirect(BuildContext context, GoRouterState state, Ref ref) {
   final userProfileState = ref.read(userProfileProvider);
 
   if (authState.hasError || userProfileState.hasError) {
-    // If there's a fatal error in providers, redirect to intro or splash
-    return AppRoute.intro.path;
+    // If there's a fatal error in providers, redirect to error screen
+    if (state.uri.path != AppRoute.error.path) {
+      return AppRoute.error.path;
+    }
+    return null;
   }
 
   if (authState.isLoading) return AppRoute.splash.path;

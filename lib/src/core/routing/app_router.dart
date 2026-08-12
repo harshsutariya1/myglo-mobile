@@ -10,6 +10,7 @@ import '../../features/shared/authentication/views/screens/onboarding_details_sc
 import '../../features/shared/authentication/models/user_role.dart';
 import '../../features/shared/authentication/views/screens/splash_screen.dart';
 import '../../features/shared/authentication/views/screens/intro_screen.dart';
+import '../widgets/error_screen.dart';
 
 import '../../features/customers/home/views/home_screen.dart';
 import '../../features/providers/home/views/provider_home_screen.dart';
@@ -29,6 +30,7 @@ import 'app_router_guard.dart';
 enum AppRoute {
   splash(path: '/'),
   intro(path: '/intro'),
+  error(path: '/error'),
   auth(path: '/auth'),
   confirmEmail(path: '/confirm_email'),
   roleSelection(path: '/role'),
@@ -61,6 +63,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoute.intro.path,
         name: AppRoute.intro.name,
         builder: (context, state) => const IntroScreen(),
+      ),
+      GoRoute(
+        path: AppRoute.error.path,
+        name: AppRoute.error.name,
+        builder: (context, state) => const ErrorScreen(),
       ),
       GoRoute(
         path: AppRoute.auth.path,
