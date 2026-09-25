@@ -36,19 +36,18 @@ class _EditProviderProfileScreenState
     super.initState();
     final profileState = ref.read(userProfileProvider).value;
     final profile = profileState?.profile;
-    final providerDetails = profileState?.providerDetails;
 
     _firstNameController = TextEditingController(
       text: profile?.firstName ?? '',
     );
     _lastNameController = TextEditingController(text: profile?.lastName ?? '');
     _providerNameController = TextEditingController(
-      text: providerDetails?.providerName ?? '',
+      text: profile?.providerName ?? '',
     );
     _phoneController = TextEditingController(text: profile?.phoneNumber ?? '');
     _bioController = TextEditingController(text: profile?.bio ?? '');
     _addressTextController = TextEditingController(
-      text: providerDetails?.addressText ?? '',
+      text: profile?.addressText ?? '',
     );
 
     _isEmailPublic = profile?.isEmailPublic ?? false;

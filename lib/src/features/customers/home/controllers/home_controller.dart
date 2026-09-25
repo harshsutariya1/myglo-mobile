@@ -19,13 +19,13 @@ class HomeProvider {
       id: json['id'] as String,
       providerName: json['provider_name'] as String? ?? 'Unknown Provider',
       addressText: json['address_text'] as String? ?? 'No location provided',
-      profilePic: json['profiles']?['profile_pic'] as String?,
+      profilePic: json['profile_pic'] as String?,
     );
   }
 }
 
 final allProvidersProvider = FutureProvider.autoDispose<List<HomeProvider>>((ref) async {
   final client = ref.read(supabaseClientProvider);
-  final response = await client.from('provider_details').select('*, profiles(profile_pic)');
+  final response = await client.from('profiles').select().eq('role', 'provider');
   return (response as List).map((e) => HomeProvider.fromJson(e)).toList();
 });

@@ -1,5 +1,7 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
+// ignore_for_file: type=lint
+
 part of 'add_service_controller.dart';
 
 // **************************************************************************
@@ -34,7 +36,7 @@ final class AddServiceControllerProvider
 }
 
 String _$addServiceControllerHash() =>
-    r'522221ac0e140b45404a1591a67833af8bfe03ce';
+    r'84f4435a9652ea14477e74adbe8ea14e16b955b1';
 
 abstract class _$AddServiceController extends $AsyncNotifier<void> {
   FutureOr<void> build();

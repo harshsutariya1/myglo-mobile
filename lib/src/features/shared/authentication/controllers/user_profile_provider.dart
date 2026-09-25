@@ -3,7 +3,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/auth_repository.dart';
 import '../models/user_repository.dart';
 import '../models/user_role.dart';
-import '../models/provider_details_model.dart';
 import '../models/profile_model.dart';
 
 /// A class that bundles the raw Supabase user, their role, and their specific profile model.
@@ -11,13 +10,11 @@ class AppUserProfile {
   final User rawUser;
   final UserRole role;
   final ProfileModel profile;
-  final ProviderDetailsModel? providerDetails;
 
   AppUserProfile({
     required this.rawUser,
     required this.role,
     required this.profile,
-    this.providerDetails,
   });
 
   bool get isCustomer => role == UserRole.customer;
@@ -26,7 +23,7 @@ class AppUserProfile {
   String get displayName {
     String name;
     if (isProvider) {
-      final pName = providerDetails?.providerName?.trim() ?? '';
+      final pName = profile.providerName?.trim() ?? '';
       final fullName =
           '${profile.firstName ?? ''} ${profile.lastName ?? ''}'.trim();
       name = pName.isNotEmpty ? pName : fullName;
@@ -39,7 +36,7 @@ class AppUserProfile {
 
   String? get displaySubtitle {
     if (isProvider) {
-      final pName = providerDetails?.providerName?.trim() ?? '';
+      final pName = profile.providerName?.trim() ?? '';
       final fullName =
           '${profile.firstName ?? ''} ${profile.lastName ?? ''}'.trim();
       return pName.isNotEmpty ? fullName : null;
@@ -77,21 +74,9 @@ final userProfileProvider = FutureProvider<AppUserProfile?>((ref) async {
     return null; // Not fully onboarded in terms of role
   }
 
-  final role = profile.role;
-
-  if (role == UserRole.provider) {
-    final providerDetails = await userRepo.getProviderDetails(user.id);
-    return AppUserProfile(
-      rawUser: user,
-      role: role,
-      profile: profile,
-      providerDetails: providerDetails,
-    );
-  } else {
-    return AppUserProfile(
-      rawUser: user,
-      role: role,
-      profile: profile,
-    );
-  }
+  return AppUserProfile(
+    rawUser: user,
+    role: profile.role,
+    profile: profile,
+  );
 });

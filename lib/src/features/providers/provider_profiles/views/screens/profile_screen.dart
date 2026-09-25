@@ -52,15 +52,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           }
 
           final providerName =
-              (appUser.providerDetails?.providerName?.isNotEmpty == true)
-              ? appUser.providerDetails!.providerName!
+              (appUser.profile.providerName?.isNotEmpty == true)
+              ? appUser.profile.providerName!
               : (appUser.displayName.isNotEmpty
                     ? appUser.displayName
                     : "Korea Beauty");
 
           final addressText =
-              (appUser.providerDetails?.addressText?.isNotEmpty == true)
-              ? appUser.providerDetails!.addressText!
+              (appUser.profile.addressText?.isNotEmpty == true)
+              ? appUser.profile.addressText!
               : "1 Collins Street, Melbourne VIC";
 
           final bio = appUser.profile.bio;

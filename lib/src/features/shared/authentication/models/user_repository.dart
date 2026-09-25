@@ -4,7 +4,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
-import 'provider_details_model.dart';
 import 'profile_model.dart';
 import 'user_role.dart';
 import 'auth_repository.dart';
@@ -60,7 +59,6 @@ class UserRepository {
     );
   }
 
-  /// Updates specific profile details in profiles and role-based tables
   Future<void> updateUserProfile({
     required String id,
     required UserRole role,
@@ -85,20 +83,19 @@ class UserRepository {
     if (isEmailPublic != null) updates['is_email_public'] = isEmailPublic;
     if (isPhonePublic != null) updates['is_phone_public'] = isPhonePublic;
 
-    if (updates.isNotEmpty) {
-      await _client.from('profiles').update(updates).eq('id', id);
+    if (role == UserRole.provider) {
+      if (providerName != null) updates['provider_name'] = providerName;
+      if (addressText != null) updates['address_text'] = addressText;
+      if (latitude != null && longitude != null) {
+        updates['coordinates'] = {
+          'type': 'Point',
+          'coordinates': [longitude, latitude]
+        };
+      }
     }
 
-    if (role == UserRole.provider) {
-      final providerUpdates = <String, dynamic>{};
-      if (providerName != null) providerUpdates['provider_name'] = providerName;
-      if (addressText != null) providerUpdates['address_text'] = addressText;
-      if (latitude != null) providerUpdates['latitude'] = latitude;
-      if (longitude != null) providerUpdates['longitude'] = longitude;
-      
-      if (providerUpdates.isNotEmpty) {
-        await _client.from('provider_details').update(providerUpdates).eq('id', id);
-      }
+    if (updates.isNotEmpty) {
+      await _client.from('profiles').update(updates).eq('id', id);
     }
   }
 
@@ -150,23 +147,13 @@ class UserRepository {
     return ProfileModel.fromJson(response);
   }
 
-  /// Fetches a Provider details profile from the DB
-  Future<ProviderDetailsModel?> getProviderDetails(String id) async {
-    final response = await _client
-        .from('provider_details')
-        .select()
-        .eq('id', id)
-        .maybeSingle();
-    if (response == null) return null;
-    return ProviderDetailsModel.fromJson(response);
-  }
-
   /// Fetches all available providers
-  Future<List<ProviderDetailsModel>> getAllProviders() async {
+  Future<List<ProfileModel>> getAllProviders() async {
     final response = await _client
-        .from('provider_details')
-        .select();
+        .from('profiles')
+        .select()
+        .eq('role', 'provider');
         
-    return (response as List).map((e) => ProviderDetailsModel.fromJson(e)).toList();
+    return (response as List).map((e) => ProfileModel.fromJson(e)).toList();
   }
 }

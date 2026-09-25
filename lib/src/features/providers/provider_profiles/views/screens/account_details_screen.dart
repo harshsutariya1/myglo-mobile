@@ -36,10 +36,10 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
     _lastNameController = TextEditingController(text: profile?.lastName ?? '');
     _phoneController = TextEditingController(text: profile?.phoneNumber ?? '');
     _providerNameController = TextEditingController(
-      text: userProfile?.providerDetails?.providerName ?? '',
+      text: userProfile?.profile.providerName ?? '',
     );
     _addressTextController = TextEditingController(
-      text: userProfile?.providerDetails?.addressText ?? '',
+      text: userProfile?.profile.addressText ?? '',
     );
   }
 

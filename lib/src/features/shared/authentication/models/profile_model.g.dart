@@ -1,10 +1,27 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
+// ignore_for_file: type=lint
+
 part of 'profile_model.dart';
 
 // **************************************************************************
 // JsonSerializableGenerator
 // **************************************************************************
+
+_LocationCoordinates _$LocationCoordinatesFromJson(Map<String, dynamic> json) =>
+    _LocationCoordinates(
+      type: json['type'] as String,
+      coordinates: (json['coordinates'] as List<dynamic>)
+          .map((e) => (e as num).toDouble())
+          .toList(),
+    );
+
+Map<String, dynamic> _$LocationCoordinatesToJson(
+  _LocationCoordinates instance,
+) => <String, dynamic>{
+  'type': instance.type,
+  'coordinates': instance.coordinates,
+};
 
 _ProfileModel _$ProfileModelFromJson(Map<String, dynamic> json) =>
     _ProfileModel(
@@ -12,7 +29,7 @@ _ProfileModel _$ProfileModelFromJson(Map<String, dynamic> json) =>
       role: $enumDecode(_$UserRoleEnumMap, json['role']),
       firstName: json['first_name'] as String?,
       lastName: json['last_name'] as String?,
-      email: json['email'] as String,
+      email: json['email'] as String?,
       phoneNumber: json['phone_number'] as String?,
       profilePic: json['profile_pic'] as String?,
       bio: json['bio'] as String?,
@@ -20,6 +37,13 @@ _ProfileModel _$ProfileModelFromJson(Map<String, dynamic> json) =>
       followingCount: (json['following_count'] as num?)?.toInt() ?? 0,
       isEmailPublic: json['is_email_public'] as bool? ?? false,
       isPhonePublic: json['is_phone_public'] as bool? ?? false,
+      providerName: json['provider_name'] as String?,
+      addressText: json['address_text'] as String?,
+      coordinates: json['coordinates'] == null
+          ? null
+          : LocationCoordinates.fromJson(
+              json['coordinates'] as Map<String, dynamic>,
+            ),
     );
 
 Map<String, dynamic> _$ProfileModelToJson(_ProfileModel instance) =>
@@ -36,6 +60,9 @@ Map<String, dynamic> _$ProfileModelToJson(_ProfileModel instance) =>
       'following_count': instance.followingCount,
       'is_email_public': instance.isEmailPublic,
       'is_phone_public': instance.isPhonePublic,
+      'provider_name': instance.providerName,
+      'address_text': instance.addressText,
+      'coordinates': instance.coordinates?.toJson(),
     };
 
 const _$UserRoleEnumMap = {

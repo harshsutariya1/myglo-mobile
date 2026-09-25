@@ -23,7 +23,7 @@ class ProviderSearchResult {
     return ProviderSearchResult(
       id: json['id'] as String,
       providerName: json['provider_name'] as String,
-      profilePic: json['profiles']?['profile_pic'] as String?,
+      profilePic: json['profile_pic'] as String?,
     );
   }
 }
@@ -84,10 +84,10 @@ class PostRepository {
   Future<List<ProviderSearchResult>> searchProviders(String query) async {
     if (query.isEmpty) return [];
     
-    // Join with profiles to get the profile pic
     final response = await _client
-        .from('provider_details')
-        .select('id, provider_name, profiles!inner(profile_pic)')
+        .from('profiles')
+        .select('id, provider_name, profile_pic')
+        .eq('role', 'provider')
         .ilike('provider_name', '%$query%')
         .limit(10);
         

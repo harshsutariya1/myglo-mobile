@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
-import 'src/core/routing/app_router.dart';
+import 'src/core/routing/app_router.dart'; 
 import 'src/core/theme/app_theme.dart';
 import 'src/core/utils/app_init.dart';
 import 'src/core/widgets/init_error_app.dart';

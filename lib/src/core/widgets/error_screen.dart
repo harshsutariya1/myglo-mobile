@@ -39,7 +39,7 @@ class ErrorScreen extends ConsumerWidget {
                 'We are currently experiencing issues connecting to our servers. Please check your connection and try again.',
                 style: TextStyle(
                   fontSize: 16,
-                  color: context.colorScheme.onSurface.withOpacity(0.8),
+                  color: context.colorScheme.onSurface.withValues(alpha: 0.8),
                 ),
                 textAlign: TextAlign.center,
               ),
