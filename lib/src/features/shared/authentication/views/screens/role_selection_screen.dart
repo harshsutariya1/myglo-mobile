@@ -1,8 +1,8 @@
-import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../../core/theme/app_theme.dart';
+import '../../../../../core/utils/app_logger.dart';
 import '../../../../../core/widgets/snackbar_utils.dart';
 import '../../models/user_role.dart';
 import '../../models/user_repository.dart';
@@ -26,9 +26,9 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
   Future<void> _submitRole() async {
     if (_selectedRole == null) return;
 
-    developer.log(
-      'Starting role submission with selected role: ${_selectedRole!.name}',
-      name: 'RoleSelectionScreen',
+    AppLogger.d(
+      'RoleSelectionScreen: Submitting role ${_selectedRole!.name} for user ${widget.id}',
+      tag: 'RoleSelection',
     );
     setState(() => _isLoading = true);
 
@@ -37,17 +37,10 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
       final userRepo = ref.read(userRepositoryProvider);
       final container = ProviderScope.containerOf(context);
 
-      developer.log(
-        'Calling authRepo.updateUserRole to set role metadata',
-        name: 'RoleSelectionScreen',
-      );
+      AppLogger.d('RoleSelectionScreen: Updating auth metadata role', tag: 'RoleSelection');
       await authRepo.updateUserRole(role: _selectedRole!.name);
 
-      developer.log(
-        'Registering user in all_users and specific role tables',
-        name: 'RoleSelectionScreen',
-      );
-
+      AppLogger.d('RoleSelectionScreen: Registering role in database table', tag: 'RoleSelection');
       await userRepo.registerUserRole(
         id: widget.id,
         email: widget.email,
@@ -57,19 +50,12 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
       // Invalidate so the router sees the new profile state (avoids redirect loop)
       container.invalidate(userProfileProvider);
 
-      developer.log(
-        'Role metadata updated successfully.',
-        name: 'RoleSelectionScreen',
-      );
+      AppLogger.i('RoleSelectionScreen: Role ${_selectedRole!.name} assigned successfully', tag: 'RoleSelection');
       if (mounted) {
         context.go('/onboarding_details');
       }
-    } catch (e) {
-      developer.log(
-        'Exception during role submission: $e',
-        level: 1000,
-        name: 'RoleSelectionScreen',
-      );
+    } catch (e, st) {
+      AppLogger.e('RoleSelectionScreen: Exception during role submission', tag: 'RoleSelection', error: e, stackTrace: st);
       if (mounted) {
         context.showAppSnackBar(
           'Failed to update role. Please try again.',
@@ -77,7 +63,6 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
         );
       }
     } finally {
-      developer.log('Role submission completed', name: 'RoleSelectionScreen');
       if (mounted) setState(() => _isLoading = false);
     }
   }

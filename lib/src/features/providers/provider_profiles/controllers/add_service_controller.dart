@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:uuid/uuid.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../../../../core/utils/app_logger.dart';
 import '../models/service_repository.dart';
 import '../../../shared/authentication/controllers/user_profile_provider.dart';
 import 'provider_services_controller.dart';
@@ -25,10 +26,12 @@ class AddServiceController extends _$AddServiceController {
   }) async {
     final userProfile = ref.read(userProfileProvider).value;
     if (userProfile == null) {
+      AppLogger.w('AddServiceController: Cannot add service, user not logged in', tag: 'AddService');
       state = AsyncError('User not logged in', StackTrace.current);
       return false;
     }
 
+    AppLogger.d('AddServiceController: Adding service "$name" for ${userProfile.rawUser.id}', tag: 'AddService');
     state = const AsyncLoading();
 
     try {
@@ -38,6 +41,7 @@ class AddServiceController extends _$AddServiceController {
       String? imagePath;
       if (imageFile != null) {
         imagePath = '${userProfile.rawUser.id}/${const Uuid().v4()}.jpg';
+        AppLogger.d('AddServiceController: Uploading service image...', tag: 'AddService');
         imageUrl = await repository.uploadServiceImage(imagePath, imageFile);
       }
 
@@ -62,17 +66,14 @@ class AddServiceController extends _$AddServiceController {
         rethrow;
       }
       
-      
+      AppLogger.i('AddServiceController: Service "$name" added successfully', tag: 'AddService');
       // Invalidate the provider services so the profile screen refreshes
       ref.invalidate(providerServicesProvider(userProfile.rawUser.id));
 
       state = const AsyncData(null);
       return true;
     } catch (e, st) {
-      print('=== ERROR ADDING SERVICE ===');
-      print(e);
-      print(st);
-      print('============================');
+      AppLogger.e('AddServiceController: Error adding service "$name"', tag: 'AddService', error: e, stackTrace: st);
       state = AsyncError(e, st);
       return false;
     }

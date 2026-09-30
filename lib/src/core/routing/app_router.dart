@@ -24,6 +24,7 @@ import '../../features/discovery_feed/views/discovery_screen.dart';
 
 import '../../features/shared/authentication/controllers/user_profile_provider.dart';
 import '../widgets/main_scaffold.dart';
+import 'app_route_observer.dart';
 import 'app_router_guard.dart';
 
 /// Defines all the route names and paths in the app.
@@ -52,6 +53,7 @@ enum AppRoute {
 final routerProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
     initialLocation: AppRoute.splash.path,
+    observers: [AppRouteObserver()],
     redirect: (context, state) => appRouterRedirect(context, state, ref),
     routes: [
       GoRoute(

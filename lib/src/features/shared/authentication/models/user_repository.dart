@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
+import '../../../../core/utils/app_logger.dart';
 import 'profile_model.dart';
 import 'user_role.dart';
 import 'auth_repository.dart';
@@ -23,10 +24,19 @@ class UserRepository {
     required String email,
     required String role,
   }) async {
-    await _client.rpc(
-      'register_user_role',
-      params: {'p_id': id, 'p_email': email, 'p_role': role},
-    );
+    AppLogger.d('Registering user role via RPC (id: $id, role: $role)', tag: 'UserRepository');
+    final sw = Stopwatch()..start();
+    try {
+      await _client.rpc(
+        'register_user_role',
+        params: {'p_id': id, 'p_email': email, 'p_role': role},
+      );
+      sw.stop();
+      AppLogger.api('register_user_role RPC success', duration: sw.elapsed);
+    } catch (e, st) {
+      AppLogger.e('Failed to register user role via RPC', tag: 'UserRepository', error: e, stackTrace: st);
+      rethrow;
+    }
   }
 
   /// Updates onboarding details atomically using RPC
@@ -42,21 +52,30 @@ class UserRepository {
     double? latitude,
     double? longitude,
   }) async {
-    await _client.rpc(
-      'update_onboarding_details',
-      params: {
-        'p_id': id,
-        'p_role': role,
-        'p_first_name': firstName,
-        'p_last_name': lastName,
-        'p_phone': phone,
-        'p_profile_pic': profilePic,
-        'p_provider_name': providerName,
-        'p_address_text': addressText,
-        'p_latitude': latitude,
-        'p_longitude': longitude,
-      },
-    );
+    AppLogger.d('Updating onboarding details via RPC for user $id ($role)', tag: 'UserRepository');
+    final sw = Stopwatch()..start();
+    try {
+      await _client.rpc(
+        'update_onboarding_details',
+        params: {
+          'p_id': id,
+          'p_role': role,
+          'p_first_name': firstName,
+          'p_last_name': lastName,
+          'p_phone': phone,
+          'p_profile_pic': profilePic,
+          'p_provider_name': providerName,
+          'p_address_text': addressText,
+          'p_latitude': latitude,
+          'p_longitude': longitude,
+        },
+      );
+      sw.stop();
+      AppLogger.api('update_onboarding_details RPC success', duration: sw.elapsed);
+    } catch (e, st) {
+      AppLogger.e('Failed to update onboarding details', tag: 'UserRepository', error: e, stackTrace: st);
+      rethrow;
+    }
   }
 
   Future<void> updateUserProfile({
@@ -94,18 +113,31 @@ class UserRepository {
       }
     }
 
-    if (updates.isNotEmpty) {
+    if (updates.isEmpty) {
+      AppLogger.d('No profile updates detected for user $id', tag: 'UserRepository');
+      return;
+    }
+
+    AppLogger.d('Updating profile for user $id (keys: ${updates.keys.toList()})', tag: 'UserRepository');
+    final sw = Stopwatch()..start();
+    try {
       await _client.from('profiles').update(updates).eq('id', id);
+      sw.stop();
+      AppLogger.api('profiles.update', endpoint: 'id=$id', duration: sw.elapsed);
+    } catch (e, st) {
+      AppLogger.e('Failed updating user profile', tag: 'UserRepository', error: e, stackTrace: st);
+      rethrow;
     }
   }
 
   /// Uploads a profile picture and returns the public URL
   Future<String> uploadProfilePicture(String userId, File imageFile) async {
+    AppLogger.d('Compressing profile image for user $userId...', tag: 'UserRepository');
     final tempDir = await getTemporaryDirectory();
     final targetPath = '${tempDir.path}/${const Uuid().v4()}.jpg';
     
     // Compress the image before uploading to save storage and bandwidth
-    var compressedFile = await FlutterImageCompress.compressAndGetFile(
+    final compressedFile = await FlutterImageCompress.compressAndGetFile(
       imageFile.absolute.path,
       targetPath,
       quality: 70, // 70% quality is a good balance for profile pics
@@ -114,46 +146,84 @@ class UserRepository {
     );
 
     if (compressedFile == null) {
+      AppLogger.e('Failed to compress profile picture', tag: 'UserRepository');
       throw Exception('Failed to compress profile picture');
     }
 
     final path = '$userId.jpg';
-    await _client.storage
-        .from('profile-pics')
-        .upload(path, File(compressedFile.path), fileOptions: const FileOptions(upsert: true));
-    final baseUrl = _client.storage.from('profile-pics').getPublicUrl(path);
-    return '$baseUrl?t=${DateTime.now().millisecondsSinceEpoch}';
+    AppLogger.d('Uploading compressed profile image to storage ($path)...', tag: 'UserRepository');
+    final sw = Stopwatch()..start();
+    try {
+      await _client.storage
+          .from('profile-pics')
+          .upload(path, File(compressedFile.path), fileOptions: const FileOptions(upsert: true));
+      final baseUrl = _client.storage.from('profile-pics').getPublicUrl(path);
+      final finalUrl = '$baseUrl?t=${DateTime.now().millisecondsSinceEpoch}';
+      sw.stop();
+      AppLogger.api('storage.upload profile-pics', endpoint: path, duration: sw.elapsed);
+      return finalUrl;
+    } catch (e, st) {
+      AppLogger.e('Failed to upload profile picture to storage', tag: 'UserRepository', error: e, stackTrace: st);
+      rethrow;
+    }
   }
 
   /// Fetches a ProfileModel profile from the DB for the currently authenticated user
   Future<ProfileModel?> getProfile(String id) async {
-    final response = await _client
-        .from('profiles')
-        .select()
-        .eq('id', id)
-        .maybeSingle();
-    if (response == null) return null;
-    return ProfileModel.fromJson(response);
+    AppLogger.d('Fetching private profile for user: $id', tag: 'UserRepository');
+    final sw = Stopwatch()..start();
+    try {
+      final response = await _client
+          .from('profiles')
+          .select()
+          .eq('id', id)
+          .maybeSingle();
+      sw.stop();
+      AppLogger.api('profiles.select(single)', endpoint: 'id=$id', duration: sw.elapsed);
+      if (response == null) return null;
+      return ProfileModel.fromJson(response);
+    } catch (e, st) {
+      AppLogger.e('Error fetching profile for $id', tag: 'UserRepository', error: e, stackTrace: st);
+      rethrow;
+    }
   }
 
   /// Fetches a ProfileModel profile from the DB for other users
   Future<ProfileModel?> getPublicProfile(String id) async {
-    final response = await _client
-        .from('public_profiles')
-        .select()
-        .eq('id', id)
-        .maybeSingle();
-    if (response == null) return null;
-    return ProfileModel.fromJson(response);
+    AppLogger.d('Fetching public profile for user: $id', tag: 'UserRepository');
+    final sw = Stopwatch()..start();
+    try {
+      final response = await _client
+          .from('public_profiles')
+          .select()
+          .eq('id', id)
+          .maybeSingle();
+      sw.stop();
+      AppLogger.api('public_profiles.select(single)', endpoint: 'id=$id', duration: sw.elapsed);
+      if (response == null) return null;
+      return ProfileModel.fromJson(response);
+    } catch (e, st) {
+      AppLogger.e('Error fetching public profile for $id', tag: 'UserRepository', error: e, stackTrace: st);
+      rethrow;
+    }
   }
 
   /// Fetches all available providers
   Future<List<ProfileModel>> getAllProviders() async {
-    final response = await _client
-        .from('profiles')
-        .select()
-        .eq('role', 'provider');
-        
-    return (response as List).map((e) => ProfileModel.fromJson(e)).toList();
+    AppLogger.d('Fetching all provider profiles...', tag: 'UserRepository');
+    final sw = Stopwatch()..start();
+    try {
+      final response = await _client
+          .from('profiles')
+          .select()
+          .eq('role', 'provider');
+      sw.stop();
+      final list = (response as List).map((e) => ProfileModel.fromJson(e)).toList();
+      AppLogger.api('profiles.select(role=provider)', count: list.length, duration: sw.elapsed);
+      return list;
+    } catch (e, st) {
+      AppLogger.e('Error fetching all providers', tag: 'UserRepository', error: e, stackTrace: st);
+      rethrow;
+    }
   }
 }

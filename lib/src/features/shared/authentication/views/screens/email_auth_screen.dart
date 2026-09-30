@@ -1,9 +1,9 @@
-import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../../core/theme/app_theme.dart';
+import '../../../../../core/utils/app_logger.dart';
 import '../../../../../core/widgets/snackbar_utils.dart';
 import '../../controllers/email_auth_controller.dart';
 import '../widgets/auth_header.dart';
@@ -93,53 +93,30 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
     final email = _emailController.text.trim();
     if (email.isEmpty || !_isValidEmail) return;
 
-    developer.log(
-      'Starting handleContinue with email: $email',
-      name: 'EmailAuthScreen',
-    );
+    AppLogger.d('EmailAuthScreen: Checking account status for $email', tag: 'EmailAuth');
     setState(() => _isLoading = true);
 
     try {
-      developer.log(
-        'Checking auth.users table via RPC to see if user exists',
-        name: 'EmailAuthScreen',
-      );
-
       final exists = await ref
           .read(emailAuthControllerProvider.notifier)
           .checkUserExists(email);
 
-      developer.log(
-        'Finished user existence check. Exists: $exists',
-        name: 'EmailAuthScreen',
-      );
-
       if (exists) {
-        developer.log(
-          'Account found. Prompting for password.',
-          name: 'EmailAuthScreen',
-        );
+        AppLogger.i('EmailAuthScreen: Account found for $email. Prompting for password.', tag: 'EmailAuth');
         setState(() {
           _accountExists = true;
           _isLoading = false;
         });
         _animController.forward();
       } else {
-        developer.log(
-          'Account not found. Proceeding to email confirmation screen.',
-          name: 'EmailAuthScreen',
-        );
+        AppLogger.i('EmailAuthScreen: Account not found for $email. Navigating to email confirmation.', tag: 'EmailAuth');
         if (mounted) {
           setState(() => _isLoading = false);
           context.push('/confirm_email', extra: {'email': email});
         }
       }
-    } catch (e) {
-      developer.log(
-        'Unexpected error in handleContinue: $e',
-        level: 1000,
-        name: 'EmailAuthScreen',
-      );
+    } catch (e, st) {
+      AppLogger.e('EmailAuthScreen: Unexpected error in handleContinue', tag: 'EmailAuth', error: e, stackTrace: st);
       if (mounted) {
         context.showAppSnackBar(e.toString(), isError: true);
         setState(() => _isLoading = false);
@@ -152,42 +129,25 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
     final password = _passwordController.text.trim();
     if (email.isEmpty || password.isEmpty) return;
 
-    developer.log(
-      'Starting handleLogin for email: $email',
-      name: 'EmailAuthScreen',
-    );
+    AppLogger.d('EmailAuthScreen: Starting login for $email', tag: 'EmailAuth');
     setState(() => _isLoading = true);
 
     try {
-      developer.log(
-        'Calling login on emailAuthController...',
-        name: 'EmailAuthScreen',
-      );
       await ref
           .read(emailAuthControllerProvider.notifier)
           .login(email, password);
 
-      developer.log(
-        'Login successful. Navigating to /main.',
-        name: 'EmailAuthScreen',
-      );
+      AppLogger.i('EmailAuthScreen: Login successful. Navigating to /main.', tag: 'EmailAuth');
       if (mounted) {
         context.go('/main');
       }
     } on AuthException catch (e) {
       if (e.message.toLowerCase().contains('email not confirmed') ||
           e.code == 'email_not_confirmed') {
-        developer.log(
-          'Email not confirmed during login',
-          name: 'EmailAuthScreen',
-        );
+        AppLogger.w('EmailAuthScreen: Email not confirmed during login for $email', tag: 'EmailAuth');
         _showUnconfirmedPopup();
       } else {
-        developer.log(
-          'AuthException during login: ${e.message}',
-          level: 900,
-          name: 'EmailAuthScreen',
-        );
+        AppLogger.w('EmailAuthScreen: AuthException during login: ${e.message}', tag: 'EmailAuth');
         if (mounted) {
           context.showAppSnackBar(
             'Authentication failed. Please check your credentials.',
@@ -195,17 +155,12 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
           );
         }
       }
-    } catch (e) {
-      developer.log(
-        'Exception during login: $e',
-        level: 900,
-        name: 'EmailAuthScreen',
-      );
+    } catch (e, st) {
+      AppLogger.e('EmailAuthScreen: Unexpected exception during login', tag: 'EmailAuth', error: e, stackTrace: st);
       if (mounted) {
         context.showAppSnackBar('An unexpected error occurred.', isError: true);
       }
     } finally {
-      developer.log('handleLogin completed', name: 'EmailAuthScreen');
       if (mounted) setState(() => _isLoading = false);
     }
   }

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/utils/app_logger.dart';
 import '../models/auth_repository.dart';
 import '../models/user_repository.dart';
 import '../models/user_role.dart';
@@ -54,25 +55,33 @@ final userProfileProvider = FutureProvider<AppUserProfile?>((ref) async {
     return null;
   }
 
+  AppLogger.d('userProfileProvider: Resolving profile for user ${user.id}', tag: 'UserProfile');
   final userRepo = ref.watch(userRepositoryProvider);
 
   // Fetch from profiles first to determine role and get base info
   final profile = await userRepo.getProfile(user.id);
   if (profile == null) {
+    AppLogger.d('userProfileProvider: No profile row found yet for user ${user.id}', tag: 'UserProfile');
     try {
       // Verify if the user still exists in Supabase auth.
       // This catches cases where the user was deleted from the database
       // but their local session hasn't expired yet.
       await ref.read(supabaseClientProvider).auth.getUser();
-    } on AuthException catch (_) {
+    } on AuthException catch (e) {
+      AppLogger.w('userProfileProvider: User session is invalid in Auth. Signing out locally: ${e.message}', tag: 'UserProfile');
       // User is invalid or deleted, sign them out locally
       await ref.read(supabaseClientProvider).auth.signOut();
       return null;
-    } catch (_) {
-      // Ignore other errors (like network issues) to avoid signing out unnecessarily
+    } catch (e) {
+      AppLogger.w('userProfileProvider: Transient error verifying user session: $e', tag: 'UserProfile');
     }
     return null; // Not fully onboarded in terms of role
   }
+
+  AppLogger.i(
+    'userProfileProvider: Profile resolved successfully for "${profile.firstName ?? ''} ${profile.lastName ?? ''}" (${profile.role.name})',
+    tag: 'UserProfile',
+  );
 
   return AppUserProfile(
     rawUser: user,

@@ -1,6 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shorebird_code_push/shorebird_code_push.dart';
-import 'dart:developer' as developer;
+import '../utils/app_logger.dart';
 
 part 'shorebird_update_service.g.dart';
 
@@ -55,10 +55,20 @@ class ShorebirdUpdateService extends _$ShorebirdUpdateService {
     try {
       if (_updater.isAvailable) {
         final patch = await _updater.readCurrentPatch();
-        state = state.copyWith(currentPatchVersion: patch?.number.toString());
+        final patchNumber = patch?.number.toString();
+        AppLogger.i(
+          'Shorebird code-push initialized (Patch: ${patchNumber ?? 'base build'})',
+          tag: 'Shorebird',
+        );
+        state = state.copyWith(currentPatchVersion: patchNumber);
+      } else {
+        AppLogger.d(
+          'Shorebird code-push updater is not available on this device/platform.',
+          tag: 'Shorebird',
+        );
       }
-    } catch (e) {
-      developer.log('Error getting current patch number: $e');
+    } catch (e, st) {
+      AppLogger.w('Failed reading current patch', tag: 'Shorebird', error: e, stackTrace: st);
     }
   }
 
@@ -70,10 +80,16 @@ class ShorebirdUpdateService extends _$ShorebirdUpdateService {
         return false;
       }
 
+      AppLogger.d('Checking for code-push updates...', tag: 'Shorebird');
       final status = await _updater.checkForUpdate();
       
       final isAvailable = status == UpdateStatus.outdated;
       final isReady = status == UpdateStatus.restartRequired;
+
+      AppLogger.i(
+        'Code-push check completed (Status: $status, UpdateAvailable: $isAvailable, ReadyToInstall: $isReady)',
+        tag: 'Shorebird',
+      );
 
       state = state.copyWith(
         isChecking: false,
@@ -81,8 +97,8 @@ class ShorebirdUpdateService extends _$ShorebirdUpdateService {
         isUpdateReadyToInstall: isReady,
       );
       return isAvailable;
-    } catch (e) {
-      developer.log('Error checking for Shorebird update: $e');
+    } catch (e, st) {
+      AppLogger.e('Error checking for Shorebird update', tag: 'Shorebird', error: e, stackTrace: st);
       state = state.copyWith(isChecking: false, error: e.toString());
       return false;
     }
@@ -91,16 +107,18 @@ class ShorebirdUpdateService extends _$ShorebirdUpdateService {
   Future<void> downloadUpdate() async {
     state = state.copyWith(isDownloading: true, error: null);
     try {
+      AppLogger.i('Downloading Shorebird patch...', tag: 'Shorebird');
       await _updater.update();
+      AppLogger.i('✅ Shorebird patch downloaded. Restart required to apply.', tag: 'Shorebird');
       state = state.copyWith(
         isDownloading: false,
         isUpdateReadyToInstall: true,
       );
-    } on UpdateException catch (e) {
-      developer.log('Update exception: ${e.message}');
+    } on UpdateException catch (e, st) {
+      AppLogger.e('Shorebird update exception: ${e.message}', tag: 'Shorebird', error: e, stackTrace: st);
       state = state.copyWith(isDownloading: false, error: e.message);
-    } catch (e) {
-      developer.log('Error downloading Shorebird update: $e');
+    } catch (e, st) {
+      AppLogger.e('Error downloading Shorebird update', tag: 'Shorebird', error: e, stackTrace: st);
       state = state.copyWith(isDownloading: false, error: e.toString());
     }
   }

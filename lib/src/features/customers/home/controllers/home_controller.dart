@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/utils/app_logger.dart';
 import '../../../shared/authentication/models/auth_repository.dart';
 
 class HomeProvider {
@@ -25,7 +26,17 @@ class HomeProvider {
 }
 
 final allProvidersProvider = FutureProvider.autoDispose<List<HomeProvider>>((ref) async {
-  final client = ref.read(supabaseClientProvider);
-  final response = await client.from('profiles').select().eq('role', 'provider');
-  return (response as List).map((e) => HomeProvider.fromJson(e)).toList();
+  AppLogger.d('allProvidersProvider: Fetching providers for Home screen...', tag: 'HomeController');
+  final sw = Stopwatch()..start();
+  try {
+    final client = ref.read(supabaseClientProvider);
+    final response = await client.from('profiles').select().eq('role', 'provider');
+    sw.stop();
+    final providers = (response as List).map((e) => HomeProvider.fromJson(e)).toList();
+    AppLogger.api('profiles.select(role=provider)', count: providers.length, duration: sw.elapsed);
+    return providers;
+  } catch (e, st) {
+    AppLogger.e('allProvidersProvider: Failed to load providers for Home', tag: 'HomeController', error: e, stackTrace: st);
+    rethrow;
+  }
 });

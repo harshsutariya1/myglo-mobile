@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../../../../core/utils/app_logger.dart';
 import '../../../shared/authentication/models/user_repository.dart';
 import '../../../shared/authentication/models/user_role.dart';
 import '../../../shared/authentication/controllers/user_profile_provider.dart';
@@ -26,12 +27,14 @@ class EditProviderProfileController extends _$EditProviderProfileController {
     required bool isPhonePublic,
     File? newProfilePic,
   }) async {
+    AppLogger.d('EditProviderProfileController: Saving profile for provider $id', tag: 'EditProviderProfile');
     state = const AsyncLoading();
     try {
       final userRepo = ref.read(userRepositoryProvider);
 
       String? profilePicUrl;
       if (newProfilePic != null) {
+        AppLogger.d('EditProviderProfileController: Uploading new provider picture...', tag: 'EditProviderProfile');
         profilePicUrl = await userRepo.uploadProfilePicture(id, newProfilePic);
       }
 
@@ -49,12 +52,14 @@ class EditProviderProfileController extends _$EditProviderProfileController {
         profilePic: profilePicUrl,
       );
 
+      AppLogger.i('EditProviderProfileController: Profile saved successfully for provider $id', tag: 'EditProviderProfile');
       // Invalidate the profile provider so it re-fetches
       ref.invalidate(userProfileProvider);
 
       state = const AsyncData(null);
       return true;
     } catch (e, st) {
+      AppLogger.e('EditProviderProfileController: Error saving profile for provider $id', tag: 'EditProviderProfile', error: e, stackTrace: st);
       state = AsyncError(e, st);
       return false;
     }

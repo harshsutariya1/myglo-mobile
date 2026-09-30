@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/shared/authentication/models/auth_repository.dart';
 import '../../features/shared/authentication/controllers/user_profile_provider.dart';
+import '../utils/app_logger.dart';
 import 'app_router.dart';
 
 /// Handles the redirection logic for the application based on authentication
@@ -13,8 +14,11 @@ String? appRouterRedirect(BuildContext context, GoRouterState state, Ref ref) {
   final userProfileState = ref.read(userProfileProvider);
 
   if (authState.hasError || userProfileState.hasError) {
-    // If there's a fatal error in providers, redirect to error screen
     if (state.uri.path != AppRoute.error.path) {
+      AppLogger.w(
+        'Provider error detected. Redirecting to ${AppRoute.error.path}',
+        tag: 'RouterGuard',
+      );
       return AppRoute.error.path;
     }
     return null;
@@ -38,7 +42,13 @@ String? appRouterRedirect(BuildContext context, GoRouterState state, Ref ref) {
 
   // Redirect to intro if not authenticated.
   if (!isAuth) {
-    if (!isUnauthRoute) return AppRoute.intro.path;
+    if (!isUnauthRoute) {
+      AppLogger.d(
+        'Unauthenticated access to "${state.uri.path}". Redirecting to ${AppRoute.intro.path}',
+        tag: 'RouterGuard',
+      );
+      return AppRoute.intro.path;
+    }
     return null;
   }
 
@@ -55,6 +65,10 @@ String? appRouterRedirect(BuildContext context, GoRouterState state, Ref ref) {
       return AppRoute.splash.path;
     }
     if (state.uri.path != AppRoute.roleSelection.path) {
+      AppLogger.d(
+        'User profile missing role. Redirecting to ${AppRoute.roleSelection.path}',
+        tag: 'RouterGuard',
+      );
       return '${AppRoute.roleSelection.path}?email=${session.user.email}&id=${session.user.id}';
     }
     return null;
@@ -66,6 +80,10 @@ String? appRouterRedirect(BuildContext context, GoRouterState state, Ref ref) {
       profile.profile.lastName == null ||
       profile.profile.lastName!.isEmpty) {
     if (state.uri.path != AppRoute.onboardingDetails.path) {
+      AppLogger.d(
+        'Profile missing name details. Redirecting to ${AppRoute.onboardingDetails.path}',
+        tag: 'RouterGuard',
+      );
       return AppRoute.onboardingDetails.path;
     }
     return null;
@@ -87,20 +105,33 @@ String? appRouterRedirect(BuildContext context, GoRouterState state, Ref ref) {
     AppRoute.providerHome.path,
     AppRoute.businessTools.path,
     AppRoute.providerProfile.path,
-    AppRoute.settings.path, // Assuming settings are provider specific for now
+    AppRoute.settings.path,
   ];
 
   if (isCustomer && providerRoutes.any((route) => currentPath.startsWith(route))) {
+    AppLogger.d(
+      'Customer attempted provider route ($currentPath). Rerouting to ${AppRoute.customerHome.path}',
+      tag: 'RouterGuard',
+    );
     return AppRoute.customerHome.path;
   }
 
   if (isProvider && customerRoutes.any((route) => currentPath.startsWith(route))) {
+    AppLogger.d(
+      'Provider attempted customer route ($currentPath). Rerouting to ${AppRoute.providerHome.path}',
+      tag: 'RouterGuard',
+    );
     return AppRoute.providerHome.path;
   }
 
   // 4. Fully onboarded -> Redirect to home if on auth screens
   if (isAuthRouteOrSplash) {
-    return isProvider ? AppRoute.providerHome.path : AppRoute.customerHome.path;
+    final target = isProvider ? AppRoute.providerHome.path : AppRoute.customerHome.path;
+    AppLogger.d(
+      'Authenticated user at "$currentPath". Redirecting to home ($target)',
+      tag: 'RouterGuard',
+    );
+    return target;
   }
 
   return null;

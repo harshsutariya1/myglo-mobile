@@ -1,17 +1,18 @@
-import 'dart:developer' as developer;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'app_logger.dart';
 
 Future<void> initializeApp({required void Function() appRunner}) async {
+  final initWatch = Stopwatch()..start();
   SentryWidgetsFlutterBinding.ensureInitialized();
 
-  developer.log('Starting app initialization...', name: 'initializeApp');
+  AppLogger.i('🚀 Starting application initialization...', tag: 'Init');
 
   // Load environment variables securely
-  developer.log('Loading .env file...', name: 'initializeApp');
+  AppLogger.d('Loading environment variables from .env...', tag: 'Init');
   await dotenv.load(fileName: ".env");
-  developer.log('.env file loaded successfully.', name: 'initializeApp');
+  AppLogger.i('✅ .env file loaded successfully', tag: 'Init');
 
   final sentryDsn = dotenv.env['SENTRY_DSN'];
 
@@ -20,35 +21,31 @@ Future<void> initializeApp({required void Function() appRunner}) async {
     final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'];
 
     // Check key availability before initialization to fail-fast in production
-    developer.log('Validating Supabase credentials...', name: 'initializeApp');
+    AppLogger.d('Validating Supabase credentials...', tag: 'Init');
     if (supabaseUrl == null || supabaseUrl.isEmpty) {
-      developer.log(
-        'SUPABASE_URL is missing or empty.',
-        level: 1000,
-        name: 'initializeApp',
-      );
+      AppLogger.e('SUPABASE_URL is missing or empty in .env file', tag: 'Init');
       throw Exception('SUPABASE_URL is missing or empty in .env file');
     }
     if (supabaseAnonKey == null || supabaseAnonKey.isEmpty) {
-      developer.log(
-        'SUPABASE_ANON_KEY is missing or empty.',
-        level: 1000,
-        name: 'initializeApp',
-      );
+      AppLogger.e('SUPABASE_ANON_KEY is missing or empty in .env file', tag: 'Init');
       throw Exception('SUPABASE_ANON_KEY is missing or empty in .env file');
     }
-    developer.log('Supabase credentials validated.', name: 'initializeApp');
 
-    developer.log('Initializing Supabase client...', name: 'initializeApp');
+    AppLogger.d('Initializing Supabase client ($supabaseUrl)...', tag: 'Init');
+    final supabaseWatch = Stopwatch()..start();
     await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
-    developer.log('Supabase client initialized.', name: 'initializeApp');
+    supabaseWatch.stop();
+    AppLogger.i('✅ Supabase initialized in ${supabaseWatch.elapsedMilliseconds}ms', tag: 'Init');
+
+    initWatch.stop();
+    AppLogger.i('🎉 App initialization complete in ${initWatch.elapsedMilliseconds}ms', tag: 'Init');
 
     appRunner();
   }
 
   // Map out Sentry securely underneath framework
   if (sentryDsn != null && sentryDsn.isNotEmpty) {
-    developer.log('Initializing Sentry...', name: 'initializeApp');
+    AppLogger.d('Initializing Sentry error monitoring...', tag: 'Init');
     await SentryFlutter.init((options) {
       options.enableFramesTracking = true;
       options.replay.sessionSampleRate = 1.0;
@@ -56,12 +53,9 @@ Future<void> initializeApp({required void Function() appRunner}) async {
       options.dsn = sentryDsn;
       options.tracesSampleRate = 1.0;
     }, appRunner: initRest);
-    developer.log('Sentry initialized successfully.', name: 'initializeApp');
+    AppLogger.i('✅ Sentry initialized successfully', tag: 'Init');
   } else {
-    developer.log(
-      'SENTRY_DSN not found. Running without Sentry.',
-      name: 'initializeApp',
-    );
+    AppLogger.w('SENTRY_DSN not found. Running without Sentry.', tag: 'Init');
     await initRest();
   }
 }
