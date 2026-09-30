@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:uuid/uuid.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../core/utils/app_logger.dart';
 import '../models/post_repository.dart';
@@ -11,6 +12,10 @@ part 'upload_post_controller.g.dart';
 class UploadPostController extends _$UploadPostController {
   @override
   FutureOr<void> build() {}
+
+  /// Row id reused across re-submissions of the same post so a retry after a
+  /// dropped connection cannot create a duplicate. Cleared once it succeeds.
+  String? _pendingPostId;
 
   Future<bool> uploadPost({
     required String authorId,
@@ -35,6 +40,7 @@ class UploadPostController extends _$UploadPostController {
       }
 
       await repository.createPost(
+        id: _pendingPostId ??= const Uuid().v4(),
         authorId: authorId,
         mediaUrls: mediaUrls,
         caption: caption.isEmpty ? null : caption,
@@ -43,6 +49,7 @@ class UploadPostController extends _$UploadPostController {
       );
 
       AppLogger.i('UploadPostController: Post published successfully with ${mediaUrls.length} images', tag: 'UploadPost');
+      _pendingPostId = null;
       state = const AsyncData(null);
       ref.invalidate(userPostsProvider(authorId));
       return true;

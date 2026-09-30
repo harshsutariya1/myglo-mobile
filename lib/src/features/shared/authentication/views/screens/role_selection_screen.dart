@@ -36,14 +36,18 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
       final authRepo = ref.read(authRepositoryProvider);
       final userRepo = ref.read(userRepositoryProvider);
       final container = ProviderScope.containerOf(context);
+      // Source of truth is the session, not the route parameters (which can be lost in navigation).
+      final user = authRepo.currentUser;
+      final userId = user?.id ?? widget.id;
+      final userEmail = user?.email ?? widget.email;
 
       AppLogger.d('RoleSelectionScreen: Updating auth metadata role', tag: 'RoleSelection');
       await authRepo.updateUserRole(role: _selectedRole!.name);
 
       AppLogger.d('RoleSelectionScreen: Registering role in database table', tag: 'RoleSelection');
       await userRepo.registerUserRole(
-        id: widget.id,
-        email: widget.email,
+        id: userId,
+        email: userEmail,
         role: _selectedRole!.name,
       );
 

@@ -30,10 +30,14 @@ final allProvidersProvider = FutureProvider.autoDispose<List<HomeProvider>>((ref
   final sw = Stopwatch()..start();
   try {
     final client = ref.read(supabaseClientProvider);
-    final response = await client.from('profiles').select().eq('role', 'provider');
+    // Other users' profiles are read through the masked view (no private email / phone).
+    final response = await client
+        .from('public_profiles')
+        .select('id, provider_name, address_text, profile_pic')
+        .eq('role', 'provider');
     sw.stop();
     final providers = (response as List).map((e) => HomeProvider.fromJson(e)).toList();
-    AppLogger.api('profiles.select(role=provider)', count: providers.length, duration: sw.elapsed);
+    AppLogger.api('public_profiles.select(role=provider)', count: providers.length, duration: sw.elapsed);
     return providers;
   } catch (e, st) {
     AppLogger.e('allProvidersProvider: Failed to load providers for Home', tag: 'HomeController', error: e, stackTrace: st);

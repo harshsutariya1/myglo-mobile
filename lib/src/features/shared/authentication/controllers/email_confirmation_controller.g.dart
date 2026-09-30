@@ -10,13 +10,31 @@ part of 'email_confirmation_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
+/// Drives account creation with an emailed verification code.
+///
+/// The state is `true` once a code has been sent. Verifying and resending do
+/// not change the state, so the code-entry UI stays on screen while they run
+/// (the screen tracks their busy flags itself). Errors are thrown to the
+/// caller, which maps them to user-facing text.
 
 @ProviderFor(EmailConfirmationController)
 final emailConfirmationControllerProvider =
     EmailConfirmationControllerProvider._();
 
+/// Drives account creation with an emailed verification code.
+///
+/// The state is `true` once a code has been sent. Verifying and resending do
+/// not change the state, so the code-entry UI stays on screen while they run
+/// (the screen tracks their busy flags itself). Errors are thrown to the
+/// caller, which maps them to user-facing text.
 final class EmailConfirmationControllerProvider
     extends $AsyncNotifierProvider<EmailConfirmationController, bool> {
+  /// Drives account creation with an emailed verification code.
+  ///
+  /// The state is `true` once a code has been sent. Verifying and resending do
+  /// not change the state, so the code-entry UI stays on screen while they run
+  /// (the screen tracks their busy flags itself). Errors are thrown to the
+  /// caller, which maps them to user-facing text.
   EmailConfirmationControllerProvider._()
     : super(
         from: null,
@@ -37,7 +55,14 @@ final class EmailConfirmationControllerProvider
 }
 
 String _$emailConfirmationControllerHash() =>
-    r'0242cf2cf21f5413dd854732ac4eca6e0be8b8a4';
+    r'fb7c4e254242810c54f81704643dfee61af8c7ee';
+
+/// Drives account creation with an emailed verification code.
+///
+/// The state is `true` once a code has been sent. Verifying and resending do
+/// not change the state, so the code-entry UI stays on screen while they run
+/// (the screen tracks their busy flags itself). Errors are thrown to the
+/// caller, which maps them to user-facing text.
 
 abstract class _$EmailConfirmationController extends $AsyncNotifier<bool> {
   FutureOr<bool> build();

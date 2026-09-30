@@ -11,13 +11,20 @@ final serviceRepositoryProvider = Provider<ServiceRepository>((ref) {
   return ServiceRepository(Supabase.instance.client);
 });
 
+/// Postgres `unique_violation` SQLSTATE.
+const _uniqueViolation = '23505';
+
 class ServiceRepository {
   final SupabaseClient _client;
   final _uuid = const Uuid();
 
   ServiceRepository(this._client);
 
+  /// Creates a service. Pass the same [id] when re-submitting after a failure
+  /// (e.g. a connection drop mid-request): if the first attempt actually reached
+  /// the database, the retry returns that row instead of inserting a duplicate.
   Future<ServiceModel> createService({
+    String? id,
     required String providerId,
     required String name,
     required String description,
@@ -26,9 +33,9 @@ class ServiceRepository {
     String? category,
     String? imageUrl,
   }) async {
-    final id = _uuid.v4();
+    final serviceId = id ?? _uuid.v4();
     final newService = {
-      'id': id,
+      'id': serviceId,
       'provider_id': providerId,
       'name': name,
       'description': description,
@@ -48,9 +55,19 @@ class ServiceRepository {
           .single();
       sw.stop();
       final model = ServiceModel.fromJson(response);
-      AppLogger.api('services.insert', endpoint: 'id=$id', duration: sw.elapsed);
-      AppLogger.i('Service "$name" ($id) created successfully', tag: 'ServiceRepository');
+      AppLogger.api('services.insert', endpoint: 'id=$serviceId', duration: sw.elapsed);
+      AppLogger.i('Service "$name" ($serviceId) created successfully', tag: 'ServiceRepository');
       return model;
+    } on PostgrestException catch (e) {
+      if (e.code != _uniqueViolation) {
+        AppLogger.e('Failed to create service "$name"', tag: 'ServiceRepository', error: e);
+        rethrow;
+      }
+      // Same client id already stored: an earlier attempt succeeded but its
+      // response was lost. Return the existing row.
+      AppLogger.w('Service $serviceId already exists; treating retry as success', tag: 'ServiceRepository');
+      final existing = await _client.from('services').select().eq('id', serviceId).single();
+      return ServiceModel.fromJson(existing);
     } catch (e, st) {
       AppLogger.e('Failed to create service "$name"', tag: 'ServiceRepository', error: e, stackTrace: st);
       rethrow;

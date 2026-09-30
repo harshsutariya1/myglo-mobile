@@ -207,23 +207,4 @@ class UserRepository {
       rethrow;
     }
   }
-
-  /// Fetches all available providers
-  Future<List<ProfileModel>> getAllProviders() async {
-    AppLogger.d('Fetching all provider profiles...', tag: 'UserRepository');
-    final sw = Stopwatch()..start();
-    try {
-      final response = await _client
-          .from('profiles')
-          .select()
-          .eq('role', 'provider');
-      sw.stop();
-      final list = (response as List).map((e) => ProfileModel.fromJson(e)).toList();
-      AppLogger.api('profiles.select(role=provider)', count: list.length, duration: sw.elapsed);
-      return list;
-    } catch (e, st) {
-      AppLogger.e('Error fetching all providers', tag: 'UserRepository', error: e, stackTrace: st);
-      rethrow;
-    }
-  }
 }

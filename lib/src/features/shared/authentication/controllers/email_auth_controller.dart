@@ -26,21 +26,6 @@ class EmailAuthController extends _$EmailAuthController {
     }
   }
 
-  Future<void> continueWithEmail(String email) async {
-    AppLogger.d('EmailAuthController: Sending OTP for $email', tag: 'AuthController');
-    state = const AsyncLoading();
-    try {
-      final repository = ref.read(authRepositoryProvider);
-      await repository.signInWithOtp(email);
-      AppLogger.i('EmailAuthController: OTP sent successfully for $email', tag: 'AuthController');
-      state = const AsyncData(null);
-    } catch (e, st) {
-      AppLogger.e('EmailAuthController: Failed sending OTP for $email', tag: 'AuthController', error: e, stackTrace: st);
-      state = AsyncError(e, st);
-      rethrow;
-    }
-  }
-
   Future<bool> checkUserExists(String email) async {
     AppLogger.d('EmailAuthController: Checking if user exists for $email', tag: 'AuthController');
     state = const AsyncLoading();

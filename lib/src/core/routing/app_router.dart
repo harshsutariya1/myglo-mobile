@@ -83,6 +83,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           final extra = state.extra as Map<String, dynamic>? ?? {};
           return EmailConfirmationScreen(
             email: extra['email'] as String? ?? '',
+            verifyOnly: extra['verifyOnly'] as bool? ?? false,
           );
         },
       ),

@@ -53,6 +53,9 @@ dependencies:
   readmore: ^3.0.0
   geocoding: ^5.0.0
   logger: ^2.8.0
+  connectivity_plus: ^7.3.1
+  http: ^1.6.0
+  pinput: ^6.0.2
 
 dev_dependencies:
   sentry_dart_plugin: ^3.4.0

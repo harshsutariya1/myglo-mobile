@@ -36,7 +36,7 @@ final class AddServiceControllerProvider
 }
 
 String _$addServiceControllerHash() =>
-    r'84f4435a9652ea14477e74adbe8ea14e16b955b1';
+    r'049b47af9576207fcd23e98bbc5a9c36a5e35b49';
 
 abstract class _$AddServiceController extends $AsyncNotifier<void> {
   FutureOr<void> build();

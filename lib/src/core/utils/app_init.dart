@@ -1,6 +1,7 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import '../network/connectivity_aware_client.dart';
 import 'app_logger.dart';
 
 Future<void> initializeApp({required void Function() appRunner}) async {
@@ -33,7 +34,11 @@ Future<void> initializeApp({required void Function() appRunner}) async {
 
     AppLogger.d('Initializing Supabase client ($supabaseUrl)...', tag: 'Init');
     final supabaseWatch = Stopwatch()..start();
-    await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+    await Supabase.initialize(
+      url: supabaseUrl,
+      anonKey: supabaseAnonKey,
+      httpClient: ConnectivityAwareHttpClient(),
+    );
     supabaseWatch.stop();
     AppLogger.i('✅ Supabase initialized in ${supabaseWatch.elapsedMilliseconds}ms', tag: 'Init');
 

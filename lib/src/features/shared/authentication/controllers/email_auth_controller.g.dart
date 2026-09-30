@@ -36,7 +36,7 @@ final class EmailAuthControllerProvider
 }
 
 String _$emailAuthControllerHash() =>
-    r'bbf9dbad8f14e615ba43586843d13b2452aa2276';
+    r'8bebb0605a5545a4f3fa852c10a055becd96cfbe';
 
 abstract class _$EmailAuthController extends $AsyncNotifier<void> {
   FutureOr<void> build();

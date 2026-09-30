@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
+import 'network_error.dart';
+
 /// Custom Log Filter to ensure debug/info logs only appear in debug mode,
 /// while errors and warnings are captured safely.
 class _AppLogFilter extends LogFilter {
@@ -71,6 +73,20 @@ class AppLogger {
   }) {
     final prefix = tag != null ? '[$tag] ' : '';
     _traceLogger.e('$prefix$message', error: error, stackTrace: stackTrace);
+
+    // Losing the connection is expected on mobile and is surfaced to the user by
+    // the offline sheet, so keep it as context rather than paging Sentry with it.
+    if (error != null && isConnectivityError(error)) {
+      Sentry.addBreadcrumb(
+        Breadcrumb(
+          category: 'network',
+          message: '$prefix$message',
+          level: SentryLevel.warning,
+          data: {'error': error.runtimeType.toString()},
+        ),
+      );
+      return;
+    }
 
     // Report to Sentry if an exception is provided
     if (error != null) {
