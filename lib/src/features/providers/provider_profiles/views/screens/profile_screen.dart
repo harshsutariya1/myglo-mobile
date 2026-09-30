@@ -6,6 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:readmore/readmore.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/routing/app_router.dart';
+import '../../../../../core/widgets/skeleton/skeletons.dart';
 import '../../../../shared/authentication/controllers/user_profile_provider.dart';
 import '../../../../discovery_feed/controllers/user_posts_controller.dart';
 import '../../../../discovery_feed/views/upload_post_screen.dart';
@@ -40,9 +41,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return Scaffold(
       backgroundColor: context.colorScheme.surface,
       body: userProfileAsync.when(
-        loading: () => Center(
-          child: CircularProgressIndicator(color: context.colorScheme.primary),
-        ),
+        loading: () => const _ProfileScreenSkeleton(),
         error: (err, stack) => Center(
           child: Text('Error: $err', style: const TextStyle(color: Colors.red)),
         ),
@@ -416,16 +415,7 @@ class _ProviderServicesList extends ConsumerWidget {
     final servicesAsync = ref.watch(providerServicesProvider(userId));
 
     return servicesAsync.when(
-      loading: () => SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.all(40.0),
-          child: Center(
-            child: CircularProgressIndicator(
-              color: context.colorScheme.primary,
-            ),
-          ),
-        ),
-      ),
+      loading: () => const SliverToBoxAdapter(child: ServiceListSkeleton()),
       error: (err, stack) => SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.all(40.0),
@@ -503,10 +493,8 @@ class _ProviderServicesList extends ConsumerWidget {
                           width: 80,
                           height: 80,
                           fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(
-                            width: 80,
-                            height: 80,
-                            color: Colors.grey.shade200,
+                          placeholder: (context, url) => const Shimmer(
+                            child: SkeletonBox(width: 80, height: 80, borderRadius: 0),
                           ),
                           errorWidget: (context, url, error) => Container(
                             width: 80,
@@ -625,8 +613,9 @@ class _ProviderPostsGrid extends ConsumerWidget {
                         CachedNetworkImage(
                           imageUrl: imageUrl,
                           fit: BoxFit.cover,
-                          placeholder: (context, url) =>
-                              Container(color: Colors.grey.shade200),
+                          placeholder: (context, url) => const Shimmer(
+                            child: SkeletonBox(borderRadius: 0),
+                          ),
                           errorWidget: (context, url, error) => Container(
                             color: Colors.grey.shade200,
                             child: const Icon(
@@ -656,15 +645,8 @@ class _ProviderPostsGrid extends ConsumerWidget {
           ),
         );
       },
-      loading: () => SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.all(40.0),
-          child: Center(
-            child: CircularProgressIndicator(
-              color: context.colorScheme.primary,
-            ),
-          ),
-        ),
+      loading: () => const SliverToBoxAdapter(
+        child: PostGridSkeleton(padding: EdgeInsets.symmetric(horizontal: 16)),
       ),
       error: (err, stack) => SliverToBoxAdapter(
         child: Padding(
@@ -675,6 +657,68 @@ class _ProviderPostsGrid extends ConsumerWidget {
               style: const TextStyle(color: Colors.red),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Mirrors the loaded layout: 280pt cover, overlapping 112pt avatar, name,
+/// address, the segmented control and the first service rows.
+class _ProfileScreenSkeleton extends StatelessWidget {
+  const _ProfileScreenSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Shimmer(
+      child: SingleChildScrollView(
+        physics: NeverScrollableScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              height: 280 + 60,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: SkeletonBox(height: 280, borderRadius: 0),
+                  ),
+                  // CircleAvatar radius 52 plus the 4pt surface ring.
+                  Positioned(
+                    top: 280 - 56,
+                    left: 0,
+                    right: 0,
+                    child: Center(child: SkeletonBox.circle(size: 112)),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                children: [
+                  SkeletonText(
+                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
+                    width: 200,
+                  ),
+                  SizedBox(height: 6),
+                  SkeletonText(style: TextStyle(fontSize: 15), width: 230),
+                  SizedBox(height: 16),
+                ],
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+              child: SkeletonBox(height: 48, borderRadius: 24),
+            ),
+            ServiceCategorySkeleton(),
+            ServiceRowSkeleton(),
+            ServiceRowSkeleton(),
+          ],
         ),
       ),
     );

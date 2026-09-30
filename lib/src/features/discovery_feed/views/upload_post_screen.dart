@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/skeleton/skeletons.dart';
 import '../../shared/authentication/controllers/user_profile_provider.dart';
 import '../../providers/provider_profiles/models/service_model.dart';
 import '../models/post_repository.dart';
@@ -349,7 +350,7 @@ class _UploadPostScreenState extends ConsumerState<UploadPostScreen> {
                 Text('Tag Service (Optional)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: context.colorScheme.onSurface)),
                 const SizedBox(height: 12),
                 if (_isLoadingServices)
-                  Center(child: CircularProgressIndicator())
+                  const Shimmer(child: SkeletonBox(height: FormSkeleton.fieldHeight, borderRadius: 12))
                 else if (_providerServices.isEmpty)
                   Text('This provider has no services listed.', style: TextStyle(color: Colors.grey))
                 else
@@ -379,7 +380,7 @@ class _UploadPostScreenState extends ConsumerState<UploadPostScreen> {
               Text('Tag Service (Optional)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: context.colorScheme.onSurface)),
               const SizedBox(height: 12),
               if (_isLoadingServices)
-                Center(child: CircularProgressIndicator())
+                const Shimmer(child: SkeletonBox(height: FormSkeleton.fieldHeight, borderRadius: 12))
               else if (_providerServices.isEmpty)
                 Text('You have no services listed yet.', style: TextStyle(color: Colors.grey))
               else

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/skeleton/skeletons.dart';
 import '../../../shared/authentication/controllers/user_profile_provider.dart';
 import '../../../discovery_feed/views/upload_post_screen.dart';
 import '../../../discovery_feed/views/post_detail_screen.dart';
@@ -142,9 +143,21 @@ class CustomerProfileScreen extends ConsumerWidget {
               ),
             );
           },
-          loading: () => Center(
-            child: CircularProgressIndicator(
-              color: context.colorScheme.primary,
+          loading: () => const Shimmer(
+            child: SingleChildScrollView(
+              physics: NeverScrollableScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(height: 16),
+                  ProfileHeaderSkeleton(),
+                  SizedBox(height: 32),
+                  MenuTileSkeleton(),
+                  MenuTileSkeleton(),
+                  MenuTileSkeleton(),
+                  MenuTileSkeleton(),
+                ],
+              ),
             ),
           ),
           error: (err, _) => Center(
@@ -451,8 +464,8 @@ class _CustomerPostsGrid extends ConsumerWidget {
                       CachedNetworkImage(
                         imageUrl: imageUrl,
                         fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
-                          color: context.colorScheme.surfaceContainerHighest,
+                        placeholder: (context, url) => const Shimmer(
+                          child: SkeletonBox(borderRadius: 0),
                         ),
                         errorWidget: (context, url, error) => Container(
                           color: context.colorScheme.surfaceContainerHighest,
@@ -491,11 +504,10 @@ class _CustomerPostsGrid extends ConsumerWidget {
           },
         );
       },
-      loading: () => Padding(
-        padding: const EdgeInsets.all(40.0),
-        child: Center(
-          child: CircularProgressIndicator(color: context.colorScheme.primary),
-        ),
+      loading: () => const PostGridSkeleton(
+        crossAxisCount: 2,
+        padding: EdgeInsets.all(16),
+        itemCount: 4,
       ),
       error: (err, stack) => Padding(
         padding: const EdgeInsets.all(40.0),

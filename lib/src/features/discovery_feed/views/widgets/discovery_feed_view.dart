@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../../../core/widgets/skeleton/skeletons.dart';
 import '../../models/post_model.dart';
 
 class DiscoveryFeedView extends StatelessWidget {
@@ -36,9 +37,8 @@ class DiscoveryFeedView extends StatelessWidget {
                       fit: BoxFit.cover,
                       width: double.infinity,
                       height: 400, // Fixed height for feed items
-                      placeholder: (context, url) => Container(
-                        height: 400,
-                        color: Colors.grey.shade200,
+                      placeholder: (context, url) => const Shimmer(
+                        child: SkeletonBox(height: 400, borderRadius: 0),
                       ),
                       errorWidget: (context, url, error) => Container(
                         height: 400,

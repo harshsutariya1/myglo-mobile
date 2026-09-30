@@ -7,6 +7,10 @@ import '../../features/shared/authentication/controllers/user_profile_provider.d
 import '../utils/app_logger.dart';
 import 'app_router.dart';
 
+/// Path prefix shared by every `/provider/:id` location. The trailing slash
+/// keeps it from matching the provider's own `/provider_profile` tab.
+const publicProviderProfilePrefix = '/provider/';
+
 /// Handles the redirection logic for the application based on authentication
 /// and onboarding state.
 String? appRouterRedirect(BuildContext context, GoRouterState state, Ref ref) {
@@ -105,6 +109,8 @@ String? appRouterRedirect(BuildContext context, GoRouterState state, Ref ref) {
     AppRoute.customerHome.path,
     AppRoute.bookings.path,
     AppRoute.customerProfile.path,
+    // Client view of a provider (`/provider/:id`), which includes booking.
+    publicProviderProfilePrefix,
   ];
 
   final providerRoutes = [

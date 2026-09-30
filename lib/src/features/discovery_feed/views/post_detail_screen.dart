@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/skeleton/skeletons.dart';
 import '../models/post_model.dart';
 import '../controllers/delete_post_controller.dart';
 
@@ -65,8 +66,8 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                         return CachedNetworkImage(
                           imageUrl: widget.post.mediaUrls[index],
                           fit: BoxFit.cover,
-                          placeholder: (context, url) => Center(
-                            child: CircularProgressIndicator(color: context.colorScheme.primary),
+                          placeholder: (context, url) => const Shimmer(
+                            child: SkeletonBox(borderRadius: 0),
                           ),
                           errorWidget: (context, url, error) => Container(
                             color: Colors.grey.shade200,

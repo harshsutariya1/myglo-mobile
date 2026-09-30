@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../../core/theme/app_theme.dart';
+import '../../../../../core/widgets/skeleton/skeletons.dart';
 
 class ProviderItem extends StatelessWidget {
   final String initials;
@@ -112,7 +113,9 @@ class ProviderItemWithImage extends StatelessWidget {
                   width: 80,
                   height: 80,
                   fit: BoxFit.cover,
-                  placeholder: (context, url) => const Icon(Icons.image, size: 40, color: Colors.white),
+                  placeholder: (context, url) => const Shimmer(
+                    child: SkeletonBox(width: 80, height: 80, borderRadius: 0),
+                  ),
                   errorWidget: (context, url, error) => const Icon(Icons.broken_image, size: 40, color: Colors.white),
                 )
               : const Icon(Icons.image, size: 40, color: Colors.white),

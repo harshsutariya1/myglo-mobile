@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/skeleton/skeletons.dart';
 import '../../../shared/authentication/controllers/user_profile_provider.dart';
 import '../../../providers/provider_profiles/views/widgets/profile_pic_picker.dart';
 import '../controllers/edit_customer_profile_controller.dart';
@@ -127,11 +128,7 @@ class _EditCustomerProfileScreenState
         ),
       ),
       body: userProfile == null
-          ? Center(
-              child: CircularProgressIndicator(
-                color: context.colorScheme.onSurface,
-              ),
-            )
+          ? const FormSkeleton()
           : SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
               child: Form(

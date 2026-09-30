@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../core/routing/app_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/skeleton/skeletons.dart';
+import '../../../shared/authentication/controllers/user_profile_provider.dart';
+import 'welcome_greeting.dart';
 import 'widgets/home_search_bar.dart';
 import 'widgets/provider_item.dart';
 import '../controllers/home_controller.dart';
@@ -11,6 +16,9 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final providersAsyncValue = ref.watch(allProvidersProvider);
+    final firstName = firstNameFrom(
+      ref.watch(userProfileProvider.select((p) => p.value?.profile.firstName)),
+    );
 
     return Scaffold(
       backgroundColor: context.colorScheme.surface,
@@ -23,6 +31,8 @@ class HomeScreen extends ConsumerWidget {
             children: [
               SizedBox(height: 16),
               RichText(
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 text: TextSpan(
                   style: TextStyle(
                     fontSize: 28,
@@ -30,14 +40,18 @@ class HomeScreen extends ConsumerWidget {
                     color: context.colorScheme.onSurface,
                   ),
                   children: [
-                    TextSpan(text: 'Welcome '),
-                    TextSpan(
-                      text: 'back',
-                      style: TextStyle(
-                        fontStyle: FontStyle.italic,
-                        fontWeight: FontWeight.w400,
+                    if (firstName == null)
+                      const TextSpan(text: 'Welcome')
+                    else ...[
+                      const TextSpan(text: 'Welcome, '),
+                      TextSpan(
+                        text: firstName,
+                        style: const TextStyle(
+                          fontStyle: FontStyle.italic,
+                          fontWeight: FontWeight.w400,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -99,18 +113,25 @@ class HomeScreen extends ConsumerWidget {
                       final provider = providers[index];
                       final name = provider.providerName;
                       
-                      return ProviderItemWithImage(
-                        category: 'BEAUTY', // Static category for now
-                        name: name,
-                        location: provider.addressText,
-                        status: 'Available',
-                        statusColor: Colors.green,
-                        imageUrl: provider.profilePic,
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(20),
+                        onTap: () => context.pushNamed(
+                          AppRoute.publicProviderProfile.name,
+                          pathParameters: {'id': provider.id},
+                        ),
+                        child: ProviderItemWithImage(
+                          category: 'BEAUTY', // Static category for now
+                          name: name,
+                          location: provider.addressText,
+                          status: 'Available',
+                          statusColor: Colors.green,
+                          imageUrl: provider.profilePic,
+                        ),
                       );
                     },
                   );
                 },
-                loading: () => const Center(child: CircularProgressIndicator()),
+                loading: () => const ProviderListSkeleton(),
                 error: (error, stack) => Center(
                   child: Text('Error loading providers: $error'),
                 ),

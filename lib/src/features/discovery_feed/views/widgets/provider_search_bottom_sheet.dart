@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/skeleton/skeletons.dart';
 import '../../models/post_repository.dart';
 
 class ProviderSearchBottomSheet extends ConsumerStatefulWidget {
@@ -141,8 +142,13 @@ class _ProviderSearchBottomSheetState extends ConsumerState<ProviderSearchBottom
           Divider(),
           Expanded(
             child: _isLoading
-                ? Center(
-                    child: CircularProgressIndicator(color: context.colorScheme.primary),
+                ? Shimmer(
+                    child: ListView.separated(
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: 5,
+                      separatorBuilder: (context, index) => const Divider(height: 1, color: Colors.transparent),
+                      itemBuilder: (context, index) => const ListTileSkeleton(),
+                    ),
                   )
                 : _results.isEmpty
                     ? Center(

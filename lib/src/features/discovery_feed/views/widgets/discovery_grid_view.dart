@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../../../core/widgets/skeleton/skeletons.dart';
 import '../../models/post_model.dart';
 
 
@@ -33,8 +34,8 @@ class DiscoveryGridView extends StatelessWidget {
               ? CachedNetworkImage(
                   imageUrl: mediaUrl,
                   fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    color: Colors.grey.shade200,
+                  placeholder: (context, url) => const Shimmer(
+                    child: SkeletonBox(borderRadius: 0),
                   ),
                   errorWidget: (context, url, error) => Container(
                     color: Colors.grey.shade200,

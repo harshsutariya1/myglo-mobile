@@ -21,6 +21,7 @@ import '../../features/providers/provider_profiles/views/screens/profile_screen.
 import '../../features/providers/provider_profiles/views/screens/settings_screen.dart';
 import '../../features/providers/provider_profiles/views/screens/account_details_screen.dart';
 import '../../features/discovery_feed/views/discovery_screen.dart';
+import '../../features/customers/provider_profile/views/public_provider_profile_screen.dart';
 
 import '../../features/shared/authentication/controllers/user_profile_provider.dart';
 import '../widgets/main_scaffold.dart';
@@ -43,6 +44,7 @@ enum AppRoute {
   businessTools(path: '/business_tools'),
   customerProfile(path: '/customer_profile'),
   providerProfile(path: '/provider_profile'),
+  publicProviderProfile(path: '/provider/:id'),
   settings(path: 'settings'),
   accountDetails(path: 'account-details');
 
@@ -104,6 +106,15 @@ final routerProvider = Provider<GoRouter>((ref) {
           final role = profile?.role ?? UserRole.customer;
           return OnboardingDetailsScreen(role: role);
         },
+      ),
+      // Full-screen (outside the tab shell) so it stacks over whichever tab
+      // opened it and works as a standalone deep-link target.
+      GoRoute(
+        path: AppRoute.publicProviderProfile.path,
+        name: AppRoute.publicProviderProfile.name,
+        builder: (context, state) => PublicProviderProfileScreen(
+          providerId: state.pathParameters['id']!,
+        ),
       ),
       ShellRoute(
         builder: (context, state, child) {

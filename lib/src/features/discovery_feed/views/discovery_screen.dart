@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/skeleton/skeletons.dart';
 import '../controllers/discovery_feed_controller.dart';
 import 'widgets/discovery_grid_view.dart';
 import 'widgets/discovery_feed_view.dart';
@@ -74,15 +75,6 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search, color: Colors.black, size: 28),
-            onPressed: () {
-              // Search action
-            },
-          ),
-          const SizedBox(width: 8),
-        ],
       ),
       body: Column(
         children: [
@@ -136,7 +128,23 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen>
                   ],
                 );
               },
-              loading: () => const Center(child: CircularProgressIndicator()),
+              // Keep the tabs swipeable while loading; each tab shows a
+              // skeleton shaped like its own layout.
+              loading: () => TabBarView(
+                controller: _tabController,
+                children: const [
+                  PostGridSkeleton(
+                    crossAxisCount: 2,
+                    spacing: 12,
+                    childAspectRatio: 0.8,
+                    borderRadius: 16,
+                    padding: EdgeInsets.all(16),
+                    itemCount: 6,
+                    scrollable: true,
+                  ),
+                  FeedSkeleton(),
+                ],
+              ),
               error: (error, stack) => Center(
                 child: Text('Error loading posts: $error'),
               ),
