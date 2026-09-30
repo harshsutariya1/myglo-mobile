@@ -1,0 +1,23 @@
+<!--
+  Supabase Auth email template: "Confirm signup".
+  Paste into: Dashboard > Authentication > Emails > Templates > Confirm signup.
+  Subject suggestion: Your MyGlo verification code
+  The app asks the user to type this code; there is no link to click.
+  {{ .Token }} is the numeric code; its length is set in
+  Authentication > Providers > Email > "Email OTP Length" (app expects AppConfig.emailOtpLength = 6).
+-->
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; color: #140000;">
+  <h2 style="margin: 0 0 16px; font-size: 22px;">Verify your email</h2>
+  <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.5;">
+    Enter this code in the MyGlo app to finish creating your account:
+  </p>
+  <p style="margin: 0 0 24px; padding: 16px; text-align: center; font-size: 32px; font-weight: 700; letter-spacing: 8px; background: #FFF1EC; border-radius: 12px;">
+    {{ .Token }}
+  </p>
+  <p style="margin: 0 0 8px; font-size: 14px; color: #555;">
+    This code expires in 1 hour and can only be used once.
+  </p>
+  <p style="margin: 0; font-size: 14px; color: #555;">
+    If you didn't create a MyGlo account, you can safely ignore this email.
+  </p>
+</div>

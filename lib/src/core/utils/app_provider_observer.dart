@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../services/connectivity_service.dart';
 import 'app_logger.dart';
+import 'network_error.dart';
 
 /// A Riverpod [ProviderObserver] that logs provider state changes,
 /// additions, errors, and disposals cleanly in the debug console.
@@ -59,6 +61,7 @@ base class AppProviderObserver extends ProviderObserver {
     if (kDebugMode) {
       AppLogger.d('🗑️ Disposed', tag: _providerName(context));
     }
+    _notifyNetwork(context, (n) => n.onQueryDisposed(context.provider));
   }
 
   @override
@@ -73,5 +76,25 @@ base class AppProviderObserver extends ProviderObserver {
       error: error,
       stackTrace: stackTrace,
     );
+    if (isConnectivityError(error)) {
+      _notifyNetwork(context, (n) => n.onQueryFailed(context.provider));
+    }
+  }
+
+  /// Deferred to a microtask so the network notifier is never touched while the
+  /// failing / disposing provider is still mid-update.
+  void _notifyNetwork(
+    ProviderObserverContext context,
+    void Function(NetworkStatusNotifier) action,
+  ) {
+    if (identical(context.provider, networkStatusProvider)) return;
+    final container = context.container;
+    Future.microtask(() {
+      try {
+        action(container.read(networkStatusProvider.notifier));
+      } catch (_) {
+        // Container already disposed (e.g. during app teardown).
+      }
+    });
   }
 }

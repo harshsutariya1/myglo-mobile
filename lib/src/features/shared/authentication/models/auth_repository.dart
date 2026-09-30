@@ -19,32 +19,6 @@ class AuthRepository {
 
   AuthRepository(this._client);
 
-  Future<void> signInWithOtp(String email) async {
-    AppLogger.auth('Requesting OTP magiclink', email: email);
-    try {
-      await _client.auth.signInWithOtp(email: email);
-      AppLogger.auth('OTP magiclink sent successfully', email: email);
-    } catch (e, st) {
-      AppLogger.e('Failed to send OTP magiclink', tag: 'Auth', error: e, stackTrace: st);
-      rethrow;
-    }
-  }
-
-  Future<void> verifyOtp(String email, String token) async {
-    AppLogger.auth('Verifying OTP code', email: email);
-    try {
-      await _client.auth.verifyOTP(
-        type: OtpType.magiclink,
-        token: token,
-        email: email,
-      );
-      AppLogger.auth('OTP verified successfully', email: email);
-    } catch (e, st) {
-      AppLogger.e('OTP verification failed', tag: 'Auth', error: e, stackTrace: st);
-      rethrow;
-    }
-  }
-
   Future<void> signOut() async {
     final currentUserId = _client.auth.currentUser?.id;
     AppLogger.auth('Signing out user', userId: currentUserId);
@@ -82,17 +56,18 @@ class AuthRepository {
     }
   }
 
+  /// Creates the account. Supabase emails a verification *code* (the "Confirm
+  /// signup" template renders `{{ .Token }}`); the account stays unconfirmed
+  /// until [verifySignupCode] succeeds.
   Future<AuthResponse> signUp({
     required String email,
     required String password,
-    String? emailRedirectTo,
   }) async {
     AppLogger.auth('Attempting registration', email: email);
     try {
       final response = await _client.auth.signUp(
         email: email,
         password: password,
-        emailRedirectTo: emailRedirectTo,
       );
       AppLogger.auth(
         'Sign-up request complete',
@@ -106,6 +81,49 @@ class AuthRepository {
     } catch (e, st) {
       AppLogger.e('Unexpected error during sign up', tag: 'Auth', error: e, stackTrace: st);
       throw Exception('Unexpected error during sign up: $e');
+    }
+  }
+
+  /// Confirms the account with the code from the sign-up email and signs the
+  /// user in. Throws [AuthException] for a wrong or expired code.
+  Future<AuthResponse> verifySignupCode({
+    required String email,
+    required String code,
+  }) async {
+    AppLogger.auth('Verifying signup code', email: email);
+    try {
+      final response = await _client.auth.verifyOTP(
+        type: OtpType.signup,
+        email: email,
+        token: code,
+      );
+      AppLogger.auth(
+        'Signup code verified',
+        email: email,
+        userId: response.user?.id,
+      );
+      return response;
+    } on AuthException catch (e) {
+      AppLogger.w('Signup code rejected: ${e.message} (code: ${e.code})', tag: 'Auth');
+      rethrow;
+    } catch (e, st) {
+      AppLogger.e('Unexpected error verifying signup code', tag: 'Auth', error: e, stackTrace: st);
+      rethrow;
+    }
+  }
+
+  /// Emails a fresh signup code. Supabase allows one email per address per
+  /// minute; a sooner request fails with `over_email_send_rate_limit`.
+  Future<void> resendSignupCode(String email) async {
+    AppLogger.auth('Resending signup code', email: email);
+    try {
+      await _client.auth.resend(type: OtpType.signup, email: email);
+    } on AuthException catch (e) {
+      AppLogger.w('Resend signup code AuthException: ${e.message} (code: ${e.code})', tag: 'Auth');
+      rethrow;
+    } catch (e, st) {
+      AppLogger.e('Unexpected error resending signup code', tag: 'Auth', error: e, stackTrace: st);
+      rethrow;
     }
   }
 

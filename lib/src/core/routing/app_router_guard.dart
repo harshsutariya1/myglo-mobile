@@ -69,7 +69,13 @@ String? appRouterRedirect(BuildContext context, GoRouterState state, Ref ref) {
         'User profile missing role. Redirecting to ${AppRoute.roleSelection.path}',
         tag: 'RouterGuard',
       );
-      return '${AppRoute.roleSelection.path}?email=${session.user.email}&id=${session.user.id}';
+      return Uri(
+        path: AppRoute.roleSelection.path,
+        queryParameters: {
+          'email': session.user.email ?? '',
+          'id': session.user.id,
+        },
+      ).toString();
     }
     return null;
   }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../../core/theme/app_theme.dart';
+import '../../../../../core/routing/app_router.dart';
 import '../../../../../core/utils/app_logger.dart';
 import '../../../../../core/widgets/snackbar_utils.dart';
 import '../../controllers/email_auth_controller.dart';
@@ -20,7 +21,7 @@ class EmailAuthScreen extends ConsumerStatefulWidget {
 class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
     with SingleTickerProviderStateMixin {
   final _emailController = TextEditingController();
-  final _passwordController = TextEditingController(text: "123456");
+  final _passwordController = TextEditingController();
 
   bool _isLoading = false;
   bool _isValidEmail = false;
@@ -67,25 +68,13 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
     super.dispose();
   }
 
-  void _showUnconfirmedPopup() {
+  /// The account exists but its email was never confirmed: send a fresh code
+  /// and take the user to the code-entry screen.
+  void _startVerification(String email) {
     if (!mounted) return;
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Email Not Confirmed'),
-        content: Text(
-          'Please check your inbox and click the confirmation link before continuing.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(
-              'OK',
-              style: TextStyle(color: context.colorScheme.secondary),
-            ),
-          ),
-        ],
-      ),
+    context.push(
+      AppRoute.confirmEmail.path,
+      extra: {'email': email, 'verifyOnly': true},
     );
   }
 
@@ -112,7 +101,7 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
         AppLogger.i('EmailAuthScreen: Account not found for $email. Navigating to email confirmation.', tag: 'EmailAuth');
         if (mounted) {
           setState(() => _isLoading = false);
-          context.push('/confirm_email', extra: {'email': email});
+          context.push(AppRoute.confirmEmail.path, extra: {'email': email});
         }
       }
     } catch (e, st) {
@@ -137,15 +126,16 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
           .read(emailAuthControllerProvider.notifier)
           .login(email, password);
 
-      AppLogger.i('EmailAuthScreen: Login successful. Navigating to /main.', tag: 'EmailAuth');
+      AppLogger.i('EmailAuthScreen: Login successful. Routing via guard.', tag: 'EmailAuth');
       if (mounted) {
-        context.go('/main');
+        // The router guard sends a signed-in user to the right home / onboarding screen.
+        context.go(AppRoute.splash.path);
       }
     } on AuthException catch (e) {
       if (e.message.toLowerCase().contains('email not confirmed') ||
           e.code == 'email_not_confirmed') {
         AppLogger.w('EmailAuthScreen: Email not confirmed during login for $email', tag: 'EmailAuth');
-        _showUnconfirmedPopup();
+        _startVerification(email);
       } else {
         AppLogger.w('EmailAuthScreen: AuthException during login: ${e.message}', tag: 'EmailAuth');
         if (mounted) {

@@ -33,6 +33,9 @@ final postRepositoryProvider = Provider<PostRepository>((ref) {
   return PostRepository(ref.watch(supabaseClientProvider));
 });
 
+/// Postgres `unique_violation` SQLSTATE.
+const _uniqueViolation = '23505';
+
 class PostRepository {
   final SupabaseClient _client;
   final _uuid = const Uuid();
@@ -76,7 +79,11 @@ class PostRepository {
     }
   }
 
+  /// Creates a post. Pass the same [id] when re-submitting after a failure
+  /// (e.g. a connection drop mid-request): if the first attempt already reached
+  /// the database, the retry is treated as success instead of duplicating it.
   Future<void> createPost({
+    required String id,
     required String authorId,
     required List<String> mediaUrls,
     String? caption,
@@ -90,6 +97,7 @@ class PostRepository {
     final sw = Stopwatch()..start();
     try {
       await _client.from('posts').insert({
+        'id': id,
         'author_id': authorId,
         'media_urls': mediaUrls,
         'caption': caption,
@@ -98,6 +106,13 @@ class PostRepository {
       });
       sw.stop();
       AppLogger.api('posts.insert', duration: sw.elapsed);
+    } on PostgrestException catch (e) {
+      if (e.code == _uniqueViolation) {
+        AppLogger.w('Post $id already exists; treating retry as success', tag: 'PostRepository');
+        return;
+      }
+      AppLogger.e('Failed to create post record', tag: 'PostRepository', error: e);
+      rethrow;
     } catch (e, st) {
       AppLogger.e('Failed to create post record', tag: 'PostRepository', error: e, stackTrace: st);
       rethrow;
@@ -111,14 +126,14 @@ class PostRepository {
     final sw = Stopwatch()..start();
     try {
       final response = await _client
-          .from('profiles')
+          .from('public_profiles')
           .select('id, provider_name, profile_pic')
           .eq('role', 'provider')
           .ilike('provider_name', '%$query%')
           .limit(10);
       sw.stop();
       final results = (response as List).map((e) => ProviderSearchResult.fromJson(e)).toList();
-      AppLogger.api('profiles.search', count: results.length, duration: sw.elapsed);
+      AppLogger.api('public_profiles.search', count: results.length, duration: sw.elapsed);
       return results;
     } catch (e, st) {
       AppLogger.e('Failed to search providers', tag: 'PostRepository', error: e, stackTrace: st);

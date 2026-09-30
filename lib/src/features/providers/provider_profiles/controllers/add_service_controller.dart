@@ -16,6 +16,10 @@ class AddServiceController extends _$AddServiceController {
     // Initial state
   }
 
+  /// Row id reused across re-submissions of the same service so a retry after a
+  /// dropped connection cannot create a duplicate. Cleared once it succeeds.
+  String? _pendingServiceId;
+
   Future<bool> addService({
     required String name,
     required String description,
@@ -47,6 +51,7 @@ class AddServiceController extends _$AddServiceController {
 
       try {
         await repository.createService(
+          id: _pendingServiceId ??= const Uuid().v4(),
           providerId: userProfile.rawUser.id,
           name: name,
           description: description,
@@ -70,6 +75,7 @@ class AddServiceController extends _$AddServiceController {
       // Invalidate the provider services so the profile screen refreshes
       ref.invalidate(providerServicesProvider(userProfile.rawUser.id));
 
+      _pendingServiceId = null;
       state = const AsyncData(null);
       return true;
     } catch (e, st) {
