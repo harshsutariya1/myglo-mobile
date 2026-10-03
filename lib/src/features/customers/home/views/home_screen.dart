@@ -30,30 +30,46 @@ class HomeScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(height: 16),
-              RichText(
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                text: TextSpan(
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: context.colorScheme.onSurface,
-                  ),
-                  children: [
-                    if (firstName == null)
-                      const TextSpan(text: 'Welcome')
-                    else ...[
-                      const TextSpan(text: 'Welcome, '),
-                      TextSpan(
-                        text: firstName,
-                        style: const TextStyle(
-                          fontStyle: FontStyle.italic,
-                          fontWeight: FontWeight.w400,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: RichText(
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      text: TextSpan(
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: context.colorScheme.onSurface,
                         ),
+                        children: [
+                          if (firstName == null)
+                            const TextSpan(text: 'Welcome')
+                          else ...[
+                            const TextSpan(text: 'Welcome, '),
+                            TextSpan(
+                              text: firstName,
+                              style: const TextStyle(
+                                fontStyle: FontStyle.italic,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
-                    ],
-                  ],
-                ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Notifications',
+                    icon: Icon(
+                      Icons.notifications_outlined,
+                      color: context.colorScheme.onSurface,
+                      size: 28,
+                    ),
+                    onPressed: () {},
+                  ),
+                ],
               ),
               Padding(
                 padding: const EdgeInsets.only(top: 4, bottom: 24),

@@ -207,4 +207,22 @@ class UserRepository {
       rethrow;
     }
   }
+
+  /// Public (masked) profiles for [ids] in one request, keyed by id. Accounts
+  /// that no longer exist are simply absent.
+  Future<Map<String, ProfileModel>> getPublicProfiles(Iterable<String> ids) async {
+    final unique = ids.toSet().toList();
+    if (unique.isEmpty) return const {};
+    final sw = Stopwatch()..start();
+    try {
+      final response = await _client.from('public_profiles').select().inFilter('id', unique);
+      sw.stop();
+      final profiles = (response as List).map((e) => ProfileModel.fromJson(e));
+      AppLogger.api('public_profiles.select(batch)', count: unique.length, duration: sw.elapsed);
+      return {for (final profile in profiles) profile.id: profile};
+    } catch (e, st) {
+      AppLogger.e('Failed to fetch public profiles', tag: 'UserRepository', error: e, stackTrace: st);
+      rethrow;
+    }
+  }
 }

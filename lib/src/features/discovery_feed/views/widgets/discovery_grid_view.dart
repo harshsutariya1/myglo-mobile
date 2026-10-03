@@ -1,53 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import '../../../../core/widgets/skeleton/skeletons.dart';
-import '../../models/post_model.dart';
 
+import '../../controllers/discovery_feed_controller.dart';
+import 'bento_grid.dart';
+import 'discover_tab_body.dart';
 
+/// Clients' "For you": every recent look as a bento grid.
 class DiscoveryGridView extends StatelessWidget {
-  final List<PostModel> posts;
+  const DiscoveryGridView({super.key, required this.onShareLook});
 
-  const DiscoveryGridView({super.key, required this.posts});
+  final VoidCallback onShareLook;
 
   @override
   Widget build(BuildContext context) {
-    if (posts.isEmpty) {
-      return const Center(child: Text('No posts found.'));
-    }
-
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.8, // Adjust based on visual preference
+    return DiscoverTabBody(
+      tab: DiscoverTab.forYou,
+      loading: const SliverBentoSkeleton(),
+      content: (state) => SliverBentoGrid(entries: state.entries, complete: !state.hasMore),
+      empty: (_) => DiscoverEmptyState(
+        icon: Icons.auto_awesome_outlined,
+        title: 'Nothing to discover yet',
+        message: 'Fresh looks from salons and clients around the Gold Coast will appear here.',
+        actionLabel: 'Share a look',
+        onAction: onShareLook,
       ),
-      itemCount: posts.length,
-      itemBuilder: (context, index) {
-        final post = posts[index];
-        final mediaUrl = post.mediaUrls.isNotEmpty ? post.mediaUrls.first : null;
-
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: mediaUrl != null
-              ? CachedNetworkImage(
-                  imageUrl: mediaUrl,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => const Shimmer(
-                    child: SkeletonBox(borderRadius: 0),
-                  ),
-                  errorWidget: (context, url, error) => Container(
-                    color: Colors.grey.shade200,
-                    child: const Icon(Icons.error),
-                  ),
-                )
-              : Container(
-                  color: Colors.grey.shade200,
-                  child: const Icon(Icons.image_not_supported),
-                ),
-        );
-      },
     );
   }
 }

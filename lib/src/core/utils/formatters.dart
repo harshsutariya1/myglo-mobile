@@ -61,6 +61,22 @@ class Formatters {
     return local.year == reference.toLocal().year ? label : '$label ${local.year}';
   }
 
+  /// Formats an engagement count compactly: `7`, `999`, `1.2k`, `12k`, `3.4M`.
+  ///
+  /// Values are truncated rather than rounded so a count never reads higher
+  /// than it is (1,999 shows as `1.9k`, not `2k`).
+  static String compactCount(int count) {
+    if (count < 1000) return '${math.max(0, count)}';
+    String scaled(int unit, String suffix) {
+      final tenths = count * 10 ~/ unit;
+      final whole = tenths ~/ 10;
+      final decimal = tenths % 10;
+      return whole >= 10 || decimal == 0 ? '$whole$suffix' : '$whole.$decimal$suffix';
+    }
+
+    return count < 1000000 ? scaled(1000, 'k') : scaled(1000000, 'M');
+  }
+
   /// Formats a distance in kilometres: `850 m`, `4.2 km`, `18 km`.
   static String distanceKm(double km) {
     if (km < 1) return '${math.max(1, (km * 1000).round())} m';

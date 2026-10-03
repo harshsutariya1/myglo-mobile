@@ -7,6 +7,8 @@ import '../../../discovery_feed/views/upload_post_screen.dart';
 import '../../../discovery_feed/views/post_detail_screen.dart';
 import '../../../discovery_feed/controllers/user_posts_controller.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../favourites/controllers/favourites_controller.dart';
+import '../../favourites/views/favourites_screen.dart';
 import 'edit_customer_profile_screen.dart';
 import 'account_settings_screen.dart';
 import 'widgets/profile_menu_tile.dart';
@@ -34,6 +36,7 @@ class CustomerProfileScreen extends ConsumerWidget {
               onRefresh: () async {
                 ref.invalidate(userProfileProvider);
                 ref.invalidate(userPostsProvider(profile.profile.id));
+                ref.invalidate(favouritesProvider);
                 await Future.delayed(const Duration(milliseconds: 500));
               },
               child: SingleChildScrollView(
@@ -63,9 +66,13 @@ class CustomerProfileScreen extends ConsumerWidget {
 
                     // Main Actions
                     ProfileMenuTile(
-                      title: 'Following',
-                      icon: Icons.people_outline,
-                      onTap: () => _showFollowingsSheet(context),
+                      title: 'Favourites',
+                      icon: Icons.favorite_border_rounded,
+                      trailing: const _FavouritesCount(),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const FavouritesScreen()),
+                      ),
                     ),
                     ProfileMenuTile(
                       title: 'Posts',
@@ -210,85 +217,6 @@ class CustomerProfileScreen extends ConsumerWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         margin: const EdgeInsets.all(16),
       ),
-    );
-  }
-
-  void _showFollowingsSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: context.colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.6,
-          minChildSize: 0.4,
-          maxChildSize: 0.9,
-          expand: false,
-          builder: (context, scrollController) {
-            return Column(
-              children: [
-                const SizedBox(height: 12),
-                Container(
-                  width: 48,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Following',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: context.colorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Divider(height: 1, color: Colors.grey.shade300),
-                Expanded(
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.people_outline,
-                          size: 64,
-                          color: context.colorScheme.onSurface.withValues(
-                            alpha: 0.2,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No following yet',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: context.colorScheme.onSurface,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'When you follow people, you\'ll see them here.',
-                          style: TextStyle(
-                            color: context.colorScheme.onSurface.withValues(
-                              alpha: 0.6,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
     );
   }
 
@@ -451,7 +379,7 @@ class _CustomerPostsGrid extends ConsumerWidget {
                   context,
                   MaterialPageRoute(
                     builder: (context) =>
-                        PostDetailScreen(post: post, isAuthor: true),
+                        PostDetailScreen(post: post),
                   ),
                 );
               },
@@ -531,6 +459,33 @@ class _CustomerPostsGrid extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Saved-provider count beside the Favourites menu item, with the usual
+/// chevron. Shows just the chevron until the count is known.
+class _FavouritesCount extends ConsumerWidget {
+  const _FavouritesCount();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final count = ref.watch(favouritesProvider.select((f) => f.value?.providerIds.length));
+    final muted = context.colorScheme.onSurface.withValues(alpha: 0.3);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (count != null && count > 0)
+          Text(
+            '$count',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: context.colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
+          ),
+        Icon(Icons.chevron_right, color: muted),
+      ],
     );
   }
 }

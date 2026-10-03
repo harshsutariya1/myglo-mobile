@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
 extension SnackBarExtension on BuildContext {
-  void showAppSnackBar(String message, {bool isError = false}) {
+  void showAppSnackBar(String message, {bool isError = false, SnackBarAction? action}) {
     ScaffoldMessenger.of(this).clearSnackBars();
     ScaffoldMessenger.of(this).showSnackBar(
       SnackBar(
@@ -30,8 +30,12 @@ extension SnackBarExtension on BuildContext {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         duration: const Duration(seconds: 4),
+        action: action,
         elevation: 0,
       ),
     );
   }
+
+  /// Tells the user that [feature] exists in the design but isn't live yet.
+  void showComingSoon(String feature) => showAppSnackBar('$feature is coming soon');
 }

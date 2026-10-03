@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,12 +9,30 @@ import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/routing/app_router.dart';
 import '../../../../../core/widgets/skeleton/skeletons.dart';
 import '../../../../shared/authentication/controllers/user_profile_provider.dart';
+import '../../../../customers/provider_profile/views/widgets/provider_services_tab.dart'
+    show groupServicesByCategory;
+import '../../../../customers/provider_profile/views/widgets/section_states.dart';
 import '../../../../discovery_feed/controllers/user_posts_controller.dart';
 import '../../../../discovery_feed/views/upload_post_screen.dart';
 import '../../../../discovery_feed/views/post_detail_screen.dart';
 import '../../controllers/provider_services_controller.dart';
+import '../../../../shared/services/views/widgets/service_details_sheet.dart';
+import '../../../../shared/services/views/widgets/service_tile.dart';
+import '../widgets/service_owner_menu.dart';
 import 'add_service_screen.dart';
-import '../../models/service_model.dart';
+
+/// Layout constants shared by the profile header and its skeleton so both
+/// occupy the same space.
+abstract final class _ProfileMetrics {
+  static const double coverHeight = 220;
+  static const double sheetOverlap = 32;
+  static const double sheetTop = coverHeight - sheetOverlap;
+  static const double avatarRadius = 44;
+  // Gradient ring (3) + surface gap (3) around the avatar.
+  static const double avatarOuterRadius = avatarRadius + 6;
+  static const double tabBarHeight = 72;
+  static const double pagePadding = 20;
+}
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -25,15 +44,6 @@ class ProfileScreen extends ConsumerStatefulWidget {
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _showServices = true; // Toggle between Services and Photos
 
-  String _getInitials(String name) {
-    if (name.isEmpty) return 'KB';
-    final parts = name.trim().split(RegExp(r'\s+'));
-    if (parts.length > 1) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    }
-    return name.substring(0, math.min(2, name.length)).toUpperCase();
-  }
-
   @override
   Widget build(BuildContext context) {
     final userProfileAsync = ref.watch(userProfileProvider);
@@ -42,365 +52,589 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       backgroundColor: context.colorScheme.surface,
       body: userProfileAsync.when(
         loading: () => const _ProfileScreenSkeleton(),
-        error: (err, stack) => Center(
-          child: Text('Error: $err', style: const TextStyle(color: Colors.red)),
+        error: (err, stack) => SafeArea(
+          child: Center(
+            child: SectionErrorView(
+              title: "Your profile didn't load",
+              message: describeLoadError(err, subject: 'your profile'),
+              onRetry: () => ref.invalidate(userProfileProvider),
+            ),
+          ),
         ),
         data: (appUser) {
           if (appUser == null) {
             return const Center(child: Text('Not logged in'));
           }
 
-          final providerName =
-              (appUser.profile.providerName?.isNotEmpty == true)
-              ? appUser.profile.providerName!
-              : (appUser.displayName.isNotEmpty
-                    ? appUser.displayName
-                    : "Korea Beauty");
-
-          final addressText =
-              (appUser.profile.addressText?.isNotEmpty == true)
-              ? appUser.profile.addressText!
-              : "1 Collins Street, Melbourne VIC";
-
-          final bio = appUser.profile.bio;
-
-          final profilePicUrl = appUser.profile.profilePic;
+          final userId = appUser.rawUser.id;
+          final businessName = appUser.profile.providerName?.trim() ?? '';
+          final providerName = businessName.isNotEmpty
+              ? businessName
+              : (appUser.displayName.isNotEmpty ? appUser.displayName : 'Your business');
+          final addressText = appUser.profile.addressText?.trim() ?? '';
+          final bio = appUser.profile.bio?.trim() ?? '';
 
           return RefreshIndicator(
             color: context.colorScheme.primary,
             onRefresh: () async {
               ref.invalidate(userProfileProvider);
-              ref.invalidate(userPostsProvider(appUser.rawUser.id));
-              ref.invalidate(providerServicesProvider(appUser.rawUser.id));
+              ref.invalidate(userPostsProvider(userId));
+              ref.invalidate(providerServicesProvider(userId));
               await Future.delayed(const Duration(milliseconds: 500));
             },
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
-                // 1. Cover Photo & Profile Info Section
                 SliverToBoxAdapter(
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      // Info section (drawn below cover image)
-                      Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.only(
-                          top: 280,
-                        ), // Start after cover image height
-                        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                        child: Column(
-                          children: [
-                            const SizedBox(
-                              height: 60,
-                            ), // Push content below overlapping avatar
-                            // Business Name
-                            Text(
-                              providerName,
-                              style: TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.w800,
-                                color: context.colorScheme.onSurface,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 6),
-                            // Address
-                            Text(
-                              addressText,
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: Colors.grey.shade600,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 16),
-                            // Bio
-                            if (bio != null && bio.isNotEmpty) ...[
-                                ReadMoreText(
-                                  bio,
-                                  trimLines: 3,
-                                  colorClickableText: Colors.black,
-                                  trimMode: TrimMode.Line,
-                                  trimCollapsedText: ' View more...',
-                                  trimExpandedText: ' View less',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    color: Colors.grey.shade700,
-                                    height: 1.4,
-                                    fontFamily: 'Muli',
-                                  ),
-                                  moreStyle: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black,
-                                    fontFamily: 'Muli',
-                                  ),
-                                  lessStyle: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black,
-                                    fontFamily: 'Muli',
-                                  ),
-                                ),
-                                const SizedBox(height: 24),
-                              ]
-                          ],
-                        ),
-                      ),
-
-                      // Cover Photo (drawn on top of info background, though info is margin'd)
-                      Container(
-                        height: 280,
-                        width: double.infinity,
-                        decoration: const BoxDecoration(
-                          image: DecorationImage(
-                            image: AssetImage(
-                              'assets/images/myglo_cover.png',
-                            ),
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-
-                      // Top Right Actions (Settings & More)
-                      Positioned(
-                        top: MediaQuery.of(context).padding.top + 8,
-                        right: 16,
-                        child: Column(
-                          children: [
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.4),
-                                shape: BoxShape.circle,
-                              ),
-                              child: IconButton(
-                                icon: const Icon(
-                                  Icons.settings_outlined,
-                                  color: Colors.white,
-                                  size: 24,
-                                ),
-                                onPressed: () {
-                                  context.pushNamed(AppRoute.settings.name);
-                                },
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.4),
-                                shape: BoxShape.circle,
-                              ),
-                              child: PopupMenuButton<String>(
-                                icon: const Icon(
-                                  Icons.more_horiz,
-                                  color: Colors.white,
-                                ), // Using more_horiz for 3 dots as it's common
-                                padding: EdgeInsets.zero,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                onSelected: (value) {
-                                  if (value == 'create_post') {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const UploadPostScreen(),
-                                      ),
-                                    );
-                                  } else if (value == 'add_service') {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const AddServiceScreen(),
-                                      ),
-                                    );
-                                  }
-                                },
-                                itemBuilder: (context) => [
-                                  const PopupMenuItem(
-                                    value: 'create_post',
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          Icons.post_add,
-                                          size: 20,
-                                          color: Colors.black87,
-                                        ),
-                                        SizedBox(width: 12),
-                                        Text(
-                                          'Create Post',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const PopupMenuItem(
-                                    value: 'add_service',
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          Icons.add_business,
-                                          size: 20,
-                                          color: Colors.black87,
-                                        ),
-                                        SizedBox(width: 12),
-                                        Text(
-                                          'Add Services',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // Overlapping Profile Picture
-                      Positioned(
-                        top:
-                            280 -
-                            52, // 280 (cover height) minus 52 (avatar radius)
-                        left: 0,
-                        right: 0,
-                        child: Center(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: context.colorScheme.surface,
-                                width: 4,
-                              ),
-                            ),
-                            child: CircleAvatar(
-                              radius: 52,
-                              backgroundColor: context
-                                  .colorScheme
-                                  .primary, // Pink background
-                              backgroundImage: profilePicUrl != null
-                                  ? CachedNetworkImageProvider(profilePicUrl)
-                                  : null,
-                              child: profilePicUrl == null
-                                  ? Text(
-                                      _getInitials(providerName),
-                                      style: TextStyle(
-                                        fontSize: 38,
-                                        color: context.colorScheme.onPrimary,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    )
-                                  : null,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                  child: _ProfileHeader(
+                    userId: userId,
+                    name: providerName,
+                    address: addressText,
+                    bio: bio,
+                    profilePicUrl: appUser.profile.profilePic,
                   ),
                 ),
-
-                // 2. Segmented Tab Bar
                 SliverPersistentHeader(
                   pinned: true,
-                  delegate: _SliverAppBarDelegate(
-                    minHeight: 68,
-                    maxHeight: 68,
-                    child: Container(
-                      color: context.colorScheme.surface,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24.0,
-                        vertical: 10.0,
-                      ),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: Colors.grey.shade300),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () =>
-                                    setState(() => _showServices = true),
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: _showServices
-                                        ? const Color(0xFFFFF0EE)
-                                        : Colors
-                                              .transparent, // very light peach/orange
-                                    borderRadius: BorderRadius.circular(24),
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    'Services',
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                      color: _showServices
-                                          ? context.colorScheme.secondary
-                                          : Colors.grey.shade500,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () =>
-                                    setState(() => _showServices = false),
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: !_showServices
-                                        ? const Color(0xFFFFF0EE)
-                                        : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(24),
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    'Photos',
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                      color: !_showServices
-                                          ? context.colorScheme.secondary
-                                          : Colors.grey.shade500,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                  delegate: _PinnedHeaderDelegate(
+                    height: _ProfileMetrics.tabBarHeight,
+                    builder: (context, overlapsContent) => _TabBarSurface(
+                      overlapsContent: overlapsContent,
+                      child: _SegmentedToggle(
+                        showServices: _showServices,
+                        onChanged: (value) => setState(() => _showServices = value),
                       ),
                     ),
                   ),
                 ),
-
-                // 3. Content Area
                 if (_showServices)
-                  _ProviderServicesList(userId: appUser.rawUser.id)
+                  _ProviderServicesList(userId: userId)
                 else
-                  _ProviderPostsGrid(userId: appUser.rawUser.id),
-
+                  _ProviderPostsGrid(userId: userId),
                 const SliverToBoxAdapter(child: SizedBox(height: 100)),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+void _openAddService(BuildContext context) {
+  Navigator.push(context, MaterialPageRoute(builder: (_) => const AddServiceScreen()));
+}
+
+void _openCreatePost(BuildContext context) {
+  Navigator.push(context, MaterialPageRoute(builder: (_) => const UploadPostScreen()));
+}
+
+String _initialsOf(String name) {
+  final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+  if (parts.isEmpty) return 'M';
+  if (parts.length > 1) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+  return parts[0].substring(0, math.min(2, parts[0].length)).toUpperCase();
+}
+
+/// Cover photo, overlapping identity sheet, stats and quick actions.
+class _ProfileHeader extends ConsumerWidget {
+  const _ProfileHeader({
+    required this.userId,
+    required this.name,
+    required this.address,
+    required this.bio,
+    required this.profilePicUrl,
+  });
+
+  final String userId;
+  final String name;
+  final String address;
+  final String bio;
+  final String? profilePicUrl;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = context.colorScheme;
+    final muted = scheme.onSurface.withValues(alpha: 0.6);
+    final serviceCount = ref.watch(providerServicesProvider(userId)).value?.length;
+    final postCount = ref.watch(userPostsProvider(userId)).value?.length;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // Cover with a scrim so the glass controls stay legible on any photo.
+        SizedBox(
+          height: _ProfileMetrics.coverHeight,
+          width: double.infinity,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.asset('assets/images/myglo_cover.png', fit: BoxFit.cover),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.35),
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.15),
+                    ],
+                    stops: const [0, 0.5, 1],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Identity sheet overlapping the cover.
+        Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(top: _ProfileMetrics.sheetTop),
+          padding: const EdgeInsets.fromLTRB(
+            _ProfileMetrics.pagePadding,
+            _ProfileMetrics.avatarOuterRadius + 14,
+            _ProfileMetrics.pagePadding,
+            8,
+          ),
+          decoration: BoxDecoration(
+            color: scheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          child: Column(
+            children: [
+              Text(
+                name,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 26,
+                  height: 1.2,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.3,
+                  color: scheme.onSurface,
+                ),
+              ),
+              if (address.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.location_on_outlined, size: 16, color: scheme.secondary),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        address,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 14, color: muted),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              if (bio.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                ReadMoreText(
+                  bio,
+                  trimLines: 3,
+                  trimMode: TrimMode.Line,
+                  trimCollapsedText: ' View more',
+                  trimExpandedText: ' View less',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    height: 1.5,
+                    color: scheme.onSurface.withValues(alpha: 0.72),
+                    fontFamily: 'Muli',
+                  ),
+                  moreStyle: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w700,
+                    color: scheme.secondary,
+                    fontFamily: 'Muli',
+                  ),
+                  lessStyle: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w700,
+                    color: scheme.secondary,
+                    fontFamily: 'Muli',
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
+              _StatsLine(serviceCount: serviceCount, postCount: postCount),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: _ActionButton(
+                      label: 'Add service',
+                      icon: Icons.add_rounded,
+                      filled: true,
+                      onPressed: () => _openAddService(context),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _ActionButton(
+                      label: 'New post',
+                      icon: Icons.photo_camera_outlined,
+                      filled: false,
+                      onPressed: () => _openCreatePost(context),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+
+        // Avatar straddling the sheet edge.
+        Positioned(
+          top: _ProfileMetrics.sheetTop - _ProfileMetrics.avatarOuterRadius,
+          left: 0,
+          right: 0,
+          child: Center(child: _ProfileAvatar(name: name, url: profilePicUrl)),
+        ),
+
+        // Glass settings control.
+        Positioned(
+          top: MediaQuery.paddingOf(context).top + 8,
+          right: 16,
+          child: _GlassIconButton(
+            icon: Icons.settings_outlined,
+            tooltip: 'Settings',
+            onPressed: () => context.pushNamed(AppRoute.settings.name),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GlassIconButton extends StatelessWidget {
+  const _GlassIconButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipOval(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.22),
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+          ),
+          child: IconButton(
+            tooltip: tooltip,
+            padding: EdgeInsets.zero,
+            icon: Icon(icon, color: Colors.white, size: 22),
+            onPressed: onPressed,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileAvatar extends StatelessWidget {
+  const _ProfileAvatar({required this.name, required this.url});
+
+  final String name;
+  final String? url;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    return Semantics(
+      label: '$name profile photo',
+      image: true,
+      child: Container(
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [scheme.primary, scheme.secondary, scheme.tertiary],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: scheme.primary.withValues(alpha: 0.3),
+              blurRadius: 24,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(color: scheme.surface, shape: BoxShape.circle),
+          child: CircleAvatar(
+            radius: _ProfileMetrics.avatarRadius,
+            backgroundColor: scheme.primary,
+            backgroundImage: url != null ? CachedNetworkImageProvider(url!) : null,
+            child: url == null
+                ? Text(
+                    _initialsOf(name),
+                    style: TextStyle(
+                      fontSize: 32,
+                      color: scheme.onPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  )
+                : null,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Minimal inline counts: "12 Services · 8 Posts".
+class _StatsLine extends StatelessWidget {
+  const _StatsLine({required this.serviceCount, required this.postCount});
+
+  /// `null` while the count is still loading (or failed to load).
+  final int? serviceCount;
+  final int? postCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    final muted = scheme.onSurface.withValues(alpha: 0.55);
+    final number = TextStyle(
+      fontSize: 15,
+      fontWeight: FontWeight.w800,
+      color: scheme.onSurface,
+    );
+    final label = TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: muted);
+
+    return Semantics(
+      label: '${serviceCount ?? 'Unknown'} services, ${postCount ?? 'Unknown'} posts',
+      excludeSemantics: true,
+      child: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(text: serviceCount?.toString() ?? '–', style: number),
+            TextSpan(text: serviceCount == 1 ? ' Service' : ' Services', style: label),
+            TextSpan(text: '   ·   ', style: label),
+            TextSpan(text: postCount?.toString() ?? '–', style: number),
+            TextSpan(text: postCount == 1 ? ' Post' : ' Posts', style: label),
+          ],
+        ),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({
+    required this.label,
+    required this.icon,
+    required this.filled,
+    required this.onPressed,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool filled;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    final shape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(16));
+    const textStyle = TextStyle(fontSize: 15, fontWeight: FontWeight.w700);
+    final iconWidget = Icon(icon, size: 20);
+
+    return SizedBox(
+      height: 50,
+      child: filled
+          ? FilledButton.icon(
+              onPressed: onPressed,
+              icon: iconWidget,
+              label: Text(label),
+              style: FilledButton.styleFrom(
+                backgroundColor: scheme.primary,
+                foregroundColor: scheme.onPrimary,
+                shape: shape,
+                textStyle: textStyle,
+              ),
+            )
+          : OutlinedButton.icon(
+              onPressed: onPressed,
+              icon: iconWidget,
+              label: Text(label),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: scheme.onSurface,
+                side: BorderSide(color: scheme.onSurface.withValues(alpha: 0.18)),
+                shape: shape,
+                textStyle: textStyle,
+              ),
+            ),
+    );
+  }
+}
+
+/// Pinned background behind the segmented toggle; gains a hairline once
+/// content scrolls underneath it.
+class _TabBarSurface extends StatelessWidget {
+  const _TabBarSurface({required this.overlapsContent, required this.child});
+
+  final bool overlapsContent;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      padding: const EdgeInsets.symmetric(
+        horizontal: _ProfileMetrics.pagePadding,
+        vertical: 12,
+      ),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        border: Border(
+          bottom: BorderSide(
+            color: overlapsContent
+                ? scheme.onSurface.withValues(alpha: 0.08)
+                : Colors.transparent,
+          ),
+        ),
+      ),
+      child: child,
+    );
+  }
+}
+
+/// iOS-style segmented control with a sliding thumb.
+class _SegmentedToggle extends StatelessWidget {
+  const _SegmentedToggle({required this.showServices, required this.onChanged});
+
+  final bool showServices;
+  final ValueChanged<bool> onChanged;
+
+  static const _animation = Duration(milliseconds: 220);
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: scheme.onSurface.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Stack(
+        children: [
+          AnimatedAlign(
+            duration: _animation,
+            curve: Curves.easeOutCubic,
+            alignment: showServices ? Alignment.centerLeft : Alignment.centerRight,
+            child: FractionallySizedBox(
+              widthFactor: 0.5,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: scheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: _SegmentLabel(
+                  label: 'Services',
+                  icon: Icons.content_cut_rounded,
+                  selected: showServices,
+                  onTap: () => onChanged(true),
+                ),
+              ),
+              Expanded(
+                child: _SegmentLabel(
+                  label: 'Photos',
+                  icon: Icons.grid_view_rounded,
+                  selected: !showServices,
+                  onTap: () => onChanged(false),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SegmentLabel extends StatelessWidget {
+  const _SegmentLabel({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    final color = selected ? scheme.onSurface : scheme.onSurface.withValues(alpha: 0.5);
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      excludeSemantics: true,
+      onTap: onTap,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: SizedBox(
+          height: 40,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 17, color: selected ? scheme.secondary : color),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14.5,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -415,143 +649,123 @@ class _ProviderServicesList extends ConsumerWidget {
     final servicesAsync = ref.watch(providerServicesProvider(userId));
 
     return servicesAsync.when(
-      loading: () => const SliverToBoxAdapter(child: ServiceListSkeleton()),
+      loading: () => const SliverToBoxAdapter(child: _ServiceListSkeleton()),
       error: (err, stack) => SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.all(40.0),
-          child: Center(
-            child: Text(
-              'Error: $err',
-              style: const TextStyle(color: Colors.red),
-            ),
-          ),
+        child: SectionErrorView(
+          title: "Services didn't load",
+          message: describeLoadError(err, subject: 'your services'),
+          onRetry: () => ref.invalidate(providerServicesProvider(userId)),
         ),
       ),
       data: (services) {
         if (services.isEmpty) {
           return SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(40.0),
-              child: Center(
-                child: Text(
-                  'No services available yet.',
-                  style: TextStyle(color: Colors.grey.shade600),
-                ),
-              ),
+            child: _EmptyWithAction(
+              icon: Icons.content_cut_rounded,
+              title: 'No services yet',
+              message: 'Add your first service so clients can start booking you.',
+              actionLabel: 'Add a service',
+              onAction: () => _openAddService(context),
             ),
           );
         }
 
-        // Group services by category
-        final groupedServices = <String, List<ServiceModel>>{};
-        for (final service in services) {
-          final cat = service.category?.isNotEmpty == true ? service.category! : 'Other Services';
-          groupedServices.putIfAbsent(cat, () => []).add(service);
+        final rows = <Widget>[];
+        for (final entry in groupServicesByCategory(services).entries) {
+          rows.add(_CategoryHeading(label: entry.key, count: entry.value.length));
+          for (final service in entry.value) {
+            rows.add(ServiceTile(
+              service: service,
+              onTap: () => showServiceDetailsSheet(context, service: service),
+              trailing: ServiceOwnerMenu(service: service),
+            ));
+          }
         }
-
-        // Flatten to a single list of headers (String) and items (ServiceModel)
-        final items = [];
-        for (final entry in groupedServices.entries) {
-          items.add(entry.key);
-          items.addAll(entry.value);
-        }
-
-        return SliverList(
-          delegate: SliverChildBuilderDelegate((context, index) {
-            final item = items[index];
-
-            if (item is String) {
-              return Padding(
-                padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
-                child: Text(
-                  item,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: context.colorScheme.onSurface,
-                  ),
-                ),
-              );
-            }
-
-            final service = item as ServiceModel;
-            return Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24.0,
-                vertical: 12.0,
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Service Thumbnail
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: CachedNetworkImage(
-                          imageUrl: service.imageUrl ?? 'https://images.unsplash.com/photo-1616683693504-3ea7e9ad6fec?auto=format&fit=crop&q=80&w=200',
-                          width: 80,
-                          height: 80,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => const Shimmer(
-                            child: SkeletonBox(width: 80, height: 80, borderRadius: 0),
-                          ),
-                          errorWidget: (context, url, error) => Container(
-                            width: 80,
-                            height: 80,
-                            color: Colors.grey.shade300,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      // Service Details
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              service.name,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: context.colorScheme.onSurface,
-                              ),
-                            ),
-                            if (service.description.isNotEmpty) ...[
-                              const SizedBox(height: 6),
-                              Text(
-                                service.description,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey.shade600,
-                                  height: 1.3,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                            const SizedBox(height: 12),
-                            Text(
-                              '\$${service.price.toStringAsFixed(0)}  •  ${service.durationMinutes >= 60 ? '${service.durationMinutes ~/ 60} hour${service.durationMinutes % 60 > 0 ? ' ${service.durationMinutes % 60} min' : ''}' : '${service.durationMinutes} min'}',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey.shade800,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  Divider(height: 1, color: Colors.grey.shade200, thickness: 1),
-                ],
-              ),
-            );
-          }, childCount: items.length),
-        );
+        return SliverList.list(children: rows);
       },
+    );
+  }
+}
+
+class _CategoryHeading extends StatelessWidget {
+  const _CategoryHeading({required this.label, required this.count});
+
+  final String label;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(_ProfileMetrics.pagePadding, 16, _ProfileMetrics.pagePadding, 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
+        children: [
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.2,
+                color: scheme.onSurface,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '$count',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: scheme.onSurface.withValues(alpha: 0.4),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Empty state with a single call to action.
+class _EmptyWithAction extends StatelessWidget {
+  const _EmptyWithAction({
+    required this.icon,
+    required this.title,
+    required this.message,
+    required this.actionLabel,
+    required this.onAction,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+  final String actionLabel;
+  final VoidCallback onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SectionEmptyView(icon: icon, title: title, message: message),
+        FilledButton(
+          onPressed: onAction,
+          style: FilledButton.styleFrom(
+            backgroundColor: scheme.onSurface,
+            foregroundColor: scheme.surface,
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+          ),
+          child: Text(actionLabel),
+        ),
+        const SizedBox(height: 24),
+      ],
     );
   }
 }
@@ -568,44 +782,39 @@ class _ProviderPostsGrid extends ConsumerWidget {
       data: (posts) {
         if (posts.isEmpty) {
           return SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(40.0),
-              child: Center(
-                child: Text(
-                  'No posts available yet.',
-                  style: TextStyle(color: Colors.grey.shade600),
-                ),
-              ),
+            child: _EmptyWithAction(
+              icon: Icons.photo_library_outlined,
+              title: 'No posts yet',
+              message: 'Share your work to show clients what you can do.',
+              actionLabel: 'Create a post',
+              onAction: () => _openCreatePost(context),
             ),
           );
         }
 
         return SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.fromLTRB(_ProfileMetrics.pagePadding, 8, _ProfileMetrics.pagePadding, 0),
           sliver: SliverGrid(
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
+              crossAxisSpacing: 6,
+              mainAxisSpacing: 6,
             ),
             delegate: SliverChildBuilderDelegate((context, index) {
               final post = posts[index];
-              final imageUrl = post.mediaUrls.isNotEmpty
-                  ? post.mediaUrls.first
-                  : null;
+              final imageUrl = post.mediaUrls.isNotEmpty ? post.mediaUrls.first : null;
 
               return GestureDetector(
                 onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          PostDetailScreen(post: post, isAuthor: true),
+                      builder: (context) => PostDetailScreen(post: post),
                     ),
                   );
                 },
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
@@ -618,23 +827,22 @@ class _ProviderPostsGrid extends ConsumerWidget {
                           ),
                           errorWidget: (context, url, error) => Container(
                             color: Colors.grey.shade200,
-                            child: const Icon(
-                              Icons.broken_image,
-                              color: Colors.grey,
-                            ),
+                            child: const Icon(Icons.broken_image_outlined, color: Colors.grey),
                           ),
                         )
                       else
-                        Container(color: Colors.grey.shade300),
+                        Container(color: Colors.grey.shade200),
                       if (post.mediaUrls.length > 1)
-                        const Positioned(
-                          top: 8,
-                          right: 8,
-                          child: Icon(
-                            Icons.filter_none,
-                            color: Colors.white,
-                            size: 16,
-                            shadows: [Shadow(color: Colors.black54, blurRadius: 4)],
+                        Positioned(
+                          top: 6,
+                          right: 6,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.45),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.collections_rounded, color: Colors.white, size: 12),
                           ),
                         ),
                     ],
@@ -646,25 +854,46 @@ class _ProviderPostsGrid extends ConsumerWidget {
         );
       },
       loading: () => const SliverToBoxAdapter(
-        child: PostGridSkeleton(padding: EdgeInsets.symmetric(horizontal: 16)),
+        child: PostGridSkeleton(padding: EdgeInsets.symmetric(horizontal: _ProfileMetrics.pagePadding)),
       ),
       error: (err, stack) => SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.all(40.0),
-          child: Center(
-            child: Text(
-              'Error loading posts: $err',
-              style: const TextStyle(color: Colors.red),
-            ),
-          ),
+        child: SectionErrorView(
+          title: "Posts didn't load",
+          message: describeLoadError(err, subject: 'your posts'),
+          onRetry: () => ref.invalidate(userPostsProvider(userId)),
         ),
       ),
     );
   }
 }
 
-/// Mirrors the loaded layout: 280pt cover, overlapping 112pt avatar, name,
-/// address, the segmented control and the first service rows.
+/// Placeholders matching the category heading and [ServiceTile] cards.
+class _ServiceListSkeleton extends StatelessWidget {
+  const _ServiceListSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Shimmer(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(_ProfileMetrics.pagePadding, 16, _ProfileMetrics.pagePadding, 12),
+            child: SkeletonText(
+              style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
+              widthFactor: 0.4,
+            ),
+          ),
+          ServiceRowSkeleton(showAction: true),
+          ServiceRowSkeleton(showAction: true),
+        ],
+      ),
+    );
+  }
+}
+
+/// Mirrors the loaded layout: cover, overlapping sheet and avatar, name,
+/// stats, quick actions and the segmented control.
 class _ProfileScreenSkeleton extends StatelessWidget {
   const _ProfileScreenSkeleton();
 
@@ -677,7 +906,7 @@ class _ProfileScreenSkeleton extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SizedBox(
-              height: 280 + 60,
+              height: _ProfileMetrics.sheetTop + _ProfileMetrics.avatarOuterRadius + 14,
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
@@ -685,39 +914,43 @@ class _ProfileScreenSkeleton extends StatelessWidget {
                     top: 0,
                     left: 0,
                     right: 0,
-                    child: SkeletonBox(height: 280, borderRadius: 0),
+                    child: SkeletonBox(height: _ProfileMetrics.coverHeight, borderRadius: 0),
                   ),
-                  // CircleAvatar radius 52 plus the 4pt surface ring.
                   Positioned(
-                    top: 280 - 56,
+                    top: _ProfileMetrics.sheetTop - _ProfileMetrics.avatarOuterRadius,
                     left: 0,
                     right: 0,
-                    child: Center(child: SkeletonBox.circle(size: 112)),
+                    child: Center(child: SkeletonBox.circle(size: _ProfileMetrics.avatarOuterRadius * 2)),
                   ),
                 ],
               ),
             ),
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24),
+              padding: EdgeInsets.symmetric(horizontal: _ProfileMetrics.pagePadding),
               child: Column(
                 children: [
                   SkeletonText(
                     style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
                     width: 200,
                   ),
-                  SizedBox(height: 6),
-                  SkeletonText(style: TextStyle(fontSize: 15), width: 230),
+                  SizedBox(height: 8),
+                  SkeletonText(style: TextStyle(fontSize: 14), width: 230),
                   SizedBox(height: 16),
+                  SkeletonText(style: TextStyle(fontSize: 15), width: 150),
+                  SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(child: SkeletonBox(height: 50, borderRadius: 16)),
+                      SizedBox(width: 12),
+                      Expanded(child: SkeletonBox(height: 50, borderRadius: 16)),
+                    ],
+                  ),
+                  SizedBox(height: 20),
+                  SkeletonBox(height: 48, borderRadius: 16),
                 ],
               ),
             ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-              child: SkeletonBox(height: 48, borderRadius: 24),
-            ),
-            ServiceCategorySkeleton(),
-            ServiceRowSkeleton(),
-            ServiceRowSkeleton(),
+            _ServiceListSkeleton(),
           ],
         ),
       ),
@@ -725,36 +958,23 @@ class _ProfileScreenSkeleton extends StatelessWidget {
   }
 }
 
-class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
-  _SliverAppBarDelegate({
-    required this.minHeight,
-    required this.maxHeight,
-    required this.child,
-  });
+class _PinnedHeaderDelegate extends SliverPersistentHeaderDelegate {
+  _PinnedHeaderDelegate({required this.height, required this.builder});
 
-  final double minHeight;
-  final double maxHeight;
-  final Widget child;
+  final double height;
+  final Widget Function(BuildContext context, bool overlapsContent) builder;
 
   @override
-  double get minExtent => minHeight;
+  double get minExtent => height;
 
   @override
-  double get maxExtent => math.max(maxHeight, minHeight);
+  double get maxExtent => height;
 
   @override
-  Widget build(
-    BuildContext context,
-    double shrinkOffset,
-    bool overlapsContent,
-  ) {
-    return SizedBox.expand(child: child);
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return SizedBox.expand(child: builder(context, overlapsContent));
   }
 
   @override
-  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
-    return maxHeight != oldDelegate.maxHeight ||
-        minHeight != oldDelegate.minHeight ||
-        child != oldDelegate.child;
-  }
+  bool shouldRebuild(_PinnedHeaderDelegate oldDelegate) => true;
 }

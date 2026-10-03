@@ -71,7 +71,7 @@ class ServiceCategorySkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Padding(
-      padding: EdgeInsets.fromLTRB(24, 20, 24, 16),
+      padding: EdgeInsets.fromLTRB(20, 20, 20, 10),
       child: SkeletonText(
         style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
         widthFactor: 0.4,
@@ -80,10 +80,10 @@ class ServiceCategorySkeleton extends StatelessWidget {
   }
 }
 
-/// Mirrors a service row: 80×80 thumbnail, name, one description line and a
-/// price/duration line, followed by a divider.
+/// Mirrors `ServiceTile`: a bordered card with a 72×72 thumbnail, category,
+/// name and a duration/price line.
 ///
-/// Set [showAction] to reserve room for a trailing "Book" button.
+/// Set [showAction] to reserve room for the trailing 40×40 action.
 class ServiceRowSkeleton extends StatelessWidget {
   const ServiceRowSkeleton({super.key, this.showAction = false});
 
@@ -92,41 +92,45 @@ class ServiceRowSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      child: Column(
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SkeletonBox(width: 80, height: 80, borderRadius: 16),
-              const SizedBox(width: 16),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SkeletonText(
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                      widthFactor: 0.6,
-                    ),
-                    SizedBox(height: 6),
-                    SkeletonText(style: TextStyle(fontSize: 14, height: 1.3), widthFactor: 0.9),
-                    SizedBox(height: 12),
-                    SkeletonText(
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                      widthFactor: 0.4,
-                    ),
-                  ],
-                ),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0x14000000)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SkeletonBox(width: 72, height: 72, borderRadius: 10),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SkeletonText(
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, height: 1.2),
+                    widthFactor: 0.3,
+                  ),
+                  SizedBox(height: 4),
+                  SkeletonText(
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, height: 1.3),
+                    widthFactor: 0.7,
+                  ),
+                  SizedBox(height: 8),
+                  SkeletonText(
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, height: 1.2),
+                    widthFactor: 0.45,
+                  ),
+                ],
               ),
-              if (showAction) ...[
-                const SizedBox(width: 12),
-                const SkeletonBox(width: 64, height: 36, borderRadius: 18),
-              ],
+            ),
+            if (showAction) ...[
+              const SizedBox(width: 4),
+              const SkeletonBox.circle(size: 40),
             ],
-          ),
-          const SizedBox(height: 24),
-          const Divider(height: 1, thickness: 1, color: Colors.transparent),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -194,71 +198,6 @@ class PostGridSkeleton extends StatelessWidget {
         ),
         itemCount: itemCount,
         itemBuilder: (_, _) => SkeletonBox(borderRadius: borderRadius),
-      ),
-    );
-  }
-}
-
-/// Mirrors one card of the discovery "Following" feed: a 400pt image and the
-/// likes/caption/comments block beneath it.
-class FeedPostSkeleton extends StatelessWidget {
-  const FeedPostSkeleton({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.only(bottom: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: SkeletonBox(width: double.infinity, height: 400, borderRadius: 24),
-          ),
-          SizedBox(height: 12),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SkeletonBox.circle(size: 24),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SkeletonText(
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                        widthFactor: 0.25,
-                      ),
-                      SizedBox(height: 4),
-                      SkeletonText(style: TextStyle(fontSize: 14), widthFactor: 0.85),
-                      SizedBox(height: 8),
-                      SkeletonText(style: TextStyle(fontSize: 14), widthFactor: 0.4),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// A non-scrolling list of [FeedPostSkeleton]s that fills a tab body.
-class FeedSkeleton extends StatelessWidget {
-  const FeedSkeleton({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Shimmer(
-      child: ListView.builder(
-        physics: const NeverScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(top: 16),
-        itemCount: 2,
-        itemBuilder: (_, _) => const FeedPostSkeleton(),
       ),
     );
   }

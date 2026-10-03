@@ -9,6 +9,7 @@ import '../../../discovery_feed/controllers/user_posts_controller.dart';
 import '../../../providers/provider_profiles/controllers/provider_services_controller.dart';
 import '../../../shared/authentication/controllers/user_profile_provider.dart';
 import '../../../shared/authentication/models/profile_model.dart';
+import '../../favourites/views/favourite_button.dart';
 import '../controllers/public_provider_profile_controller.dart';
 import 'widgets/provider_about_tab.dart';
 import 'widgets/provider_action_sheets.dart';
@@ -128,6 +129,13 @@ class _PublicProviderProfileScreenState extends ConsumerState<PublicProviderProf
                   ),
                 ),
               ),
+              actions: [
+                if (profileAsync.value case final provider?)
+                  Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: FavouriteButton(providerId: provider.id, providerName: providerDisplayName(provider)),
+                  ),
+              ],
               flexibleSpace: const FlexibleSpaceBar(
                 background: Image(
                   image: AssetImage('assets/images/myglo_cover.png'),

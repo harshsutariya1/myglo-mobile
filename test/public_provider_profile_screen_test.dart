@@ -111,6 +111,7 @@ void main() {
   });
 
   testWidgets('groups services by category with AUD price and duration', (tester) async {
+    // Tiles show the category, name, duration and price on separate lines.
     await _pump(
       tester,
       profile: () => _profile,
@@ -124,11 +125,41 @@ void main() {
     await tester.pump();
 
     expect(find.text('Lashes'), findsOneWidget);
-    expect(find.text(r'$85  •  1 hr 30 min'), findsOneWidget);
+    expect(find.text('LASHES'), findsOneWidget);
+    expect(find.text(r'$85'), findsOneWidget);
+    expect(find.text('1 hr 30 min'), findsOneWidget);
     await tester.scrollUntilVisible(find.text(uncategorisedServicesLabel), 200);
     expect(find.text(uncategorisedServicesLabel), findsOneWidget);
-    await tester.scrollUntilVisible(find.text(r'$45  •  1 hr'), 200);
-    expect(find.text(r'$45  •  1 hr'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text(r'$45'), 200);
+    expect(find.text(r'$45'), findsOneWidget);
+    expect(find.text('1 hr'), findsOneWidget);
+  });
+
+  testWidgets('tapping a service opens its details with a booking action', (tester) async {
+    await _pump(
+      tester,
+      profile: () => _profile,
+      services: () => [
+        _service('Lash lift', category: 'Lashes', price: 85, minutes: 90).copyWith(
+          description: 'Lift and tint.\n• Lash lift\n• Tint',
+        ),
+      ],
+      posts: () => const [],
+    );
+    await tester.pump();
+    await tester.pump();
+
+    await tester.tap(find.byTooltip('Book Lash lift'));
+    await tester.pumpAndSettle();
+
+    expect(find.text("What's included"), findsOneWidget);
+    expect(find.text('Tint'), findsOneWidget);
+    expect(find.text('Contact to book'), findsOneWidget);
+
+    // The sheet opens part-way; dragging expands it to reveal the rest.
+    await tester.drag(find.text("What's included"), const Offset(0, -300));
+    await tester.pumpAndSettle();
+    expect(find.text('Lift and tint.'), findsOneWidget);
   });
 
   testWidgets('shows empty states for a provider with no services or posts', (tester) async {

@@ -80,6 +80,26 @@ void main() {
     });
   });
 
+  group('Formatters.compactCount', () {
+    test('shows small counts as-is', () {
+      expect(Formatters.compactCount(0), '0');
+      expect(Formatters.compactCount(7), '7');
+      expect(Formatters.compactCount(999), '999');
+    });
+
+    test('abbreviates thousands and millions without rounding up', () {
+      expect(Formatters.compactCount(1000), '1k');
+      expect(Formatters.compactCount(1250), '1.2k');
+      expect(Formatters.compactCount(1999), '1.9k');
+      expect(Formatters.compactCount(12500), '12k');
+      expect(Formatters.compactCount(3400000), '3.4M');
+    });
+
+    test('never shows a negative count', () {
+      expect(Formatters.compactCount(-3), '0');
+    });
+  });
+
   group('Formatters.distanceKm', () {
     test('switches units and precision by range', () {
       expect(Formatters.distanceKm(0.85), '850 m');

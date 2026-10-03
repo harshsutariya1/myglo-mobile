@@ -36,7 +36,7 @@ final class UploadPostControllerProvider
 }
 
 String _$uploadPostControllerHash() =>
-    r'8e1d6a892838943d9fa7833bd0fb820b8733a90d';
+    r'ea3dda9ecc6b5c508bb2e342d509b24a164a992d';
 
 abstract class _$UploadPostController extends $AsyncNotifier<void> {
   FutureOr<void> build();

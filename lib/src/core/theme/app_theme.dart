@@ -9,6 +9,12 @@ class AppTheme {
   static const Color darkRed = Color(0xFF140000);
   static const Color lightPeach = Color(0xFFF6B7A6);
 
+  // Semantic status colours, used sparingly for pills, badges and
+  // destructive actions where the brand palette has no equivalent.
+  static const Color destructive = Color(0xFFEF4444);
+  static const Color warning = Color(0xFFF59E0B);
+  static const Color success = Color(0xFF22C55E);
+
   static final ColorScheme lightColorScheme = ColorScheme(
     brightness: Brightness.light,
     primary: primaryPink,

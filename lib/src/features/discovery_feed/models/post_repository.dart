@@ -179,20 +179,119 @@ class PostRepository {
     }
   }
 
-  Future<List<PostModel>> getAllPosts() async {
-    AppLogger.d('Fetching all feed posts...', tag: 'PostRepository');
+  /// One page of the Discover feed, newest first.
+  ///
+  /// Keyset-paginated on `created_at`: pass the oldest timestamp already shown
+  /// as [before] to fetch the next page, so posts published while the viewer
+  /// scrolls can't shift the window and repeat or skip items.
+  ///
+  /// With [providerIds], only posts by those providers or tagging them are
+  /// returned. [excludeAuthorId] leaves out one author's posts (the viewer's
+  /// own). Row-level security limits other people's posts to approved ones.
+  Future<List<PostModel>> getFeedPage({
+    required int limit,
+    DateTime? before,
+    List<String>? providerIds,
+    String? excludeAuthorId,
+  }) async {
+    AppLogger.d(
+      'Fetching feed page (limit: $limit, before: $before, providers: ${providerIds?.length ?? 'all'})',
+      tag: 'PostRepository',
+    );
+    final sw = Stopwatch()..start();
+    try {
+      var query = _client.from('posts').select();
+      if (providerIds != null) {
+        final ids = providerIds.join(',');
+        query = query.or('author_id.in.($ids),tagged_provider_id.in.($ids)');
+      }
+      if (excludeAuthorId != null) query = query.neq('author_id', excludeAuthorId);
+      if (before != null) query = query.lt('created_at', before.toUtc().toIso8601String());
+      final response = await query.order('created_at', ascending: false).limit(limit);
+      sw.stop();
+      final posts = (response as List).map((e) => PostModel.fromJson(e)).toList();
+      AppLogger.api('posts.select(feed)', count: posts.length, duration: sw.elapsed);
+      return posts;
+    } catch (e, st) {
+      AppLogger.e('Failed to fetch feed page', tag: 'PostRepository', error: e, stackTrace: st);
+      rethrow;
+    }
+  }
+
+  /// One page of approved posts by other people within [radiusMetres] of the
+  /// signed-in user's saved location (see the `nearby_posts` RPC), newest
+  /// first and keyset-paginated like [getFeedPage]. Empty when the user has no
+  /// saved location.
+  Future<List<PostModel>> getNearbyPage({
+    required int limit,
+    required double radiusMetres,
+    DateTime? before,
+  }) async {
+    AppLogger.d('Fetching nearby posts (limit: $limit, before: $before)', tag: 'PostRepository');
+    final sw = Stopwatch()..start();
+    try {
+      final response = await _client.rpc('nearby_posts', params: {
+        'p_radius_m': radiusMetres,
+        'p_before': before?.toUtc().toIso8601String(),
+        'p_limit': limit,
+      });
+      sw.stop();
+      final posts = (response as List).map((e) => PostModel.fromJson(e)).toList();
+      AppLogger.api('rpc.nearby_posts', count: posts.length, duration: sw.elapsed);
+      return posts;
+    } catch (e, st) {
+      AppLogger.e('Failed to fetch nearby posts', tag: 'PostRepository', error: e, stackTrace: st);
+      rethrow;
+    }
+  }
+
+  /// Whether [userId] has liked [postId].
+  Future<bool> hasLiked({required String postId, required String userId}) async {
     final sw = Stopwatch()..start();
     try {
       final response = await _client
-          .from('posts')
-          .select()
-          .order('created_at', ascending: false);
+          .from('likes')
+          .select('id')
+          .eq('post_id', postId)
+          .eq('user_id', userId)
+          .maybeSingle();
       sw.stop();
-      final posts = (response as List).map((e) => PostModel.fromJson(e)).toList();
-      AppLogger.api('posts.select(all)', count: posts.length, duration: sw.elapsed);
-      return posts;
+      AppLogger.api('likes.select(own)', endpoint: 'post=$postId', duration: sw.elapsed);
+      return response != null;
     } catch (e, st) {
-      AppLogger.e('Failed to fetch feed posts', tag: 'PostRepository', error: e, stackTrace: st);
+      AppLogger.e('Failed to read like state for post $postId', tag: 'PostRepository', error: e, stackTrace: st);
+      rethrow;
+    }
+  }
+
+  /// Likes [postId] as [userId]. Liking twice is a no-op (the pair is unique),
+  /// so a retried request can't double count. `posts.likes_count` is kept in
+  /// step by a database trigger.
+  Future<void> likePost({required String postId, required String userId}) async {
+    final sw = Stopwatch()..start();
+    try {
+      await _client.from('likes').insert({'post_id': postId, 'user_id': userId});
+      sw.stop();
+      AppLogger.api('likes.insert', endpoint: 'post=$postId', duration: sw.elapsed);
+    } on PostgrestException catch (e) {
+      if (e.code == _uniqueViolation) return;
+      AppLogger.e('Failed to like post $postId', tag: 'PostRepository', error: e);
+      rethrow;
+    } catch (e, st) {
+      AppLogger.e('Failed to like post $postId', tag: 'PostRepository', error: e, stackTrace: st);
+      rethrow;
+    }
+  }
+
+  /// Removes [userId]'s like from [postId], if any.
+  Future<void> unlikePost({required String postId, required String userId}) async {
+    final sw = Stopwatch()..start();
+    try {
+      await _client.from('likes').delete().eq('post_id', postId).eq('user_id', userId);
+      sw.stop();
+      AppLogger.api('likes.delete', endpoint: 'post=$postId', duration: sw.elapsed);
+    } catch (e, st) {
+      AppLogger.e('Failed to unlike post $postId', tag: 'PostRepository', error: e, stackTrace: st);
       rethrow;
     }
   }
