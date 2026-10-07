@@ -1,10 +1,13 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../network/connectivity_aware_client.dart';
 import 'app_logger.dart';
 
-Future<void> initializeApp({required void Function() appRunner}) async {
+/// Initialises services, then calls [appRunner] with the device preferences
+/// (loaded up front so the router can read them synchronously).
+Future<void> initializeApp({required void Function(SharedPreferences preferences) appRunner}) async {
   final initWatch = Stopwatch()..start();
   SentryWidgetsFlutterBinding.ensureInitialized();
 
@@ -42,10 +45,12 @@ Future<void> initializeApp({required void Function() appRunner}) async {
     supabaseWatch.stop();
     AppLogger.i('✅ Supabase initialized in ${supabaseWatch.elapsedMilliseconds}ms', tag: 'Init');
 
+    final preferences = await SharedPreferences.getInstance();
+
     initWatch.stop();
     AppLogger.i('🎉 App initialization complete in ${initWatch.elapsedMilliseconds}ms', tag: 'Init');
 
-    appRunner();
+    appRunner(preferences);
   }
 
   // Map out Sentry securely underneath framework

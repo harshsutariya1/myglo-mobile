@@ -5,6 +5,10 @@ import 'package:mocktail/mocktail.dart';
 import 'package:myglo/src/core/theme/app_theme.dart';
 import 'package:myglo/src/features/providers/provider_profiles/controllers/provider_settings_controller.dart';
 import 'package:myglo/src/features/providers/provider_profiles/views/screens/settings_screen.dart';
+import 'package:myglo/src/features/providers/schedule/controllers/provider_schedule_controller.dart';
+import 'package:myglo/src/features/shared/bookings/controllers/booking_controllers.dart';
+import 'package:myglo/src/features/shared/bookings/models/booking_settings.dart';
+import 'package:myglo/src/features/shared/bookings/models/working_hours.dart';
 import 'package:myglo/src/features/shared/authentication/controllers/user_profile_provider.dart';
 import 'package:myglo/src/features/shared/authentication/models/auth_repository.dart';
 import 'package:myglo/src/features/shared/authentication/models/profile_model.dart';
@@ -12,6 +16,26 @@ import 'package:myglo/src/features/shared/authentication/models/user_role.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class _MockAuthRepository extends Mock implements AuthRepository {}
+
+/// Records booking-rule changes instead of saving them.
+class _FakeScheduleActions implements ProviderScheduleActions {
+  final updates = <Map<String, Object?>>[];
+
+  @override
+  Future<ProviderBookingSettings> updateSettings(Map<String, Object?> changes) async {
+    updates.add(changes);
+    return _settings;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+const _settings = ProviderBookingSettings(providerId: 'prov-1', requiresApproval: true, bufferMinutes: 15);
+
+final _hours = WeeklySchedule([
+  for (var day = 1; day <= 5; day++) WorkingHoursRange(weekday: day, opensMinutes: 9 * 60, closesMinutes: 17 * 60),
+]);
 
 class _FakeSettingsActions implements ProviderSettingsActions {
   final calls = <(ContactField, bool)>[];
@@ -41,7 +65,11 @@ const _profile = ProfileModel(
   addressText: '1 Cavill Ave, Surfers Paradise QLD',
 );
 
-Future<(_MockAuthRepository, _FakeSettingsActions)> _pump(WidgetTester tester) async {
+Future<(_MockAuthRepository, _FakeSettingsActions)> _pump(
+  WidgetTester tester, {
+  _FakeScheduleActions? scheduleActions,
+  ProviderBookingSettings settings = _settings,
+}) async {
   final auth = _MockAuthRepository();
   final actions = _FakeSettingsActions();
   await tester.pumpWidget(
@@ -52,6 +80,10 @@ Future<(_MockAuthRepository, _FakeSettingsActions)> _pump(WidgetTester tester) a
         ),
         authRepositoryProvider.overrideWithValue(auth),
         providerSettingsActionsProvider.overrideWithValue(actions),
+        providerScheduleActionsProvider.overrideWithValue(scheduleActions ?? _FakeScheduleActions()),
+        bookingSettingsProvider.overrideWith((ref, id) => Stream.value(settings)),
+        workingHoursProvider.overrideWith((ref, id) async => _hours),
+        ownTimeOffProvider.overrideWith((ref) async => const []),
       ],
       child: MaterialApp(
         theme: AppTheme.lightTheme,
@@ -77,6 +109,60 @@ void main() {
     expect(find.text('Unverified'), findsOneWidget);
     expect(find.text('Accepting new clients'), findsOneWidget);
     expect(find.text('Listed publicly'), findsOneWidget);
+  });
+
+  testWidgets('pausing new bookings asks first, then saves', (tester) async {
+    final schedule = _FakeScheduleActions();
+    await _pump(tester, scheduleActions: schedule);
+
+    await tester.tap(find.text('Accepting new clients'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pause new bookings?'), findsOneWidget);
+    await tester.tap(find.text('Pause'));
+    await tester.pumpAndSettle();
+
+    expect(schedule.updates, [
+      {'accepts_bookings': false},
+    ]);
+  });
+
+  testWidgets('shows a paused status while bookings are paused', (tester) async {
+    await _pump(tester, settings: _settings.copyWith(acceptsBookings: false));
+
+    expect(find.text('Bookings paused'), findsOneWidget);
+    expect(find.text('Listed publicly'), findsNothing);
+  });
+
+  testWidgets('booking rules show their live values', (tester) async {
+    await _pump(tester);
+
+    await tester.scrollUntilVisible(find.text('Late cancellation fee'), 300);
+    expect(find.text('Mon–Fri · 9:00 am – 5:00 pm'), findsOneWidget);
+    expect(find.text('None planned'), findsOneWidget);
+    expect(find.text('Requests wait for you to accept'), findsOneWidget);
+    expect(find.text('15 min between bookings'), findsOneWidget);
+    expect(find.text('2 hours ahead'), findsOneWidget);
+    expect(find.text('Free until 1 day before'), findsOneWidget);
+    expect(find.text('No fee'), findsOneWidget);
+  });
+
+  testWidgets('changing a booking rule saves the picked value', (tester) async {
+    final schedule = _FakeScheduleActions();
+    await _pump(tester, scheduleActions: schedule);
+
+    await tester.scrollUntilVisible(find.text('Buffer between bookings'), 300);
+    await tester.ensureVisible(find.text('Buffer between bookings'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Buffer between bookings'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('30 minutes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('30 minutes'));
+    await tester.pumpAndSettle();
+
+    expect(schedule.updates, [
+      {'buffer_minutes': 30},
+    ]);
   });
 
   testWidgets('groups settings into the expected sections', (tester) async {

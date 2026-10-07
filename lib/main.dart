@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
-import 'src/core/routing/app_router.dart'; 
+import 'src/core/routing/app_router.dart';
+import 'src/core/services/app_preferences.dart';
 import 'src/core/theme/app_theme.dart';
 import 'src/core/utils/app_init.dart';
 import 'src/core/utils/app_logger.dart';
@@ -11,6 +12,7 @@ import 'src/core/utils/app_provider_observer.dart';
 import 'src/core/widgets/init_error_app.dart';
 import 'src/core/widgets/offline_overlay.dart';
 import 'src/core/widgets/shorebird_update_listener.dart';
+import 'src/features/shared/notifications/views/in_app_notification_host.dart';
 
 void main() async {
   // Global Flutter framework error handling
@@ -39,10 +41,11 @@ void main() async {
 
   try {
     await initializeApp(
-      appRunner: () => runApp(
-        const ProviderScope(
-          observers: [AppProviderObserver()],
-          child: MyApp(),
+      appRunner: (preferences) => runApp(
+        ProviderScope(
+          observers: const [AppProviderObserver()],
+          overrides: [sharedPreferencesProvider.overrideWithValue(preferences)],
+          child: const MyApp(),
         ),
       ),
     );
@@ -74,7 +77,7 @@ class MyApp extends ConsumerWidget {
         theme: AppTheme.lightTheme,
         routerConfig: router,
         debugShowCheckedModeBanner: false,
-        builder: (context, child) => OfflineOverlay(child: child!),
+        builder: (context, child) => OfflineOverlay(child: InAppNotificationHost(child: child!)),
       ),
     );
   }

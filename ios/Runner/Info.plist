@@ -66,6 +66,8 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Myglo adds your appointments to your calendar when you ask it to.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>This app requires access to the camera to update your profile picture.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

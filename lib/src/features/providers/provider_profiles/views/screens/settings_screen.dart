@@ -9,9 +9,11 @@ import '../../../../../core/services/shorebird_update_service.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/utils/app_logger.dart';
 import '../../../../../core/widgets/snackbar_utils.dart';
-import '../../../../../core/widgets/soon_badge.dart';
 import '../../../../shared/authentication/controllers/user_profile_provider.dart';
 import '../../../../shared/authentication/models/auth_repository.dart';
+import '../../../../shared/bookings/models/booking_failure.dart';
+import '../../../schedule/controllers/provider_schedule_controller.dart';
+import '../../../schedule/views/widgets/booking_rules_section.dart';
 import '../../controllers/provider_settings_controller.dart';
 import '../widgets/settings_widgets.dart';
 import 'edit_provider_profile_screen.dart';
@@ -30,6 +32,7 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(userProfileProvider).value;
+    final settings = ref.watch(ownBookingSettingsProvider).value;
     final profile = user?.profile;
     final address = profile?.addressText?.trim() ?? '';
     final email = user?.rawUser.email ?? profile?.email ?? '';
@@ -54,7 +57,6 @@ class SettingsScreen extends ConsumerWidget {
               avatarUrl: profile?.profilePic,
               onTap: () => _openEditProfile(context),
               onVerification: () => soon('Provider verification'),
-              onAcceptingToggle: () => soon('Pausing new bookings'),
             ),
           SettingsSection(
             title: 'Account & profile',
@@ -87,14 +89,14 @@ class SettingsScreen extends ConsumerWidget {
                 icon: Icons.place_outlined,
                 title: 'Business address',
                 subtitle: address.isEmpty ? 'Not set' : address,
-                onTap: () => _openEditProfile(context),
+                iconColor: profile?.coordinates == null ? AppTheme.warning : null,
+                onTap: () => context.pushNamed(AppRoute.serviceArea.name),
               ),
               SettingsTile(
                 icon: Icons.radar_outlined,
-                title: 'Service area',
-                subtitle: 'How far you travel for mobile appointments',
-                soon: true,
-                onTap: () => soon('Service areas'),
+                title: 'Where you work',
+                subtitle: settings == null ? 'Studio and mobile appointments' : serviceAreaSummary(settings),
+                onTap: () => context.pushNamed(AppRoute.serviceArea.name),
               ),
               SettingsTile(
                 icon: Icons.receipt_long_outlined,
@@ -111,37 +113,7 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ],
           ),
-          SettingsSection(
-            title: 'Availability & bookings',
-            footer: 'Times are in Gold Coast time (AEST, UTC+10). Queensland has no daylight saving.',
-            children: [
-              SettingsTile(
-                icon: Icons.schedule_rounded,
-                title: 'Working hours',
-                soon: true,
-                onTap: () => soon('Working hours'),
-              ),
-              SettingsTile(
-                icon: Icons.more_time_rounded,
-                title: 'Buffer between bookings',
-                soon: true,
-                onTap: () => soon('Booking buffers'),
-              ),
-              SettingsTile(
-                icon: Icons.notification_important_outlined,
-                title: 'Minimum notice',
-                subtitle: 'How far ahead clients must book',
-                soon: true,
-                onTap: () => soon('Minimum notice'),
-              ),
-              SettingsTile(
-                icon: Icons.event_busy_outlined,
-                title: 'Cancellation policy',
-                soon: true,
-                onTap: () => soon('Cancellation policies'),
-              ),
-            ],
-          ),
+          const BookingRulesSection(),
           SettingsSection(
             title: 'Payouts & banking',
             children: [
@@ -245,7 +217,6 @@ class _ProfileStatusCard extends StatelessWidget {
     required this.avatarUrl,
     required this.onTap,
     required this.onVerification,
-    required this.onAcceptingToggle,
   });
 
   final String name;
@@ -253,7 +224,6 @@ class _ProfileStatusCard extends StatelessWidget {
   final String? avatarUrl;
   final VoidCallback onTap;
   final VoidCallback onVerification;
-  final VoidCallback onAcceptingToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -315,44 +285,94 @@ class _ProfileStatusCard extends StatelessWidget {
             ),
           ),
           Divider(height: 1, thickness: 1, color: scheme.onSurface.withValues(alpha: 0.06)),
-          InkWell(
-            onTap: onAcceptingToggle,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
-              child: Row(
+          const _AcceptingBookingsRow(),
+        ],
+      ),
+    );
+  }
+}
+
+/// Live switch for pausing new bookings. Existing appointments stay.
+class _AcceptingBookingsRow extends ConsumerStatefulWidget {
+  const _AcceptingBookingsRow();
+
+  @override
+  ConsumerState<_AcceptingBookingsRow> createState() => _AcceptingBookingsRowState();
+}
+
+class _AcceptingBookingsRowState extends ConsumerState<_AcceptingBookingsRow> {
+  /// Optimistic value while a save is in flight.
+  bool? _pending;
+
+  Future<void> _set(bool accepting) async {
+    if (!accepting) {
+      final pause = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Pause new bookings?'),
+          content: const Text(
+            "Clients won't be able to book you until you turn this back on. Your existing appointments "
+            "aren't affected.",
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Cancel')),
+            FilledButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Pause')),
+          ],
+        ),
+      );
+      if (pause != true || !mounted) return;
+    }
+    setState(() => _pending = accepting);
+    try {
+      await ref.read(providerScheduleActionsProvider).updateSettings({'accepts_bookings': accepting});
+      if (mounted) context.showAppSnackBar(accepting ? "You're taking bookings again" : 'New bookings paused');
+    } on BookingFailure catch (failure) {
+      if (mounted) context.showAppSnackBar(failure.message, isError: true);
+    } finally {
+      if (mounted) setState(() => _pending = null);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    final settings = ref.watch(ownBookingSettingsProvider).value;
+    final accepting = _pending ?? settings?.acceptsBookings ?? true;
+    final enabled = settings != null && _pending == null;
+
+    return InkWell(
+      onTap: enabled ? () => _set(!accepting) : null,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              'Accepting new clients',
-                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: scheme.onSurface),
-                            ),
-                            const SizedBox(width: 8),
-                            const SoonBadge(),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        // Every provider profile is publicly listed today.
-                        const StatusPill(
-                          label: 'Listed publicly',
-                          color: AppTheme.success,
-                          leading: PulsingDot(color: AppTheme.success, size: 7),
-                        ),
-                      ],
-                    ),
+                  Text(
+                    'Accepting new clients',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: scheme.onSurface),
                   ),
-                  IgnorePointer(
-                    child: Switch(value: true, onChanged: null, activeTrackColor: AppTheme.success),
-                  ),
+                  const SizedBox(height: 6),
+                  if (accepting)
+                    const StatusPill(
+                      label: 'Listed publicly',
+                      color: AppTheme.success,
+                      leading: PulsingDot(color: AppTheme.success, size: 7),
+                    )
+                  else
+                    const StatusPill(label: 'Bookings paused', icon: Icons.pause_rounded, color: AppTheme.warning),
                 ],
               ),
             ),
-          ),
-        ],
+            Switch.adaptive(
+              value: accepting,
+              onChanged: enabled ? _set : null,
+              activeTrackColor: AppTheme.success,
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -22,6 +22,7 @@ class _EditCustomerProfileScreenState
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
   late TextEditingController _phoneController;
+  late TextEditingController _emailController;
   late TextEditingController _bioController;
 
   bool _isEmailPublic = false;
@@ -41,6 +42,9 @@ class _EditCustomerProfileScreenState
     );
     _lastNameController = TextEditingController(text: profile?.lastName ?? '');
     _phoneController = TextEditingController(text: profile?.phoneNumber ?? '');
+    _emailController = TextEditingController(
+      text: profileState?.rawUser.email ?? profile?.email ?? '',
+    );
     _bioController = TextEditingController(text: profile?.bio ?? '');
 
     _isEmailPublic = profile?.isEmailPublic ?? false;
@@ -52,6 +56,7 @@ class _EditCustomerProfileScreenState
     _firstNameController.dispose();
     _lastNameController.dispose();
     _phoneController.dispose();
+    _emailController.dispose();
     _bioController.dispose();
     super.dispose();
   }
@@ -198,6 +203,13 @@ class _EditCustomerProfileScreenState
                       icon: Icons.phone_outlined,
                       keyboardType: TextInputType.phone,
                     ),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      controller: _emailController,
+                      label: 'Email',
+                      icon: Icons.email_outlined,
+                      readOnly: true,
+                    ),
 
                     SizedBox(height: 32),
 
@@ -284,15 +296,23 @@ class _EditCustomerProfileScreenState
     int maxLines = 1,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
+    bool readOnly = false,
   }) {
     return TextFormField(
       controller: controller,
+      readOnly: readOnly,
+      enableInteractiveSelection: !readOnly,
+      canRequestFocus: !readOnly,
+      style: readOnly ? TextStyle(color: Colors.grey.shade600) : null,
       maxLines: maxLines,
       keyboardType: keyboardType,
       validator: validator,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: maxLines == 1 ? Icon(icon, color: Colors.grey) : null,
+        suffixIcon: readOnly
+            ? const Icon(Icons.lock_outline, color: Colors.grey, size: 18)
+            : null,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey.shade300),

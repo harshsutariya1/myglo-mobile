@@ -4,7 +4,10 @@ import '../theme/app_theme.dart';
 
 /// Small neutral "Soon" tag for controls that aren't live yet.
 class SoonBadge extends StatelessWidget {
-  const SoonBadge({super.key});
+  const SoonBadge({super.key, this.label = 'Soon'});
+
+  /// E.g. `Coming soon` where there's room for it.
+  final String label;
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +19,7 @@ class SoonBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        'Soon',
+        label,
         style: TextStyle(
           fontSize: 10.5,
           fontWeight: FontWeight.w700,

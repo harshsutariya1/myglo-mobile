@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../../core/constants/app_assets.dart';
+import '../../../../../core/routing/app_router.dart';
+import '../../../../../core/services/app_preferences.dart';
 import '../../../../../core/theme/app_theme.dart';
 
-class IntroScreen extends StatefulWidget {
+/// First-run slides. Shown once per device: reaching the last slide (or
+/// signing in) marks them seen, after which signed-out users go straight to
+/// sign-in.
+class IntroScreen extends ConsumerStatefulWidget {
   const IntroScreen({super.key});
 
   @override
-  State<IntroScreen> createState() => _IntroScreenState();
+  ConsumerState<IntroScreen> createState() => _IntroScreenState();
 }
 
-class _IntroScreenState extends State<IntroScreen> {
+class _IntroScreenState extends ConsumerState<IntroScreen> {
   final PageController _pageController = PageController();
   int _currentIndex = 0;
 
@@ -66,6 +72,7 @@ class _IntroScreenState extends State<IntroScreen> {
                 child: PageView.builder(
                   controller: _pageController,
                   onPageChanged: (index) {
+                    if (index == 3) ref.read(introSeenProvider.notifier).markSeen();
                     setState(() {
                       _currentIndex = index;
                     });
@@ -172,7 +179,9 @@ class _IntroScreenState extends State<IntroScreen> {
                           width: double.infinity,
                           child: ElevatedButton(
                             onPressed: () {
-                              context.push('/auth');
+                              ref.read(introSeenProvider.notifier).markSeen();
+                              // Replaces the intro: it isn't shown again.
+                              context.go(AppRoute.auth.path);
                             },
                             child: const Text('Get started'),
                           ),

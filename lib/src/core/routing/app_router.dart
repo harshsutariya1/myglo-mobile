@@ -10,6 +10,7 @@ import '../../features/shared/authentication/views/screens/onboarding_details_sc
 import '../../features/shared/authentication/models/user_role.dart';
 import '../../features/shared/authentication/views/screens/splash_screen.dart';
 import '../../features/shared/authentication/views/screens/intro_screen.dart';
+import '../services/app_preferences.dart';
 import '../widgets/error_screen.dart';
 
 import '../../features/customers/home/views/home_screen.dart';
@@ -22,11 +23,28 @@ import '../../features/providers/provider_profiles/views/screens/settings_screen
 import '../../features/providers/provider_profiles/views/screens/account_details_screen.dart';
 import '../../features/discovery_feed/views/discovery_screen.dart';
 import '../../features/customers/provider_profile/views/public_provider_profile_screen.dart';
+import '../../features/customers/booking/views/select_services_screen.dart';
+import '../../features/customers/booking/views/select_date_time_screen.dart';
+import '../../features/customers/booking/views/booking_location_screen.dart';
+import '../../features/customers/booking/views/booking_review_screen.dart';
+import '../../features/customers/booking/views/booking_payment_screen.dart';
+import '../../features/customers/booking/views/booking_confirmed_screen.dart';
+import '../../features/customers/bookings/views/client_booking_detail_screen.dart';
+import '../../features/providers/home/views/provider_booking_detail_screen.dart';
+import '../../features/providers/schedule/views/service_area_screen.dart';
+import '../../features/providers/schedule/views/time_off_screen.dart';
+import '../../features/providers/schedule/views/working_hours_screen.dart';
+import '../../features/shared/bookings/models/booking.dart';
+import '../../features/shared/notifications/views/notifications_screen.dart';
 
 import '../../features/shared/authentication/controllers/user_profile_provider.dart';
 import '../widgets/main_scaffold.dart';
 import 'app_route_observer.dart';
 import 'app_router_guard.dart';
+
+/// Query parameter of [AppRoute.selectServices] naming a service to start
+/// with already selected.
+const selectServicesInitialServiceParam = 'service';
 
 /// Defines all the route names and paths in the app.
 enum AppRoute {
@@ -45,8 +63,23 @@ enum AppRoute {
   customerProfile(path: '/customer_profile'),
   providerProfile(path: '/provider_profile'),
   publicProviderProfile(path: '/provider/:id'),
+  selectServices(path: 'book'),
+  // The rest of the booking flow, nested so each step stacks on the last.
+  selectDateTime(path: 'time'),
+  bookingLocation(path: 'location'),
+  bookingReview(path: 'review'),
+  bookingPayment(path: 'payment'),
+  bookingConfirmed(path: '/booking-confirmed/:bookingId'),
+  clientBookingDetail(path: '/booking/:bookingId'),
+  providerBookingDetail(path: '/appointments/:bookingId'),
+  notifications(path: '/notifications'),
   settings(path: 'settings'),
-  accountDetails(path: 'account-details');
+  accountDetails(path: 'account-details'),
+  // Provider availability editors: full-screen, outside the tab shell, so
+  // their save bar isn't covered by the tab bar.
+  workingHours(path: '/schedule/working-hours'),
+  timeOff(path: '/schedule/time-off'),
+  serviceArea(path: '/schedule/service-area');
 
   final String path;
   const AppRoute({required this.path});
@@ -115,6 +148,86 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => PublicProviderProfileScreen(
           providerId: state.pathParameters['id']!,
         ),
+        routes: [
+          // `/provider/:id/book`: client-only through the same prefix guard.
+          GoRoute(
+            path: AppRoute.selectServices.path,
+            name: AppRoute.selectServices.name,
+            builder: (context, state) => SelectServicesScreen(
+              providerId: state.pathParameters['id']!,
+              initialServiceId: state.uri.queryParameters[selectServicesInitialServiceParam],
+            ),
+            routes: [
+              GoRoute(
+                path: AppRoute.selectDateTime.path,
+                name: AppRoute.selectDateTime.name,
+                builder: (context, state) => SelectDateTimeScreen(providerId: state.pathParameters['id']!),
+                routes: [
+                  GoRoute(
+                    path: AppRoute.bookingLocation.path,
+                    name: AppRoute.bookingLocation.name,
+                    builder: (context, state) => BookingLocationScreen(providerId: state.pathParameters['id']!),
+                    routes: [
+                      GoRoute(
+                        path: AppRoute.bookingReview.path,
+                        name: AppRoute.bookingReview.name,
+                        builder: (context, state) => BookingReviewScreen(providerId: state.pathParameters['id']!),
+                        routes: [
+                          GoRoute(
+                            path: AppRoute.bookingPayment.path,
+                            name: AppRoute.bookingPayment.name,
+                            builder: (context, state) =>
+                                BookingPaymentScreen(providerId: state.pathParameters['id']!),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+      // Booking and notification pages, full-screen over whichever tab opened
+      // them (and deep-link targets for notifications).
+      GoRoute(
+        path: AppRoute.bookingConfirmed.path,
+        name: AppRoute.bookingConfirmed.name,
+        builder: (context, state) => BookingConfirmedScreen(
+          bookingId: state.pathParameters['bookingId']!,
+          initial: state.extra is Booking ? state.extra as Booking : null,
+        ),
+      ),
+      GoRoute(
+        path: AppRoute.clientBookingDetail.path,
+        name: AppRoute.clientBookingDetail.name,
+        builder: (context, state) => ClientBookingDetailScreen(bookingId: state.pathParameters['bookingId']!),
+      ),
+      GoRoute(
+        path: AppRoute.providerBookingDetail.path,
+        name: AppRoute.providerBookingDetail.name,
+        builder: (context, state) => ProviderBookingDetailScreen(bookingId: state.pathParameters['bookingId']!),
+      ),
+      GoRoute(
+        path: AppRoute.notifications.path,
+        name: AppRoute.notifications.name,
+        builder: (context, state) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        path: AppRoute.workingHours.path,
+        name: AppRoute.workingHours.name,
+        builder: (context, state) => const WorkingHoursScreen(),
+      ),
+      GoRoute(
+        path: AppRoute.timeOff.path,
+        name: AppRoute.timeOff.name,
+        builder: (context, state) => const TimeOffScreen(),
+      ),
+      GoRoute(
+        path: AppRoute.serviceArea.path,
+        name: AppRoute.serviceArea.name,
+        builder: (context, state) => const ServiceAreaScreen(),
       ),
       ShellRoute(
         builder: (context, state, child) {
@@ -175,7 +288,12 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 
-  ref.listen(authStateProvider, (_, _) => router.refresh());
+  ref.listen(authStateProvider, (_, next) {
+    // Anyone who has signed in on this device is past the intro, including
+    // installs from before the flag existed.
+    if (next.value?.session != null) ref.read(introSeenProvider.notifier).markSeen();
+    router.refresh();
+  });
   ref.listen(userProfileProvider, (_, _) => router.refresh());
 
   return router;

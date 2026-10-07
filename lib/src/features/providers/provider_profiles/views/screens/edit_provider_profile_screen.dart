@@ -23,6 +23,7 @@ class _EditProviderProfileScreenState
   late TextEditingController _lastNameController;
   late TextEditingController _providerNameController;
   late TextEditingController _phoneController;
+  late TextEditingController _emailController;
   late TextEditingController _bioController;
   late TextEditingController _addressTextController;
 
@@ -46,6 +47,9 @@ class _EditProviderProfileScreenState
       text: profile?.providerName ?? '',
     );
     _phoneController = TextEditingController(text: profile?.phoneNumber ?? '');
+    _emailController = TextEditingController(
+      text: profileState?.rawUser.email ?? profile?.email ?? '',
+    );
     _bioController = TextEditingController(text: profile?.bio ?? '');
     _addressTextController = TextEditingController(
       text: profile?.addressText ?? '',
@@ -61,6 +65,7 @@ class _EditProviderProfileScreenState
     _lastNameController.dispose();
     _providerNameController.dispose();
     _phoneController.dispose();
+    _emailController.dispose();
     _bioController.dispose();
     _addressTextController.dispose();
     super.dispose();
@@ -233,6 +238,13 @@ class _EditProviderProfileScreenState
                       icon: Icons.phone_outlined,
                       keyboardType: TextInputType.phone,
                     ),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      controller: _emailController,
+                      label: 'Email',
+                      icon: Icons.email_outlined,
+                      readOnly: true,
+                    ),
 
                     SizedBox(height: 32),
 
@@ -319,15 +331,23 @@ class _EditProviderProfileScreenState
     int maxLines = 1,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
+    bool readOnly = false,
   }) {
     return TextFormField(
       controller: controller,
+      readOnly: readOnly,
+      enableInteractiveSelection: !readOnly,
+      canRequestFocus: !readOnly,
+      style: readOnly ? TextStyle(color: Colors.grey.shade600) : null,
       maxLines: maxLines,
       keyboardType: keyboardType,
       validator: validator,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: maxLines == 1 ? Icon(icon, color: Colors.grey) : null,
+        suffixIcon: readOnly
+            ? const Icon(Icons.lock_outline, color: Colors.grey, size: 18)
+            : null,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey.shade300),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../../core/routing/app_router.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/widgets/snackbar_utils.dart';
 import '../../../../providers/provider_profiles/models/service_model.dart';
@@ -89,26 +91,29 @@ class _CopyableContact extends StatelessWidget {
   }
 }
 
-/// Shown in the service sheet while bookings are arranged off-app.
-const String offlineBookingNote =
-    "Online booking isn't available yet. Contact the provider to arrange a time for this service.";
+/// Opens the booking flow for [service]'s provider with [service] already
+/// selected.
+void openServiceBooking(BuildContext context, ServiceModel service) {
+  context.pushNamed(
+    AppRoute.selectServices.name,
+    pathParameters: {'id': service.providerId},
+    queryParameters: {selectServicesInitialServiceParam: service.id},
+  );
+}
 
-/// Opens the details sheet for a service the client may want to book.
-///
-/// In-app booking isn't available yet (there is no bookings table), so the
-/// call to action leads to the provider's contact details instead of
-/// pretending to reserve a slot. [provider] may still be loading (or have
-/// failed); the action is hidden until it is available.
+/// Opens the details sheet for a service the client may want to book. Its
+/// call to action starts the booking flow with this service selected.
 Future<void> showServiceBookingSheet(
   BuildContext context, {
   required ServiceModel service,
-  required ProfileModel? provider,
+  String? excludePostId,
 }) {
   return showServiceDetailsSheet(
     context,
     service: service,
-    bookLabel: 'Contact to book',
-    bookingNote: offlineBookingNote,
-    onBook: provider == null ? null : () => showProviderContactSheet(context, provider),
+    excludePostId: excludePostId,
+    onBook: () {
+      if (context.mounted) openServiceBooking(context, service);
+    },
   );
 }

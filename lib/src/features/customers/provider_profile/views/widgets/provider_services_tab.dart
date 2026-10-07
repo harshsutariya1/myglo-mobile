@@ -30,10 +30,16 @@ class ProviderServicesTab extends ConsumerWidget {
   const ProviderServicesTab({
     super.key,
     required this.providerId,
+    required this.onOpen,
     required this.onBook,
   });
 
   final String providerId;
+
+  /// Tapping a service: show its details.
+  final ValueChanged<ServiceModel> onOpen;
+
+  /// The "+" on a service: start booking with it selected.
   final ValueChanged<ServiceModel> onBook;
 
   @override
@@ -68,7 +74,7 @@ class ProviderServicesTab extends ConsumerWidget {
           for (final service in entry.value) {
             rows.add(ServiceTile(
               service: service,
-              onTap: () => onBook(service),
+              onTap: () => onOpen(service),
               trailing: ServiceAddButton(serviceName: service.name, onPressed: () => onBook(service)),
             ));
           }

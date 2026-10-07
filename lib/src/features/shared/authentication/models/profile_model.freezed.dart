@@ -287,7 +287,7 @@ as List<double>,
 /// @nodoc
 mixin _$ProfileModel {
 
- String get id; UserRole get role;@JsonKey(name: 'first_name') String? get firstName;@JsonKey(name: 'last_name') String? get lastName; String? get email;@JsonKey(name: 'phone_number') String? get phoneNumber;@JsonKey(name: 'profile_pic') String? get profilePic; String? get bio;@JsonKey(name: 'followers_count') int get followersCount;@JsonKey(name: 'following_count') int get followingCount;@JsonKey(name: 'is_email_public') bool get isEmailPublic;@JsonKey(name: 'is_phone_public') bool get isPhonePublic;@JsonKey(name: 'provider_name') String? get providerName;@JsonKey(name: 'address_text') String? get addressText; LocationCoordinates? get coordinates;
+ String get id; UserRole get role;@JsonKey(name: 'first_name') String? get firstName;@JsonKey(name: 'last_name') String? get lastName; String? get email;@JsonKey(name: 'phone_number') String? get phoneNumber;@JsonKey(name: 'profile_pic') String? get profilePic; String? get bio;@JsonKey(name: 'followers_count') int get followersCount;@JsonKey(name: 'following_count') int get followingCount;@JsonKey(name: 'is_email_public') bool get isEmailPublic;@JsonKey(name: 'is_phone_public') bool get isPhonePublic;@JsonKey(name: 'provider_name') String? get providerName;@JsonKey(name: 'address_text') String? get addressText;@LocationCoordinatesConverter() LocationCoordinates? get coordinates;
 /// Create a copy of ProfileModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -320,7 +320,7 @@ abstract mixin class $ProfileModelCopyWith<$Res>  {
   factory $ProfileModelCopyWith(ProfileModel value, $Res Function(ProfileModel) _then) = _$ProfileModelCopyWithImpl;
 @useResult
 $Res call({
- String id, UserRole role,@JsonKey(name: 'first_name') String? firstName,@JsonKey(name: 'last_name') String? lastName, String? email,@JsonKey(name: 'phone_number') String? phoneNumber,@JsonKey(name: 'profile_pic') String? profilePic, String? bio,@JsonKey(name: 'followers_count') int followersCount,@JsonKey(name: 'following_count') int followingCount,@JsonKey(name: 'is_email_public') bool isEmailPublic,@JsonKey(name: 'is_phone_public') bool isPhonePublic,@JsonKey(name: 'provider_name') String? providerName,@JsonKey(name: 'address_text') String? addressText, LocationCoordinates? coordinates
+ String id, UserRole role,@JsonKey(name: 'first_name') String? firstName,@JsonKey(name: 'last_name') String? lastName, String? email,@JsonKey(name: 'phone_number') String? phoneNumber,@JsonKey(name: 'profile_pic') String? profilePic, String? bio,@JsonKey(name: 'followers_count') int followersCount,@JsonKey(name: 'following_count') int followingCount,@JsonKey(name: 'is_email_public') bool isEmailPublic,@JsonKey(name: 'is_phone_public') bool isPhonePublic,@JsonKey(name: 'provider_name') String? providerName,@JsonKey(name: 'address_text') String? addressText,@LocationCoordinatesConverter() LocationCoordinates? coordinates
 });
 
 
@@ -451,7 +451,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  UserRole role, @JsonKey(name: 'first_name')  String? firstName, @JsonKey(name: 'last_name')  String? lastName,  String? email, @JsonKey(name: 'phone_number')  String? phoneNumber, @JsonKey(name: 'profile_pic')  String? profilePic,  String? bio, @JsonKey(name: 'followers_count')  int followersCount, @JsonKey(name: 'following_count')  int followingCount, @JsonKey(name: 'is_email_public')  bool isEmailPublic, @JsonKey(name: 'is_phone_public')  bool isPhonePublic, @JsonKey(name: 'provider_name')  String? providerName, @JsonKey(name: 'address_text')  String? addressText,  LocationCoordinates? coordinates)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  UserRole role, @JsonKey(name: 'first_name')  String? firstName, @JsonKey(name: 'last_name')  String? lastName,  String? email, @JsonKey(name: 'phone_number')  String? phoneNumber, @JsonKey(name: 'profile_pic')  String? profilePic,  String? bio, @JsonKey(name: 'followers_count')  int followersCount, @JsonKey(name: 'following_count')  int followingCount, @JsonKey(name: 'is_email_public')  bool isEmailPublic, @JsonKey(name: 'is_phone_public')  bool isPhonePublic, @JsonKey(name: 'provider_name')  String? providerName, @JsonKey(name: 'address_text')  String? addressText, @LocationCoordinatesConverter()  LocationCoordinates? coordinates)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProfileModel() when $default != null:
 return $default(_that.id,_that.role,_that.firstName,_that.lastName,_that.email,_that.phoneNumber,_that.profilePic,_that.bio,_that.followersCount,_that.followingCount,_that.isEmailPublic,_that.isPhonePublic,_that.providerName,_that.addressText,_that.coordinates);case _:
@@ -472,7 +472,7 @@ return $default(_that.id,_that.role,_that.firstName,_that.lastName,_that.email,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  UserRole role, @JsonKey(name: 'first_name')  String? firstName, @JsonKey(name: 'last_name')  String? lastName,  String? email, @JsonKey(name: 'phone_number')  String? phoneNumber, @JsonKey(name: 'profile_pic')  String? profilePic,  String? bio, @JsonKey(name: 'followers_count')  int followersCount, @JsonKey(name: 'following_count')  int followingCount, @JsonKey(name: 'is_email_public')  bool isEmailPublic, @JsonKey(name: 'is_phone_public')  bool isPhonePublic, @JsonKey(name: 'provider_name')  String? providerName, @JsonKey(name: 'address_text')  String? addressText,  LocationCoordinates? coordinates)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  UserRole role, @JsonKey(name: 'first_name')  String? firstName, @JsonKey(name: 'last_name')  String? lastName,  String? email, @JsonKey(name: 'phone_number')  String? phoneNumber, @JsonKey(name: 'profile_pic')  String? profilePic,  String? bio, @JsonKey(name: 'followers_count')  int followersCount, @JsonKey(name: 'following_count')  int followingCount, @JsonKey(name: 'is_email_public')  bool isEmailPublic, @JsonKey(name: 'is_phone_public')  bool isPhonePublic, @JsonKey(name: 'provider_name')  String? providerName, @JsonKey(name: 'address_text')  String? addressText, @LocationCoordinatesConverter()  LocationCoordinates? coordinates)  $default,) {final _that = this;
 switch (_that) {
 case _ProfileModel():
 return $default(_that.id,_that.role,_that.firstName,_that.lastName,_that.email,_that.phoneNumber,_that.profilePic,_that.bio,_that.followersCount,_that.followingCount,_that.isEmailPublic,_that.isPhonePublic,_that.providerName,_that.addressText,_that.coordinates);case _:
@@ -492,7 +492,7 @@ return $default(_that.id,_that.role,_that.firstName,_that.lastName,_that.email,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  UserRole role, @JsonKey(name: 'first_name')  String? firstName, @JsonKey(name: 'last_name')  String? lastName,  String? email, @JsonKey(name: 'phone_number')  String? phoneNumber, @JsonKey(name: 'profile_pic')  String? profilePic,  String? bio, @JsonKey(name: 'followers_count')  int followersCount, @JsonKey(name: 'following_count')  int followingCount, @JsonKey(name: 'is_email_public')  bool isEmailPublic, @JsonKey(name: 'is_phone_public')  bool isPhonePublic, @JsonKey(name: 'provider_name')  String? providerName, @JsonKey(name: 'address_text')  String? addressText,  LocationCoordinates? coordinates)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  UserRole role, @JsonKey(name: 'first_name')  String? firstName, @JsonKey(name: 'last_name')  String? lastName,  String? email, @JsonKey(name: 'phone_number')  String? phoneNumber, @JsonKey(name: 'profile_pic')  String? profilePic,  String? bio, @JsonKey(name: 'followers_count')  int followersCount, @JsonKey(name: 'following_count')  int followingCount, @JsonKey(name: 'is_email_public')  bool isEmailPublic, @JsonKey(name: 'is_phone_public')  bool isPhonePublic, @JsonKey(name: 'provider_name')  String? providerName, @JsonKey(name: 'address_text')  String? addressText, @LocationCoordinatesConverter()  LocationCoordinates? coordinates)?  $default,) {final _that = this;
 switch (_that) {
 case _ProfileModel() when $default != null:
 return $default(_that.id,_that.role,_that.firstName,_that.lastName,_that.email,_that.phoneNumber,_that.profilePic,_that.bio,_that.followersCount,_that.followingCount,_that.isEmailPublic,_that.isPhonePublic,_that.providerName,_that.addressText,_that.coordinates);case _:
@@ -507,7 +507,7 @@ return $default(_that.id,_that.role,_that.firstName,_that.lastName,_that.email,_
 @JsonSerializable()
 
 class _ProfileModel implements ProfileModel {
-  const _ProfileModel({required this.id, required this.role, @JsonKey(name: 'first_name') this.firstName, @JsonKey(name: 'last_name') this.lastName, this.email, @JsonKey(name: 'phone_number') this.phoneNumber, @JsonKey(name: 'profile_pic') this.profilePic, this.bio, @JsonKey(name: 'followers_count') this.followersCount = 0, @JsonKey(name: 'following_count') this.followingCount = 0, @JsonKey(name: 'is_email_public') this.isEmailPublic = false, @JsonKey(name: 'is_phone_public') this.isPhonePublic = false, @JsonKey(name: 'provider_name') this.providerName, @JsonKey(name: 'address_text') this.addressText, this.coordinates});
+  const _ProfileModel({required this.id, required this.role, @JsonKey(name: 'first_name') this.firstName, @JsonKey(name: 'last_name') this.lastName, this.email, @JsonKey(name: 'phone_number') this.phoneNumber, @JsonKey(name: 'profile_pic') this.profilePic, this.bio, @JsonKey(name: 'followers_count') this.followersCount = 0, @JsonKey(name: 'following_count') this.followingCount = 0, @JsonKey(name: 'is_email_public') this.isEmailPublic = false, @JsonKey(name: 'is_phone_public') this.isPhonePublic = false, @JsonKey(name: 'provider_name') this.providerName, @JsonKey(name: 'address_text') this.addressText, @LocationCoordinatesConverter() this.coordinates});
   factory _ProfileModel.fromJson(Map<String, dynamic> json) => _$ProfileModelFromJson(json);
 
 @override final  String id;
@@ -524,7 +524,7 @@ class _ProfileModel implements ProfileModel {
 @override@JsonKey(name: 'is_phone_public') final  bool isPhonePublic;
 @override@JsonKey(name: 'provider_name') final  String? providerName;
 @override@JsonKey(name: 'address_text') final  String? addressText;
-@override final  LocationCoordinates? coordinates;
+@override@LocationCoordinatesConverter() final  LocationCoordinates? coordinates;
 
 /// Create a copy of ProfileModel
 /// with the given fields replaced by the non-null parameter values.
@@ -559,7 +559,7 @@ abstract mixin class _$ProfileModelCopyWith<$Res> implements $ProfileModelCopyWi
   factory _$ProfileModelCopyWith(_ProfileModel value, $Res Function(_ProfileModel) _then) = __$ProfileModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, UserRole role,@JsonKey(name: 'first_name') String? firstName,@JsonKey(name: 'last_name') String? lastName, String? email,@JsonKey(name: 'phone_number') String? phoneNumber,@JsonKey(name: 'profile_pic') String? profilePic, String? bio,@JsonKey(name: 'followers_count') int followersCount,@JsonKey(name: 'following_count') int followingCount,@JsonKey(name: 'is_email_public') bool isEmailPublic,@JsonKey(name: 'is_phone_public') bool isPhonePublic,@JsonKey(name: 'provider_name') String? providerName,@JsonKey(name: 'address_text') String? addressText, LocationCoordinates? coordinates
+ String id, UserRole role,@JsonKey(name: 'first_name') String? firstName,@JsonKey(name: 'last_name') String? lastName, String? email,@JsonKey(name: 'phone_number') String? phoneNumber,@JsonKey(name: 'profile_pic') String? profilePic, String? bio,@JsonKey(name: 'followers_count') int followersCount,@JsonKey(name: 'following_count') int followingCount,@JsonKey(name: 'is_email_public') bool isEmailPublic,@JsonKey(name: 'is_phone_public') bool isPhonePublic,@JsonKey(name: 'provider_name') String? providerName,@JsonKey(name: 'address_text') String? addressText,@LocationCoordinatesConverter() LocationCoordinates? coordinates
 });
 
 

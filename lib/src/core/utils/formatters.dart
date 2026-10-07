@@ -12,6 +12,17 @@ class Formatters {
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
   ];
 
+  static const _monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+
+  static const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  static const _weekdayNames = [
+    'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
+  ];
+
   /// Formats an AUD amount the Australian way: `$45`, `$45.50`, `$1,250`.
   ///
   /// Whole-dollar amounts drop the cents; everything else shows two decimals.
@@ -83,4 +94,48 @@ class Formatters {
     if (km < 10) return '${km.toStringAsFixed(1)} km';
     return '${km.round()} km';
   }
+
+  /// Formats an AUD amount held in whole cents, like [aud].
+  static String audCents(int cents) => aud(cents / 100);
+
+  // The calendar helpers below read only the date/time *fields* of the value
+  // they're given and never convert time zones. Booking times are passed in
+  // as provider-local wall-clock values (see `BookingTime`), so they print the
+  // same on every device regardless of its time zone.
+
+  /// Time of day the Australian way: `9:30 am`, `12:05 pm`.
+  static String time(DateTime wallClock) {
+    final hour12 = wallClock.hour % 12 == 0 ? 12 : wallClock.hour % 12;
+    final minutes = wallClock.minute.toString().padLeft(2, '0');
+    return '$hour12:$minutes ${wallClock.hour < 12 ? 'am' : 'pm'}';
+  }
+
+  /// `9:30 am – 11:00 am`.
+  static String timeRange(DateTime start, DateTime end) => '${time(start)} – ${time(end)}';
+
+  /// `Tue`.
+  static String weekdayShort(DateTime date) => _weekdays[date.weekday - 1];
+
+  /// `Tuesday`.
+  static String weekdayLong(DateTime date) => _weekdayNames[date.weekday - 1];
+
+  /// `Oct`.
+  static String monthShort(DateTime date) => _months[date.month - 1];
+
+  /// `October 2026`.
+  static String monthYear(DateTime date) => '${_monthNames[date.month - 1]} ${date.year}';
+
+  /// `Tue 7 Oct`.
+  static String dateShort(DateTime date) => '${weekdayShort(date)} ${date.day} ${monthShort(date)}';
+
+  /// `Tuesday 7 October`, with the year appended when it differs from
+  /// [currentYear] (or always, when [withYear] is set).
+  static String dateLong(DateTime date, {int? currentYear, bool withYear = false}) {
+    final label = '${weekdayLong(date)} ${date.day} ${_monthNames[date.month - 1]}';
+    final showYear = withYear || (currentYear != null && currentYear != date.year);
+    return showYear ? '$label ${date.year}' : label;
+  }
+
+  /// `Tue 7 Oct, 9:30 am`.
+  static String dateTimeShort(DateTime wallClock) => '${dateShort(wallClock)}, ${time(wallClock)}';
 }

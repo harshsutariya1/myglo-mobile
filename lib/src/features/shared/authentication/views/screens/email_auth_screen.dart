@@ -160,10 +160,15 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
     ref.watch(emailAuthControllerProvider);
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
-        ),
+        // Sign-in is the first screen once the intro has been seen, so
+        // there's not always anything to go back to.
+        automaticallyImplyLeading: false,
+        leading: context.canPop()
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => context.pop(),
+              )
+            : null,
       ),
       body: SafeArea(
         child: CustomScrollView(

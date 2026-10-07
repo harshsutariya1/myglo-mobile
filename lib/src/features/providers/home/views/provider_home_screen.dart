@@ -1,329 +1,342 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_theme.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-class ProviderHomeScreen extends StatefulWidget {
+import '../../../../core/routing/app_router.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/formatters.dart';
+import '../../../../core/widgets/snackbar_utils.dart';
+import '../../../shared/bookings/controllers/booking_controllers.dart';
+import '../../../shared/bookings/models/booking.dart';
+import '../../../shared/bookings/models/booking_failure.dart';
+import '../../../shared/bookings/models/booking_repository.dart';
+import '../../../shared/bookings/views/widgets/booking_card.dart';
+import '../../../shared/bookings/views/widgets/booking_list_view.dart';
+import '../../../shared/bookings/views/widgets/booking_segmented_control.dart';
+import '../../../shared/notifications/views/notification_bell.dart';
+import '../../schedule/controllers/provider_schedule_controller.dart';
+import 'widgets/booking_setup_card.dart';
+import 'widgets/provider_booking_sheets.dart';
+
+/// The provider's appointments: confirmed upcoming bookings (by day),
+/// requests waiting for an answer, and past bookings. Everything is live:
+/// new bookings and client cancellations appear without a refresh.
+class ProviderHomeScreen extends ConsumerStatefulWidget {
   const ProviderHomeScreen({super.key});
 
   @override
-  State<ProviderHomeScreen> createState() => _ProviderHomeScreenState();
+  ConsumerState<ProviderHomeScreen> createState() => _ProviderHomeScreenState();
 }
 
-class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
-  int _selectedTabIndex = 0;
+class _ProviderHomeScreenState extends ConsumerState<ProviderHomeScreen> {
+  int _tab = 0;
 
-  final List<Map<String, dynamic>> _upcomingAppointments = [
-    {
-      'date': 'WED\n12\nMAY',
-      'avatar': 'assets/images/avatars/avatar_1.png',
-      'name': 'Michelle Zhang',
-      'service': 'Natural lash extension',
-      'time': '1pm - 2pm',
-    },
-    {
-      'date': 'TUES\n11\nMAY',
-      'avatar': 'assets/images/avatars/avatar_2.png',
-      'name': 'Jane Doe',
-      'service': 'Wispy lash extension',
-      'time': '1pm - 2pm',
-    },
-    {
-      'date': 'MON\n10\nMAY',
-      'avatar': 'assets/images/avatars/avatar_3.png',
-      'name': 'Eileen Lo',
-      'service': 'Volume lash extension',
-      'time': '1pm - 2pm',
-    },
-  ];
+  static const _upcoming = (party: BookingParty.provider, scope: BookingListScope.confirmed);
+  static const _requests = (party: BookingParty.provider, scope: BookingListScope.requests);
+  static const _past = (party: BookingParty.provider, scope: BookingListScope.past);
+
+  BookingListKey get _key => switch (_tab) {
+        0 => _upcoming,
+        1 => _requests,
+        _ => _past,
+      };
+
+  void _open(Booking booking) {
+    context.pushNamed(AppRoute.providerBookingDetail.name, pathParameters: {'bookingId': booking.id});
+  }
+
+  Future<void> _refresh() async {
+    ref.invalidate(bookingListProvider(_key));
+    ref.invalidate(bookingListProvider(_requests));
+    try {
+      await ref.read(bookingListProvider(_key).future);
+    } catch (_) {
+      // Shown inline by the list.
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    final requests = ref.watch(bookingListProvider(_requests).select((s) => s.value));
+    final requestBadge = requests == null || requests.items.isEmpty ? null : requests.items.length;
+    final requiresApproval = ref.watch(ownBookingSettingsProvider.select((s) => s.value?.requiresApproval ?? false));
+
     return Scaffold(
-      backgroundColor: context.colorScheme.surface,
+      backgroundColor: scheme.surface,
       body: SafeArea(
         bottom: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 16),
-              // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+        child: RefreshIndicator(
+          color: scheme.primary,
+          onRefresh: _refresh,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(24, 16, 12, 0),
+                sliver: SliverToBoxAdapter(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Flexible(
-                              child: Text(
-                                'My appointments',
-                                style: TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  color: context.colorScheme.onSurface,
-                                ),
+                            Text(
+                              'My appointments',
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w900,
+                                color: scheme.onSurface,
+                                letterSpacing: -0.5,
                               ),
+                            ),
+                            Transform.translate(
+                              offset: const Offset(0, -4),
+                              child: Image.asset('assets/graphics/Underline.png', width: 200, fit: BoxFit.contain),
                             ),
                           ],
                         ),
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4, bottom: 24),
-                          child: Image.asset(
-                            'assets/graphics/Underline.png',
-                            width: 200,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                      const NotificationBell(),
+                    ],
                   ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.notifications_outlined,
-                      color: context.colorScheme.onSurface,
-                      size: 28,
-                    ),
-                    onPressed: () {},
+                ),
+              ),
+              const SliverPadding(
+                padding: EdgeInsets.fromLTRB(24, 16, 24, 0),
+                sliver: SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [BookingSetupCard(), _PausedBanner()],
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              // Profile completion card
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF5F5), // Light pinkish background
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Complete your profile',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: context.colorScheme.onSurface,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '0 of 4 tasks completed',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.black54,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(
-                      width: 60,
-                      height: 60,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          CircularProgressIndicator(
-                            value: 0.75,
-                            backgroundColor: Colors.white,
-                            color: context.colorScheme.secondary,
-                            strokeWidth: 6,
-                          ),
-                          Center(
-                            child: Text(
-                              '75%',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: context.colorScheme.onSurface,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
                 ),
               ),
-              const SizedBox(height: 32),
-              // Segmented control
-              Container(
-                height: 50,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(25),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => _selectedTabIndex = 0),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: _selectedTabIndex == 0
-                                ? const Color(0xFFFFF5F5)
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(25),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            'Upcoming',
-                            style: TextStyle(
-                              color: _selectedTabIndex == 0
-                                  ? context.colorScheme.secondary
-                                  : Colors.grey.shade500,
-                              fontWeight: _selectedTabIndex == 0
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => _selectedTabIndex = 1),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: _selectedTabIndex == 1
-                                ? const Color(0xFFFFF5F5)
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(25),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            'Completed',
-                            style: TextStyle(
-                              color: _selectedTabIndex == 1
-                                  ? context.colorScheme.secondary
-                                  : Colors.grey.shade500,
-                              fontWeight: _selectedTabIndex == 1
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+                sliver: SliverToBoxAdapter(
+                  child: BookingSegmentedControl(
+                    segments: [
+                      (label: 'Upcoming', badge: null),
+                      (label: 'Requests', badge: requestBadge),
+                      (label: 'Past', badge: null),
+                    ],
+                    selected: _tab,
+                    onChanged: (index) => setState(() => _tab = index),
+                  ),
                 ),
               ),
-              const SizedBox(height: 24),
-              // List
-              ..._upcomingAppointments.map(
-                (appt) => _buildAppointmentCard(appt),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 120),
+                sliver: BookingListSliver(
+                  key: ValueKey(_key),
+                  listKey: _key,
+                  grouping: _tab == 0 ? BookingListGrouping.day : null,
+                  cardBuilder: (context, booking) => BookingCard(
+                    booking: booking,
+                    showClient: true,
+                    muted: _tab == 2,
+                    onTap: () => _open(booking),
+                    footer: _tab == 1 ? _RequestActions(booking: booking) : null,
+                  ),
+                  empty: switch (_tab) {
+                    0 => BookingsEmptyState(
+                        icon: Icons.calendar_month_outlined,
+                        title: 'No upcoming appointments',
+                        message: 'New bookings appear here the moment clients book.',
+                        actionLabel: 'Manage availability',
+                        onAction: () => context.pushNamed(AppRoute.workingHours.name),
+                      ),
+                    1 => BookingsEmptyState(
+                        icon: Icons.inbox_outlined,
+                        title: 'No requests waiting',
+                        message: requiresApproval
+                            ? "When a client requests a time, it shows up here for you to accept or decline."
+                            : 'Bookings are confirmed instantly. Turn on approvals in Settings to review each one first.',
+                      ),
+                    _ => const BookingsEmptyState(
+                        icon: Icons.history_rounded,
+                        title: 'No past appointments yet',
+                        message: 'Completed and cancelled appointments will show up here.',
+                      ),
+                  },
+                ),
               ),
-              const SizedBox(height: 100),
             ],
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildAppointmentCard(Map<String, dynamic> appt) {
-    List<String> dateParts = appt['date'].toString().split('\n');
-    String dayOfWeek = dateParts.isNotEmpty ? dateParts[0] : '';
-    String dayOfMonth = dateParts.length > 1 ? dateParts[1] : '';
-    String month = dateParts.length > 2 ? dateParts[2] : '';
+/// Shown while the provider has paused new bookings, with a way to resume.
+class _PausedBanner extends ConsumerStatefulWidget {
+  const _PausedBanner();
 
+  @override
+  ConsumerState<_PausedBanner> createState() => _PausedBannerState();
+}
+
+class _PausedBannerState extends ConsumerState<_PausedBanner> {
+  bool _busy = false;
+
+  Future<void> _resume() async {
+    setState(() => _busy = true);
+    try {
+      await ref.read(providerScheduleActionsProvider).updateSettings({'accepts_bookings': true});
+      HapticFeedback.mediumImpact();
+      if (mounted) context.showAppSnackBar("You're taking bookings again");
+    } on BookingFailure catch (failure) {
+      if (mounted) context.showAppSnackBar(failure.message, isError: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final paused = ref.watch(ownBookingSettingsProvider.select((s) => s.value?.acceptsBookings == false));
+    if (!paused) return const SizedBox.shrink();
+    final scheme = context.colorScheme;
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: AppTheme.warning.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
         children: [
-          // Date box
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF7F7F7),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  dayOfWeek,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                ),
-                Text(
-                  dayOfMonth,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: context.colorScheme.onSurface,
-                  ),
-                ),
-                Text(
-                  month,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          // Info
+          const Icon(Icons.pause_circle_outline_rounded, color: AppTheme.warning, size: 26),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 12,
-                      backgroundImage: AssetImage(appt['avatar']),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      appt['name'],
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 8),
                 Text(
-                  appt['service'],
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: context.colorScheme.onSurface,
-                  ),
+                  'New bookings are paused',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: scheme.onSurface),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
-                  appt['time'],
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                  "Clients can't book you right now. Existing appointments aren't affected.",
+                  style: TextStyle(fontSize: 13, height: 1.35, color: scheme.onSurface.withValues(alpha: 0.65)),
                 ),
               ],
             ),
           ),
+          const SizedBox(width: 8),
+          FilledButton(
+            onPressed: _busy ? null : _resume,
+            style: FilledButton.styleFrom(
+              backgroundColor: scheme.onSurface,
+              foregroundColor: scheme.surface,
+              minimumSize: const Size(0, 40),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+            ),
+            child: _busy
+                ? SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2, color: scheme.surface))
+                : const Text('Resume'),
+          ),
         ],
       ),
+    );
+  }
+}
+
+/// Accept / decline buttons under a request in the list.
+class _RequestActions extends ConsumerStatefulWidget {
+  const _RequestActions({required this.booking});
+
+  final Booking booking;
+
+  @override
+  ConsumerState<_RequestActions> createState() => _RequestActionsState();
+}
+
+class _RequestActionsState extends ConsumerState<_RequestActions> {
+  bool _accepting = false;
+
+  Future<void> _accept() async {
+    setState(() => _accepting = true);
+    try {
+      await ref.read(bookingActionsProvider).accept(widget.booking.id);
+      HapticFeedback.mediumImpact();
+      if (mounted) context.showAppSnackBar('Booking confirmed. ${widget.booking.clientName} has been notified.');
+    } on BookingFailure catch (failure) {
+      if (mounted) context.showAppSnackBar(failure.message, isError: true);
+    } finally {
+      if (mounted) setState(() => _accepting = false);
+    }
+  }
+
+  Future<void> _decline() async {
+    final declined = await showProviderBookingActionSheet(
+      context,
+      booking: widget.booking,
+      action: ProviderBookingAction.decline,
+    );
+    if (declined != null && mounted) context.showAppSnackBar('Request declined');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    final booking = widget.booking;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.timer_outlined, size: 15, color: AppTheme.warning),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                'Respond before ${Formatters.dateTimeShort(booking.startsAtLocal)}',
+                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: scheme.onSurface.withValues(alpha: 0.65)),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: _accepting ? null : _decline,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: scheme.onSurface,
+                  minimumSize: const Size(0, 44),
+                  side: BorderSide(color: scheme.onSurface.withValues(alpha: 0.15)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                ),
+                child: const Text('Decline'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: FilledButton(
+                onPressed: _accepting ? null : _accept,
+                style: FilledButton.styleFrom(
+                  backgroundColor: scheme.onSurface,
+                  foregroundColor: scheme.surface,
+                  minimumSize: const Size(0, 44),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                ),
+                child: _accepting
+                    ? SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2, color: scheme.surface))
+                    : const Text('Accept'),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

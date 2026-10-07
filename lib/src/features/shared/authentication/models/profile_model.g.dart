@@ -39,11 +39,9 @@ _ProfileModel _$ProfileModelFromJson(Map<String, dynamic> json) =>
       isPhonePublic: json['is_phone_public'] as bool? ?? false,
       providerName: json['provider_name'] as String?,
       addressText: json['address_text'] as String?,
-      coordinates: json['coordinates'] == null
-          ? null
-          : LocationCoordinates.fromJson(
-              json['coordinates'] as Map<String, dynamic>,
-            ),
+      coordinates: const LocationCoordinatesConverter().fromJson(
+        json['coordinates'],
+      ),
     );
 
 Map<String, dynamic> _$ProfileModelToJson(_ProfileModel instance) =>
@@ -62,7 +60,9 @@ Map<String, dynamic> _$ProfileModelToJson(_ProfileModel instance) =>
       'is_phone_public': instance.isPhonePublic,
       'provider_name': instance.providerName,
       'address_text': instance.addressText,
-      'coordinates': instance.coordinates?.toJson(),
+      'coordinates': const LocationCoordinatesConverter().toJson(
+        instance.coordinates,
+      ),
     };
 
 const _$UserRoleEnumMap = {

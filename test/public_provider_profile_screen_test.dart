@@ -10,6 +10,7 @@ import 'package:myglo/src/features/customers/provider_profile/controllers/public
 import 'package:myglo/src/features/customers/provider_profile/views/public_provider_profile_screen.dart';
 import 'package:myglo/src/features/customers/provider_profile/views/widgets/provider_profile_header.dart';
 import 'package:myglo/src/features/customers/provider_profile/views/widgets/provider_services_tab.dart';
+import 'package:myglo/src/features/discovery_feed/controllers/service_posts_controller.dart';
 import 'package:myglo/src/features/discovery_feed/controllers/user_posts_controller.dart';
 import 'package:myglo/src/features/discovery_feed/models/post_model.dart';
 import 'package:myglo/src/features/providers/provider_profiles/controllers/provider_services_controller.dart';
@@ -54,6 +55,7 @@ Future<void> _pump(
         publicProviderProfileProvider(_id).overrideWith((ref) => profile()),
         providerServicesProvider(_id).overrideWith((ref) => services()),
         userPostsProvider(_id).overrideWith((ref) => posts()),
+        servicePostsProvider.overrideWith((ref, serviceId) => const []),
       ],
       child: MaterialApp(
         theme: AppTheme.lightTheme,
@@ -149,12 +151,14 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    await tester.tap(find.byTooltip('Book Lash lift'));
+    await tester.tap(find.text('Lash lift'));
     await tester.pumpAndSettle();
 
     expect(find.text("What's included"), findsOneWidget);
     expect(find.text('Tint'), findsOneWidget);
-    expect(find.text('Contact to book'), findsOneWidget);
+    expect(find.text('Book now'), findsOneWidget);
+    expect(find.text('Cancellation policy'), findsNothing);
+    expect(find.textContaining('GST'), findsNothing);
 
     // The sheet opens part-way; dragging expands it to reveal the rest.
     await tester.drag(find.text("What's included"), const Offset(0, -300));

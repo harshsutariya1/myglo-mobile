@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
+import '../../../../core/location/geo_point.dart';
 import '../../../../core/utils/app_logger.dart';
 import 'profile_model.dart';
 import 'user_role.dart';
@@ -106,10 +107,8 @@ class UserRepository {
       if (providerName != null) updates['provider_name'] = providerName;
       if (addressText != null) updates['address_text'] = addressText;
       if (latitude != null && longitude != null) {
-        updates['coordinates'] = {
-          'type': 'Point',
-          'coordinates': [longitude, latitude]
-        };
+        // PostGIS doesn't accept GeoJSON as column input; EWKT it does.
+        updates['coordinates'] = PostgisPoint.toEwkt(GeoPoint(latitude: latitude, longitude: longitude));
       }
     }
 

@@ -4,12 +4,20 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/shared/authentication/models/auth_repository.dart';
 import '../../features/shared/authentication/controllers/user_profile_provider.dart';
+import '../services/app_preferences.dart';
 import '../utils/app_logger.dart';
 import 'app_router.dart';
 
 /// Path prefix shared by every `/provider/:id` location. The trailing slash
 /// keeps it from matching the provider's own `/provider_profile` tab.
 const publicProviderProfilePrefix = '/provider/';
+
+/// Client booking pages (`/booking/:id`, `/booking-confirmed/:id`). The first
+/// has a trailing slash so it doesn't match the `/bookings` tab.
+const clientBookingPrefixes = ['/booking/', '/booking-confirmed/'];
+
+/// Provider-only pages: appointments and availability editors.
+const providerOnlyPrefixes = ['/appointments/', '/schedule/'];
 
 /// Handles the redirection logic for the application based on authentication
 /// and onboarding state.
@@ -44,14 +52,20 @@ String? appRouterRedirect(BuildContext context, GoRouterState state, Ref ref) {
       state.uri.path == AppRoute.roleSelection.path ||
       state.uri.path == AppRoute.onboardingDetails.path;
 
-  // Redirect to intro if not authenticated.
+  // Signed out: the intro slides the first time on this device, sign-in
+  // after that (e.g. after logging out).
   if (!isAuth) {
+    final introSeen = ref.read(introSeenProvider);
+    if (introSeen && state.uri.path == AppRoute.intro.path) {
+      return AppRoute.auth.path;
+    }
     if (!isUnauthRoute) {
+      final target = introSeen ? AppRoute.auth.path : AppRoute.intro.path;
       AppLogger.d(
-        'Unauthenticated access to "${state.uri.path}". Redirecting to ${AppRoute.intro.path}',
+        'Unauthenticated access to "${state.uri.path}". Redirecting to $target',
         tag: 'RouterGuard',
       );
-      return AppRoute.intro.path;
+      return target;
     }
     return null;
   }
@@ -111,6 +125,7 @@ String? appRouterRedirect(BuildContext context, GoRouterState state, Ref ref) {
     AppRoute.customerProfile.path,
     // Client view of a provider (`/provider/:id`), which includes booking.
     publicProviderProfilePrefix,
+    ...clientBookingPrefixes,
   ];
 
   final providerRoutes = [
@@ -118,6 +133,7 @@ String? appRouterRedirect(BuildContext context, GoRouterState state, Ref ref) {
     AppRoute.businessTools.path,
     AppRoute.providerProfile.path,
     AppRoute.settings.path,
+    ...providerOnlyPrefixes,
   ];
 
   if (isCustomer && providerRoutes.any((route) => currentPath.startsWith(route))) {

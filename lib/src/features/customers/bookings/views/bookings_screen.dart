@@ -1,283 +1,143 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_theme.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-class BookingsScreen extends StatefulWidget {
+import '../../../../core/routing/app_router.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../shared/bookings/controllers/booking_controllers.dart';
+import '../../../shared/bookings/models/booking.dart';
+import '../../../shared/bookings/models/booking_repository.dart';
+import '../../../shared/bookings/views/widgets/booking_card.dart';
+import '../../../shared/bookings/views/widgets/booking_list_view.dart';
+import '../../../shared/bookings/views/widgets/booking_segmented_control.dart';
+import '../../../shared/notifications/views/notification_bell.dart';
+
+/// The client's bookings: upcoming (requests and confirmed) and past, kept
+/// live so a provider accepting, declining or cancelling shows up at once.
+class BookingsScreen extends ConsumerStatefulWidget {
   const BookingsScreen({super.key});
 
   @override
-  State<BookingsScreen> createState() => _BookingsScreenState();
+  ConsumerState<BookingsScreen> createState() => _BookingsScreenState();
 }
 
-class _BookingsScreenState extends State<BookingsScreen> {
-  bool _isUpcomingSelected = true;
+class _BookingsScreenState extends ConsumerState<BookingsScreen> {
+  int _tab = 0;
+
+  static const _upcoming = (party: BookingParty.client, scope: BookingListScope.upcoming);
+  static const _past = (party: BookingParty.client, scope: BookingListScope.past);
+
+  BookingListKey get _key => _tab == 0 ? _upcoming : _past;
+
+  void _open(Booking booking) {
+    context.pushNamed(AppRoute.clientBookingDetail.name, pathParameters: {'bookingId': booking.id});
+  }
+
+  Future<void> _refresh() async {
+    ref.invalidate(bookingListProvider(_key));
+    try {
+      await ref.read(bookingListProvider(_key).future);
+    } catch (_) {
+      // Shown inline by the list.
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    final upcomingCount = ref.watch(bookingListProvider(_upcoming).select((s) => s.value?.items.length));
+
     return Scaffold(
-      backgroundColor: context.colorScheme.surface,
+      backgroundColor: scheme.surface,
       body: SafeArea(
         bottom: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 16),
-              // Title with underline
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+        child: RefreshIndicator(
+          color: scheme.primary,
+          onRefresh: _refresh,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(24, 16, 12, 0),
+                sliver: SliverToBoxAdapter(
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Bookings',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w900,
-                          color: context.colorScheme.onSurface,
-                          letterSpacing: -0.5,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Bookings',
+                                  style: TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.w900,
+                                    color: scheme.onSurface,
+                                    letterSpacing: -0.5,
+                                  ),
+                                ),
+                                Transform.translate(
+                                  offset: const Offset(4, -4),
+                                  child: Icon(Icons.auto_awesome, color: scheme.primary, size: 20),
+                                ),
+                              ],
+                            ),
+                            Transform.translate(
+                              offset: const Offset(0, -6),
+                              child: Image.asset('assets/graphics/Underline.png', width: 130, fit: BoxFit.contain),
+                            ),
+                          ],
                         ),
                       ),
-                      // Mocking the sparkle adornment with an icon if there's no asset
-                      Transform.translate(
-                        offset: const Offset(4, -4),
-                        child: Icon(
-                          Icons.auto_awesome,
-                          color: context.colorScheme.primary,
-                          size: 20,
-                        ),
-                      ),
+                      const NotificationBell(),
                     ],
                   ),
-                  Transform.translate(
-                    offset: const Offset(0, -6),
-                    child: Image.asset(
-                      'assets/graphics/Underline.png',
-                      width: 130,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              
-              // Custom Tab Switcher
-              Container(
-                height: 50,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(25),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => _isUpcomingSelected = true),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: _isUpcomingSelected
-                                ? context.colorScheme.tertiary.withValues(alpha: 0.15)
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(25),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            'Upcoming',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: _isUpcomingSelected ? FontWeight.w600 : FontWeight.w400,
-                              color: _isUpcomingSelected ? context.colorScheme.secondary : Colors.grey.shade500,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => _isUpcomingSelected = false),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: !_isUpcomingSelected
-                                ? context.colorScheme.tertiary.withValues(alpha: 0.15)
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(25),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            'Completed',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: !_isUpcomingSelected ? FontWeight.w600 : FontWeight.w400,
-                              color: !_isUpcomingSelected ? context.colorScheme.secondary : Colors.grey.shade500,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
               ),
-              const SizedBox(height: 32),
-              
-              // Booking Cards
-              if (_isUpcomingSelected) ...[
-                _buildBookingCard(
-                  dayOfWeek: 'FRI',
-                  date: '26',
-                  month: 'JUN',
-                  providerName: 'Lily Lashes',
-                  serviceName: 'Natural lash extension',
-                  time: '1pm - 2pm',
-                ),
-                const SizedBox(height: 16),
-                _buildBookingCard(
-                  dayOfWeek: 'MON',
-                  date: '29',
-                  month: 'JUN',
-                  providerName: 'Nails Nirvana',
-                  serviceName: 'French manicure',
-                  time: '10am - 11am',
-                ),
-                const SizedBox(height: 16),
-                _buildBookingCard(
-                  dayOfWeek: 'WED',
-                  date: '26',
-                  month: 'JUN',
-                  providerName: 'Korea Beauty',
-                  serviceName: 'Natural lash extension',
-                  time: '5pm - 6pm',
-                ),
-              ] else ...[
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 40.0),
-                    child: Text(
-                      'No completed bookings yet.',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey.shade500,
-                      ),
-                    ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
+                sliver: SliverToBoxAdapter(
+                  child: BookingSegmentedControl(
+                    segments: [
+                      (label: 'Upcoming', badge: upcomingCount),
+                      (label: 'Past', badge: null),
+                    ],
+                    selected: _tab,
+                    onChanged: (index) => setState(() => _tab = index),
                   ),
                 ),
-              ],
-              
-              const SizedBox(height: 100), // Bottom navigation bar padding
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 120),
+                sliver: BookingListSliver(
+                  key: ValueKey(_key),
+                  listKey: _key,
+                  cardBuilder: (context, booking) => BookingCard(
+                    booking: booking,
+                    muted: _tab == 1,
+                    onTap: () => _open(booking),
+                  ),
+                  empty: _tab == 0
+                      ? BookingsEmptyState(
+                          icon: Icons.calendar_month_outlined,
+                          title: 'No upcoming bookings',
+                          message: 'Find a provider you love and book in a few taps.',
+                          actionLabel: 'Discover providers',
+                          onAction: () => context.goNamed(AppRoute.customerHome.name),
+                        )
+                      : const BookingsEmptyState(
+                          icon: Icons.history_rounded,
+                          title: 'No past bookings yet',
+                          message: 'Completed and cancelled bookings will show up here.',
+                        ),
+                ),
+              ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildBookingCard({
-    required String dayOfWeek,
-    required String date,
-    required String month,
-    required String providerName,
-    required String serviceName,
-    required String time,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.grey.shade200,
-          width: 1,
-        ),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Date Box
-          Container(
-            width: 70,
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  dayOfWeek,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  date,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.black,
-                    height: 1.1,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  month,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black54,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          // Details
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 10,
-                      backgroundColor: Colors.grey.shade300,
-                      child: Icon(Icons.person, size: 14, color: Colors.grey.shade600),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      providerName,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  serviceName,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  time,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

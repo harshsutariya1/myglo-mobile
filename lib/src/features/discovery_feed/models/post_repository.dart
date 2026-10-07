@@ -179,6 +179,32 @@ class PostRepository {
     }
   }
 
+  /// Newest approved posts tagged with [serviceId], at most [limit].
+  ///
+  /// Filtered to approved posts explicitly (not just through row-level
+  /// security) so the author of a pending tag sees the same public set as
+  /// everyone else.
+  Future<List<PostModel>> getServicePosts(String serviceId, {int limit = 12}) async {
+    AppLogger.d('Fetching posts for service: $serviceId', tag: 'PostRepository');
+    final sw = Stopwatch()..start();
+    try {
+      final response = await _client
+          .from('posts')
+          .select()
+          .eq('service_id', serviceId)
+          .eq('tag_status', 'approved')
+          .order('created_at', ascending: false)
+          .limit(limit);
+      sw.stop();
+      final posts = (response as List).map((e) => PostModel.fromJson(e)).toList();
+      AppLogger.api('posts.select(service)', count: posts.length, duration: sw.elapsed);
+      return posts;
+    } catch (e, st) {
+      AppLogger.e('Failed to fetch service posts', tag: 'PostRepository', error: e, stackTrace: st);
+      rethrow;
+    }
+  }
+
   /// One page of the Discover feed, newest first.
   ///
   /// Keyset-paginated on `created_at`: pass the oldest timestamp already shown

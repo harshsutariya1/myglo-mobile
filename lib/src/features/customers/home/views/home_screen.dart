@@ -5,6 +5,7 @@ import '../../../../core/routing/app_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/skeleton/skeletons.dart';
 import '../../../shared/authentication/controllers/user_profile_provider.dart';
+import '../../../shared/notifications/views/notification_bell.dart';
 import 'welcome_greeting.dart';
 import 'widgets/home_search_bar.dart';
 import 'widgets/provider_item.dart';
@@ -60,15 +61,7 @@ class HomeScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  IconButton(
-                    tooltip: 'Notifications',
-                    icon: Icon(
-                      Icons.notifications_outlined,
-                      color: context.colorScheme.onSurface,
-                      size: 28,
-                    ),
-                    onPressed: () {},
-                  ),
+                  const NotificationBell(size: 28),
                 ],
               ),
               Padding(

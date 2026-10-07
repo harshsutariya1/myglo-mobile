@@ -148,7 +148,10 @@ class _PublicProviderProfileScreenState extends ConsumerState<PublicProviderProf
                 AsyncData(:final value?) => ProviderProfileHeader(
                   profile: value,
                   distanceKm: distanceKm,
-                  onBookNow: () => _tabController.animateTo(0),
+                  onBookNow: () => context.pushNamed(
+                    AppRoute.selectServices.name,
+                    pathParameters: {'id': _id},
+                  ),
                   onContact: () => showProviderContactSheet(context, value),
                 ),
                 AsyncError(:final error) => SectionErrorView(
@@ -182,11 +185,8 @@ class _PublicProviderProfileScreenState extends ConsumerState<PublicProviderProf
         return [
           ProviderServicesTab(
             providerId: _id,
-            onBook: (service) => showServiceBookingSheet(
-              context,
-              service: service,
-              provider: profileAsync.value,
-            ),
+            onOpen: (service) => showServiceBookingSheet(context, service: service),
+            onBook: (service) => openServiceBooking(context, service),
           ),
         ];
       case 1:

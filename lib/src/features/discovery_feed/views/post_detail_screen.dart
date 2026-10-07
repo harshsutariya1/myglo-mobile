@@ -82,8 +82,8 @@ class PostDetailScreen extends ConsumerWidget {
                       _TaggedServicePill(
                         serviceId: serviceId,
                         onTap: (service) => isClient
-                            ? showServiceBookingSheet(context, service: service, provider: provider)
-                            : showServiceDetailsSheet(context, service: service),
+                            ? showServiceBookingSheet(context, service: service, excludePostId: post.id)
+                            : showServiceDetailsSheet(context, service: service, excludePostId: post.id),
                       ),
                     ],
                   ],
@@ -113,7 +113,7 @@ class PostDetailScreen extends ConsumerWidget {
                 pathParameters: {'id': provider.id},
               ),
               onPrimary: () => service != null
-                  ? showServiceBookingSheet(context, service: service, provider: provider)
+                  ? showServiceBookingSheet(context, service: service, excludePostId: post.id)
                   : showProviderContactSheet(context, provider),
             )
           : null,
