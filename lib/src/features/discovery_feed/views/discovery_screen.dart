@@ -46,6 +46,7 @@ SliverAppBar _discoverAppBar(BuildContext context, {bool scrolled = false, Prefe
     shape: scrolled ? Border(bottom: BorderSide(color: scheme.onSurface.withValues(alpha: 0.06))) : null,
     systemOverlayStyle: SystemUiOverlayStyle.dark,
     automaticallyImplyLeading: false,
+    centerTitle: false,
     titleSpacing: 20,
     toolbarHeight: DiscoveryScreen._toolbarHeight,
     title: const _DiscoverTitle(),

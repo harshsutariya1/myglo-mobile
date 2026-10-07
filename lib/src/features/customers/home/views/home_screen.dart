@@ -26,13 +26,12 @@ class HomeScreen extends ConsumerWidget {
       body: SafeArea(
         bottom: false,
         child: SingleChildScrollView(
-          padding: EdgeInsets.all(24.0),
+          padding: EdgeInsets.fromLTRB(24, 12, 24, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(height: 16),
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Expanded(
                     child: RichText(
@@ -40,7 +39,7 @@ class HomeScreen extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                       text: TextSpan(
                         style: TextStyle(
-                          fontSize: 28,
+                          fontSize: 22,
                           fontWeight: FontWeight.bold,
                           color: context.colorScheme.onSurface,
                         ),
@@ -61,14 +60,14 @@ class HomeScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  const NotificationBell(size: 28),
+                  const NotificationBell(size: 24),
                 ],
               ),
               Padding(
-                padding: const EdgeInsets.only(top: 4, bottom: 24),
+                padding: const EdgeInsets.only(top: 2, bottom: 16),
                 child: Image.asset(
                   'assets/graphics/Underline.png',
-                  width: 120,
+                  width: 90,
                   fit: BoxFit.contain,
                 ),
               ),
@@ -117,11 +116,12 @@ class HomeScreen extends ConsumerWidget {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: providers.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 16),
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 16),
                     itemBuilder: (context, index) {
                       final provider = providers[index];
                       final name = provider.providerName;
-                      
+
                       return InkWell(
                         borderRadius: BorderRadius.circular(20),
                         onTap: () => context.pushNamed(
@@ -141,9 +141,8 @@ class HomeScreen extends ConsumerWidget {
                   );
                 },
                 loading: () => const ProviderListSkeleton(),
-                error: (error, stack) => Center(
-                  child: Text('Error loading providers: $error'),
-                ),
+                error: (error, stack) =>
+                    Center(child: Text('Error loading providers: $error')),
               ),
               // Padding at the bottom for the navigation bar
               const SizedBox(height: 100),

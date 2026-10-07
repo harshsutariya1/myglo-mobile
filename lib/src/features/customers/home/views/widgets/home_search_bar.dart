@@ -13,9 +13,12 @@ class HomeSearchBar extends StatelessWidget {
               color: Colors.grey[100],
               borderRadius: BorderRadius.circular(32),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: const TextField(
+              textAlignVertical: TextAlignVertical.center,
               decoration: InputDecoration(
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(vertical: 16),
                 prefixIcon: Icon(Icons.search, color: Colors.black54),
                 hintText: 'What are you looking for?',
                 border: InputBorder.none,
