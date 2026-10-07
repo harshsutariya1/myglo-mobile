@@ -139,7 +139,7 @@ void main() {
     await tester.scrollUntilVisible(find.text('Late cancellation fee'), 300);
     expect(find.text('Mon–Fri · 9:00 am – 5:00 pm'), findsOneWidget);
     expect(find.text('None planned'), findsOneWidget);
-    expect(find.text('Requests wait for you to accept'), findsOneWidget);
+    expect(find.text('Every booking waits for you to accept'), findsOneWidget);
     expect(find.text('15 min between bookings'), findsOneWidget);
     expect(find.text('2 hours ahead'), findsOneWidget);
     expect(find.text('Free until 1 day before'), findsOneWidget);

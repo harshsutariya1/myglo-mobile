@@ -12,10 +12,32 @@ abstract final class CancellationPolicy {
   /// One-line summary for settings and the booking flow.
   static String summary({required int windowHours, required int feePercent}) {
     if (windowHours <= 0) return 'Free cancellation any time before the appointment.';
-    final late = feePercent > 0
-        ? 'Later cancellations and no-shows are charged $feePercent% of the booking.'
-        : "Later cancellations are recorded as late.";
-    return 'Free cancellation up to ${windowLabel(windowHours)} before. $late';
+    return '${headline(windowHours)}. ${lateTerms(feePercent)}';
+  }
+
+  /// `Free cancellation up to 24 hours before`, as a heading.
+  static String headline(int windowHours) =>
+      windowHours <= 0 ? 'Free cancellation any time' : 'Free cancellation up to ${windowLabel(windowHours)} before';
+
+  /// What happens once free cancellation has ended.
+  static String lateTerms(int feePercent) => feePercent > 0
+      ? 'Later cancellations and no-shows are charged $feePercent% of the booking.'
+      : 'Later cancellations are recorded as late.';
+
+  /// What a provider's public profile says applies besides the free window.
+  /// Cash bookings never have a fee. [inAppFeePercent] (the provider's
+  /// late-cancellation / no-show fee) only applies to bookings paid in the
+  /// app, so it's mentioned once [inAppPaymentsLive].
+  static String profileTerms({
+    required int windowHours,
+    required int inAppFeePercent,
+    required bool inAppPaymentsLive,
+  }) {
+    final cash = windowHours <= 0
+        ? 'Cash bookings never have a cancellation fee.'
+        : 'No fee on cash bookings; later cancellations are recorded as late.';
+    if (!inAppPaymentsLive || inAppFeePercent <= 0) return cash;
+    return '$cash Paid in the app: later cancellations and no-shows are charged $inAppFeePercent% of the booking.';
   }
 
   /// Terms for a specific booking, given when free cancellation ends
@@ -31,7 +53,7 @@ abstract final class CancellationPolicy {
     final late = feePercent > 0
         ? 'After that, a late-cancellation fee of ${Formatters.audCents(fee)} ($feePercent%) applies, '
             'payable to the provider.'
-        : 'After that, cancelling is still possible but is recorded as a late cancellation.';
+        : "After that, you can still cancel with no fee, but it's recorded as a late cancellation.";
     return 'Free cancellation until ${Formatters.dateTimeShort(freeUntilLocal)}. $late';
   }
 }

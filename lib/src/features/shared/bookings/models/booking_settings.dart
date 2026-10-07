@@ -15,8 +15,9 @@ abstract class ProviderBookingSettings with _$ProviderBookingSettings {
     @JsonKey(name: 'time_zone') @Default(BookingTime.defaultTimeZone) String timeZone,
     @JsonKey(name: 'accepts_bookings') @Default(true) bool acceptsBookings,
 
-    /// Requests wait for the provider to accept instead of confirming
-    /// instantly.
+    /// Bookings paid in the app wait for the provider to accept instead of
+    /// confirming instantly. Cash bookings are always requests, whatever this
+    /// says (see BookingTerms).
     @JsonKey(name: 'requires_approval') @Default(false) bool requiresApproval,
     @JsonKey(name: 'slot_interval_minutes') @Default(15) int slotIntervalMinutes,
     @JsonKey(name: 'buffer_minutes') @Default(0) int bufferMinutes,

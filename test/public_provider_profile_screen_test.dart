@@ -18,6 +18,9 @@ import 'package:myglo/src/features/providers/provider_profiles/models/service_mo
 import 'package:myglo/src/features/shared/authentication/controllers/user_profile_provider.dart';
 import 'package:myglo/src/features/shared/authentication/models/profile_model.dart';
 import 'package:myglo/src/features/shared/authentication/models/user_role.dart';
+import 'package:myglo/src/features/shared/bookings/controllers/booking_controllers.dart';
+import 'package:myglo/src/features/shared/bookings/models/booking_settings.dart';
+import 'package:myglo/src/features/shared/bookings/models/working_hours.dart';
 
 const _id = 'prov-1';
 
@@ -45,6 +48,8 @@ Future<void> _pump(
   required FutureOr<ProfileModel?> Function() profile,
   required FutureOr<List<ServiceModel>> Function() services,
   required FutureOr<List<PostModel>> Function() posts,
+  WeeklySchedule? hours,
+  ProviderBookingSettings settings = const ProviderBookingSettings(providerId: _id),
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -56,6 +61,8 @@ Future<void> _pump(
         providerServicesProvider(_id).overrideWith((ref) => services()),
         userPostsProvider(_id).overrideWith((ref) => posts()),
         servicePostsProvider.overrideWith((ref, serviceId) => const []),
+        bookingSettingsProvider(_id).overrideWith((ref) => Stream.value(settings)),
+        workingHoursProvider(_id).overrideWith((ref) async => hours ?? WeeklySchedule(const [])),
       ],
       child: MaterialApp(
         theme: AppTheme.lightTheme,
@@ -187,6 +194,55 @@ void main() {
     expect(find.text('Lashes and brows on the Gold Coast.'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('No reviews yet'), 200);
     expect(find.text('No reviews yet'), findsOneWidget);
+    expect(find.text('Hours not listed yet'), findsOneWidget);
+  });
+
+  testWidgets('lists the weekly opening hours in the provider time zone', (tester) async {
+    await _pump(
+      tester,
+      profile: () => _profile,
+      services: () => const [],
+      posts: () => const [],
+      hours: WeeklySchedule([
+        for (var day = 1; day <= 5; day++)
+          WorkingHoursRange(weekday: day, opensMinutes: 9 * 60, closesMinutes: 17 * 60),
+        const WorkingHoursRange(weekday: 6, opensMinutes: 9 * 60, closesMinutes: 12 * 60),
+        const WorkingHoursRange(weekday: 6, opensMinutes: 13 * 60, closesMinutes: 15 * 60),
+      ]),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    await tester.tap(find.text('About'));
+    await tester.pump();
+    await tester.scrollUntilVisible(find.text('Times in Gold Coast time (AEST)'), 200);
+
+    expect(find.text('Hours not listed yet'), findsNothing);
+    expect(find.text('Monday'), findsOneWidget);
+    expect(find.text('9:00 am – 5:00 pm'), findsNWidgets(5));
+    expect(find.text('9:00 am – 12:00 pm\n1:00 pm – 3:00 pm'), findsOneWidget);
+    expect(find.text('Closed'), findsOneWidget);
+  });
+
+  testWidgets('shows the provider cancellation policy', (tester) async {
+    await _pump(
+      tester,
+      profile: () => _profile,
+      services: () => const [],
+      posts: () => const [],
+      settings: const ProviderBookingSettings(providerId: _id, cancellationWindowHours: 48, cancellationFeePercent: 50),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    await tester.tap(find.text('About'));
+    await tester.pump();
+    await tester.scrollUntilVisible(find.text('Free cancellation up to 2 days before'), 200);
+
+    expect(find.text('No policy published'), findsNothing);
+    // The 50% fee only applies to bookings paid in the app, which aren't live.
+    expect(find.text('No fee on cash bookings; later cancellations are recorded as late.'), findsOneWidget);
+    expect(find.textContaining('50%'), findsNothing);
   });
 
   testWidgets('shows a not-found state for an unknown or non-provider id', (tester) async {

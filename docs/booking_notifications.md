@@ -34,22 +34,47 @@ private.on_booking_event ──► public.notifications            in-app inbox 
   | --- | --- | --- |
   | `myglo-expire-booking-requests` | every 5 min | Expires requests nobody answered before the start time and tells both sides |
   | `myglo-booking-reminders` | every 10 min | Day-before reminder (email + in-app) and a 2-hour in-app reminder |
+  | `myglo-booking-request-reminders` | every 5 min | Reminds providers about requests they haven't answered (see below) |
   | `myglo-notification-delivery-sweep` | every minute | Re-sends emails that are due for a retry |
 
 ### Who gets what
 
 | Event | Client | Provider |
 | --- | --- | --- |
-| Booking confirmed instantly | Booking confirmed (email) | New booking (email) |
-| Request sent (provider approves bookings) | Request sent (email) | New booking request (email) |
+| Booking confirmed instantly (paid in the app, provider doesn't approve bookings; not live yet) | Booking confirmed (email) | New booking (email) |
+| Request sent (every cash booking, or the provider approves bookings) | Request sent (email) | New booking request (email) |
 | Request accepted | Booking confirmed (email) | — |
 | Request declined | Request declined (email) | — |
-| Client cancels | Booking cancelled (email) | Booking cancelled, with late-cancellation fee if any (email) |
+| Client cancels | Booking cancelled (email) | Booking cancelled, with late-cancellation fee if any (never for cash) (email) |
 | Provider cancels | Booking cancelled (email) | — |
+| Request still unanswered | — | Request waiting for you, then Respond before it expires (email + in-app each) |
 | Request expires | Request expired (email) | Request expired (in-app) |
 | Completed | Thank-you (in-app) | — |
 | No-show | Missed appointment (email) | — |
 | Reminders | Day before (email), 2 hours before (in-app) | — |
+
+### Reminders about unanswered requests
+
+A request nobody answers expires at its start time, so the provider gets up to
+two reminders, timed by how far ahead the request was made (T):
+
+1. **Request waiting for you**: once it has waited 2 hours, or half of T if
+   that's sooner.
+2. **Respond before it expires**: 24 hours before the start, or a quarter of T
+   before it if that's later.
+
+| Request made | Reminder 1 | Reminder 2 |
+| --- | --- | --- |
+| 14 days ahead | 2 h after | 24 h before start |
+| 24 hours ahead | 2 h after | 6 h before start |
+| 5 hours ahead | 2 h after | 1 h 15 min before start |
+| 2 hours ahead | 1 h after | 30 min before start |
+
+Nothing is sent within 15 minutes of the start, once the provider responds, or
+after the client withdraws. Each reminder goes out at most once
+(`bookings.request_reminder_sent_at`, `request_final_reminder_sent_at`). There
+are no quiet hours yet: emails can arrive overnight. Revisit when push
+notifications land.
 
 All times in notifications are Gold Coast time (AEST, UTC+10; Queensland has
 no daylight saving).

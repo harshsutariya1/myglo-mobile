@@ -2,10 +2,12 @@ import 'package:myglo/src/features/shared/bookings/models/booking.dart';
 import 'package:myglo/src/features/shared/bookings/models/booking_enums.dart';
 
 /// A Gold Coast booking (AEST, UTC+10) for tests: Wed 8 Oct 2026,
-/// 9:30–11:00 am local, a lash lift and tint paid in cash.
+/// 9:30–11:00 am local, a lash lift and tint, paid in cash unless
+/// [paymentMethod] says otherwise.
 Booking sampleBooking({
   String id = 'booking-1',
   BookingStatus status = BookingStatus.confirmed,
+  PaymentMethod paymentMethod = PaymentMethod.cash,
   PaymentStatus paymentStatus = PaymentStatus.pending,
   BookingLocationType locationType = BookingLocationType.studio,
   DateTime? startsAt,
@@ -43,9 +45,9 @@ Booking sampleBooking({
     clientNotes: clientNotes,
     subtotalCents: 11500,
     totalCents: 11500,
-    paymentMethod: PaymentMethod.cash,
+    paymentMethod: paymentMethod,
     paymentStatus: paymentStatus,
-    requiresApproval: status == BookingStatus.pending,
+    requiresApproval: paymentMethod.isCash || status == BookingStatus.pending,
     cancellationWindowHours: cancellationWindowHours,
     cancellationFeePercent: cancellationFeePercent,
     freeCancellationUntil: start.subtract(Duration(hours: cancellationWindowHours)),

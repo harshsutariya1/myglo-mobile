@@ -12,6 +12,8 @@ import 'package:myglo/src/features/shared/bookings/models/booking.dart';
 import 'package:myglo/src/features/shared/bookings/models/booking_enums.dart';
 import 'package:myglo/src/features/shared/bookings/models/booking_failure.dart';
 import 'package:myglo/src/features/shared/bookings/models/booking_repository.dart';
+import 'package:myglo/src/features/shared/bookings/models/booking_settings.dart';
+import 'package:myglo/src/features/shared/bookings/models/booking_terms.dart';
 import 'package:myglo/src/features/shared/bookings/models/booking_time.dart';
 import 'package:myglo/src/features/shared/bookings/models/cancellation_policy.dart';
 import 'package:myglo/src/features/shared/bookings/models/client_address.dart';
@@ -314,11 +316,18 @@ void main() {
 
   group('Booking', () {
     test('summarises services and money', () {
-      final booking = sampleBooking(cancellationFeePercent: 50);
+      final booking = sampleBooking(paymentMethod: PaymentMethod.card, cancellationFeePercent: 50);
       expect(booking.servicesSummary, 'Lash lift, Lash tint');
+      expect(booking.lateFeePercent, 50);
       expect(booking.lateFeeCents, 5750);
       expect(booking.timeZoneLabel, 'Gold Coast time (AEST)');
-      expect(paymentStatusLabel(booking.paymentMethod, booking.paymentStatus), 'Pending (Cash)');
+      expect(paymentStatusLabel(PaymentMethod.cash, booking.paymentStatus), 'Pending (Cash)');
+    });
+
+    test('a cash booking never carries a late-cancellation or no-show fee', () {
+      final booking = sampleBooking(cancellationFeePercent: 50);
+      expect(booking.lateFeePercent, 0);
+      expect(booking.lateFeeCents, 0);
     });
 
     test('knows when cancelling is free, late or no longer possible', () {
@@ -377,7 +386,72 @@ void main() {
     });
   });
 
+  group('Booking terms', () {
+    const instant = ProviderBookingSettings(
+      providerId: 'prov-1',
+      cancellationWindowHours: 48,
+      cancellationFeePercent: 50,
+    );
+
+    test('cash is always a request with no fee, whatever the provider settings', () {
+      for (final settings in [instant, instant.copyWith(requiresApproval: true)]) {
+        final terms = BookingTerms.of(settings, PaymentMethod.cash);
+        expect(terms.requiresApproval, isTrue);
+        expect(terms.cancellationFeePercent, 0);
+        expect(terms.cancellationWindowHours, 48);
+      }
+    });
+
+    test('bookings paid in the app follow the provider settings', () {
+      final terms = BookingTerms.of(instant, PaymentMethod.card);
+      expect(terms.requiresApproval, isFalse);
+      expect(terms.cancellationFeePercent, 50);
+      expect(
+        BookingTerms.of(instant.copyWith(requiresApproval: true), PaymentMethod.applePay).requiresApproval,
+        isTrue,
+      );
+    });
+
+    test('only cash can be chosen until in-app payments launch', () {
+      expect(
+        [
+          for (final method in PaymentMethod.values)
+            if (method.isAvailable) method,
+        ],
+        [PaymentMethod.cash],
+      );
+    });
+  });
+
   group('Policy wording', () {
+    test('profile terms never put a fee on cash', () {
+      expect(
+        CancellationPolicy.profileTerms(windowHours: 24, inAppFeePercent: 50, inAppPaymentsLive: false),
+        'No fee on cash bookings; later cancellations are recorded as late.',
+      );
+      expect(
+        CancellationPolicy.profileTerms(windowHours: 0, inAppFeePercent: 0, inAppPaymentsLive: true),
+        'Cash bookings never have a cancellation fee.',
+      );
+      expect(
+        CancellationPolicy.profileTerms(windowHours: 24, inAppFeePercent: 50, inAppPaymentsLive: true),
+        endsWith('Paid in the app: later cancellations and no-shows are charged 50% of the booking.'),
+      );
+    });
+
+    test('a booking without a fee says so', () {
+      expect(
+        CancellationPolicy.forBooking(
+          freeUntilLocal: DateTime.utc(2026, 10, 7, 9, 30),
+          windowHours: 24,
+          feePercent: 0,
+          totalCents: 11500,
+        ),
+        "Free cancellation until Wed 7 Oct, 9:30 am. After that, you can still cancel with no fee, but it's recorded "
+        'as a late cancellation.',
+      );
+    });
+
     test('cancellation policy', () {
       expect(CancellationPolicy.summary(windowHours: 24, feePercent: 0),
           'Free cancellation up to 24 hours before. Later cancellations are recorded as late.');
@@ -386,6 +460,8 @@ void main() {
     });
 
     test('booking rule labels', () {
+      expect(BookingRuleLabels.lateFeeSummary(0), 'No fee');
+      expect(BookingRuleLabels.lateFeeSummary(50), '50% of the booking · paid in app only');
       expect(BookingRuleLabels.notice(0), 'No minimum');
       expect(BookingRuleLabels.notice(90), '1.5 hours ahead');
       expect(BookingRuleLabels.notice(120), '2 hours ahead');

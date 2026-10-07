@@ -134,6 +134,8 @@ class BookingPriceCard extends StatelessWidget {
         totalCents: booking.totalCents,
         footnote: note,
         platformFeeCents: forProvider ? booking.platformFeeCents ?? 0 : null,
+        // Myglo takes no commission on cash bookings.
+        noPlatformFeeLabel: cash ? 'None on cash' : 'Free',
       ),
     );
   }

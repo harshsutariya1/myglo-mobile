@@ -5,6 +5,9 @@ import '../../../../core/theme/app_theme.dart';
 /// What a notification is about. Mirrors `notifications.kind`.
 enum NotificationKind {
   bookingRequest('booking_request', Icons.mark_email_unread_outlined),
+
+  /// Provider reminder about a request they haven't answered yet.
+  bookingRequestReminder('booking_request_reminder', Icons.pending_actions_rounded),
   bookingNew('booking_new', Icons.event_available_rounded),
   bookingRequested('booking_requested', Icons.outgoing_mail),
   bookingConfirmed('booking_confirmed', Icons.check_circle_outline_rounded),
@@ -26,7 +29,7 @@ enum NotificationKind {
 
   Color color(ColorScheme scheme) => switch (this) {
         bookingNew || bookingConfirmed || bookingCompleted => AppTheme.success,
-        bookingRequest || bookingRequested => AppTheme.warning,
+        bookingRequest || bookingRequestReminder || bookingRequested => AppTheme.warning,
         bookingDeclined || bookingCancelled || bookingNoShow => AppTheme.destructive,
         bookingReminder => scheme.primary,
         bookingExpired || unknown => scheme.onSurface.withValues(alpha: 0.55),

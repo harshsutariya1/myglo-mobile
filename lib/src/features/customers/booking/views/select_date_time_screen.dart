@@ -20,6 +20,7 @@ import '../../provider_profile/views/widgets/section_states.dart';
 import '../controllers/availability_controller.dart';
 import '../controllers/booking_draft_controller.dart';
 import '../controllers/service_selection_controller.dart';
+import '../models/empty_day_reason.dart';
 import '../models/service_selection.dart';
 import 'booking_flow_navigation.dart';
 import 'widgets/booking_calendar.dart';
@@ -227,7 +228,7 @@ class _SelectDateTimeScreenState extends ConsumerState<SelectDateTimeScreen> {
             refreshing: slotsAsync.isLoading && calendar != null,
           ),
           const SizedBox(height: 12),
-          _buildTimes(context, slotsAsync, calendar, selectedDay, daySlots, selection, month, lastDay, request),
+          _buildTimes(context, settings, slotsAsync, calendar, selectedDay, daySlots, selection, month, lastDay, request),
         ],
       ),
     );
@@ -235,6 +236,7 @@ class _SelectDateTimeScreenState extends ConsumerState<SelectDateTimeScreen> {
 
   Widget _buildTimes(
     BuildContext context,
+    ProviderBookingSettings settings,
     AsyncValue<SlotCalendar> slotsAsync,
     SlotCalendar? calendar,
     DateTime? selectedDay,
@@ -281,11 +283,25 @@ class _SelectDateTimeScreenState extends ConsumerState<SelectDateTimeScreen> {
       );
     }
 
-    final nextDay = selectedDay == null ? null : calendar.firstDayFrom(selectedDay.add(const Duration(days: 1)));
+    if (selectedDay == null) {
+      return const _NoTimes(
+        icon: Icons.free_cancellation_outlined,
+        title: 'Choose a day',
+        message: 'Pick a highlighted day to see its times.',
+      );
+    }
+    final reason = EmptyDayReason.explain(
+      day: selectedDay,
+      now: BookingTime.nowIn(settings.timeZone),
+      hours: ref.watch(workingHoursProvider(_providerId)).value,
+      settings: settings,
+      durationMinutes: selection.totalMinutes,
+    );
+    final nextDay = calendar.firstDayFrom(selectedDay.add(const Duration(days: 1)));
     return _NoTimes(
       icon: Icons.free_cancellation_outlined,
-      title: selectedDay == null ? 'Choose a day' : 'No times on ${Formatters.weekdayLong(selectedDay)}',
-      message: 'This day is fully booked or the provider is closed.',
+      title: reason.title,
+      message: reason.message,
       actionLabel: nextDay == null ? null : 'Next available: ${Formatters.dateShort(nextDay)}',
       onAction: nextDay == null ? null : () => setState(() => _selectedDay = nextDay),
     );

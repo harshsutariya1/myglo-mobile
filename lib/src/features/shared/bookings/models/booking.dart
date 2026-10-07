@@ -113,8 +113,13 @@ abstract class Booking with _$Booking {
   /// bookings inside the provider's window; requests are always free).
   bool isLateToCancel(DateTime now) => status == BookingStatus.confirmed && !now.isBefore(freeCancellationUntil);
 
-  /// The provider's late-cancellation / no-show fee for this booking.
-  int get lateFeeCents => (totalCents * cancellationFeePercent / 100).round();
+  /// The late-cancellation / no-show fee rate for this booking: the
+  /// provider's rate snapshotted at booking time, and always 0 for cash
+  /// (the server guarantees the same).
+  int get lateFeePercent => paymentMethod.isCash ? 0 : cancellationFeePercent;
+
+  /// The late-cancellation / no-show fee for this booking.
+  int get lateFeeCents => (totalCents * lateFeePercent / 100).round();
 
   /// Started already, so the provider can mark it done or a no-show.
   bool hasStarted(DateTime now) => !startsAt.isAfter(now);

@@ -13,6 +13,7 @@ import '../../../shared/authentication/controllers/user_profile_provider.dart';
 import '../../../shared/bookings/controllers/booking_controllers.dart';
 import '../../../shared/bookings/models/booking_enums.dart';
 import '../../../shared/bookings/models/booking_failure.dart';
+import '../../../shared/bookings/models/booking_terms.dart';
 import '../../../shared/bookings/views/widgets/booking_summary.dart';
 import '../../provider_profile/controllers/public_provider_profile_controller.dart';
 import '../../provider_profile/views/widgets/provider_profile_header.dart';
@@ -27,7 +28,9 @@ import 'widgets/payment_option_tile.dart';
 /// Step 5: choose how to pay and place the booking.
 ///
 /// Only cash is live; card, wallet and buy-now-pay-later rails are listed as
-/// coming soon. Placing the booking re-checks everything server-side in one
+/// coming soon. A cash booking is always sent as a request the provider
+/// accepts, with no booking or cancellation fees (see [BookingTerms]).
+/// Placing the booking re-checks everything server-side in one
 /// transaction (the time, prices, travel area); if something changed, the
 /// client is taken straight to the step that needs attention with their
 /// other choices intact.
@@ -208,7 +211,9 @@ class BookingPaymentScreen extends ConsumerWidget {
     final provider = ref.watch(publicProviderProfileProvider(providerId)).value;
     final submitting = ref.watch(checkoutControllerProvider(providerId)).isLoading;
     final providerName = provider == null ? 'the provider' : providerDisplayName(provider);
-    final requiresApproval = settings?.requiresApproval ?? false;
+    // Until settings load, assume a request: the server decides either way,
+    // and cash (the only live method) always is one.
+    final requiresApproval = settings == null || BookingTerms.of(settings, draft.paymentMethod).requiresApproval;
     final ready = selection.isNotEmpty && draft.hasSlot && draft.hasLocation;
     final wallet = walletFor(defaultTargetPlatform);
 
@@ -225,7 +230,7 @@ class BookingPaymentScreen extends ConsumerWidget {
           actionLabel: requiresApproval ? 'Send request' : 'Confirm booking',
           icon: Icons.lock_outline_rounded,
           busy: submitting,
-          onAction: ready && draft.paymentMethod == PaymentMethod.cash ? () => _confirm(context, ref) : null,
+          onAction: ready && draft.paymentMethod.isAvailable ? () => _confirm(context, ref) : null,
           summary: BookingFooterSummary(caption: 'Pay on the day', value: Formatters.audCents(selection.totalCents)),
         ),
         body: ListView(
@@ -294,7 +299,8 @@ class BookingPaymentScreen extends ConsumerWidget {
                         const SizedBox(height: 2),
                         Text(
                           'Your payment shows as pending until you pay $providerName '
-                          '${Formatters.audCents(selection.totalCents)} in cash on the day.',
+                          '${Formatters.audCents(selection.totalCents)} in cash on the day. '
+                          'Cash bookings have no booking or cancellation fees.',
                           style: TextStyle(fontSize: 13.5, height: 1.4, color: scheme.onSurface.withValues(alpha: 0.6)),
                         ),
                       ],

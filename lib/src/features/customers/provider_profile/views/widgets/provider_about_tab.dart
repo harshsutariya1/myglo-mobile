@@ -5,6 +5,11 @@ import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/utils/formatters.dart';
 import '../../../../../core/widgets/skeleton/skeletons.dart';
 import '../../../../shared/authentication/models/profile_model.dart';
+import '../../../../shared/bookings/controllers/booking_controllers.dart';
+import '../../../../shared/bookings/models/booking_enums.dart';
+import '../../../../shared/bookings/models/booking_time.dart';
+import '../../../../shared/bookings/models/cancellation_policy.dart';
+import '../../../../shared/bookings/models/working_hours.dart';
 import 'section_states.dart';
 
 const TextStyle _headingStyle = TextStyle(fontSize: 17, fontWeight: FontWeight.w800);
@@ -12,8 +17,9 @@ const TextStyle _bodyStyle = TextStyle(fontSize: 15, height: 1.45);
 
 /// About / details tab of the public provider profile, as slivers.
 ///
-/// Opening hours, cancellation policy and reviews are not stored for
-/// providers yet, so those sections explain that instead of staying blank.
+/// Opening hours and the cancellation policy come live from the provider's
+/// booking schedule and rules. Reviews are not stored yet, so that section
+/// explains that instead of staying blank.
 class ProviderAboutTab extends StatelessWidget {
   const ProviderAboutTab({
     super.key,
@@ -69,21 +75,13 @@ class ProviderAboutTab extends StatelessWidget {
           subtitle: distance == null ? null : '${Formatters.distanceKm(distance)} away',
         ),
       ),
-      const _Section(
+      _Section(
         title: 'Opening hours',
-        child: _InfoCard(
-          icon: Icons.schedule_outlined,
-          title: 'Hours not listed yet',
-          subtitle: 'Contact the provider to check their availability.',
-        ),
+        child: _OpeningHours(providerId: profile.id),
       ),
-      const _Section(
+      _Section(
         title: 'Cancellation policy',
-        child: _InfoCard(
-          icon: Icons.event_busy_outlined,
-          title: 'No policy published',
-          subtitle: 'Confirm cancellation terms with the provider before you book.',
-        ),
+        child: _CancellationPolicy(providerId: profile.id),
       ),
       const _Section(
         title: 'Reviews',
@@ -117,6 +115,164 @@ class _Section extends StatelessWidget {
           const SizedBox(height: 10),
           child,
         ],
+      ),
+    );
+  }
+}
+
+/// The provider's week, Monday first, in their own time zone with today
+/// highlighted, so a client in another zone reads the hours correctly.
+class _OpeningHours extends ConsumerWidget {
+  const _OpeningHours({required this.providerId});
+
+  final String providerId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final timeZone = ref.watch(bookingSettingsProvider(providerId)).value?.timeZone ?? BookingTime.defaultTimeZone;
+    return switch (ref.watch(workingHoursProvider(providerId))) {
+      AsyncData(:final value) when value.isEmpty => const _InfoCard(
+        icon: Icons.schedule_outlined,
+        title: 'Hours not listed yet',
+        subtitle: 'Contact the provider to check their availability.',
+      ),
+      AsyncData(:final value) => _WeekCard(schedule: value, timeZone: timeZone),
+      AsyncError(:final error) => SectionErrorView(
+        title: "Opening hours didn't load",
+        message: describeLoadError(error, subject: "this provider's opening hours"),
+        onRetry: () => ref.invalidate(workingHoursProvider(providerId)),
+      ),
+      _ => const Shimmer(child: SkeletonBox(height: 220, borderRadius: 16)),
+    };
+  }
+}
+
+/// The provider's current free-cancellation window, and what applies after
+/// it: never a fee for cash; their own fee for bookings paid in the app.
+class _CancellationPolicy extends ConsumerWidget {
+  const _CancellationPolicy({required this.providerId});
+
+  final String providerId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return switch (ref.watch(bookingSettingsProvider(providerId))) {
+      AsyncData(value: final settings?) => _InfoCard(
+        icon: Icons.event_busy_outlined,
+        title: CancellationPolicy.headline(settings.cancellationWindowHours),
+        subtitle: CancellationPolicy.profileTerms(
+          windowHours: settings.cancellationWindowHours,
+          inAppFeePercent: settings.cancellationFeePercent,
+          inAppPaymentsLive: PaymentMethod.values.any((method) => method.isAvailable && !method.isCash),
+        ),
+      ),
+      AsyncData() => const _InfoCard(
+        icon: Icons.event_busy_outlined,
+        title: 'No policy published',
+        subtitle: 'Confirm cancellation terms with the provider before you book.',
+      ),
+      AsyncError(:final error) => SectionErrorView(
+        title: "Cancellation policy didn't load",
+        message: describeLoadError(error, subject: "this provider's cancellation policy"),
+        onRetry: () => ref.invalidate(bookingSettingsProvider(providerId)),
+      ),
+      _ => const Shimmer(child: SkeletonBox(height: 72, borderRadius: 16)),
+    };
+  }
+}
+
+class _WeekCard extends StatelessWidget {
+  const _WeekCard({required this.schedule, required this.timeZone});
+
+  final WeeklySchedule schedule;
+  final String timeZone;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    final today = BookingTime.todayIn(timeZone).weekday;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: scheme.onSurface.withValues(alpha: 0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var weekday = 1; weekday <= 7; weekday++)
+            _DayRow(weekday: weekday, ranges: schedule.on(weekday), isToday: weekday == today),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.public_rounded, size: 15, color: scheme.onSurface.withValues(alpha: 0.5)),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Times in ${BookingTime.label(timeZone)}',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurface.withValues(alpha: 0.55),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DayRow extends StatelessWidget {
+  const _DayRow({required this.weekday, required this.ranges, required this.isToday});
+
+  final int weekday;
+  final List<WorkingHoursRange> ranges;
+  final bool isToday;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    final closed = ranges.isEmpty;
+    final style = TextStyle(
+      fontSize: 14.5,
+      height: 1.4,
+      fontWeight: isToday ? FontWeight.w800 : FontWeight.w500,
+      color: closed && !isToday ? scheme.onSurface.withValues(alpha: 0.5) : scheme.onSurface,
+    );
+    final day = Formatters.weekdayLong(DateTime.utc(2024, 1, weekday));
+    final hours = closed ? 'Closed' : ranges.map((range) => range.label).join('\n');
+    return Semantics(
+      label: '$day${isToday ? ', today' : ''}: ${hours.replaceAll('\n', ', ')}',
+      excludeSemantics: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 108,
+              child: Row(
+                children: [
+                  Flexible(child: Text(day, style: style)),
+                  if (isToday) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(color: scheme.secondary, shape: BoxShape.circle),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            Expanded(
+              child: Text(hours, textAlign: TextAlign.end, style: style),
+            ),
+          ],
+        ),
       ),
     );
   }

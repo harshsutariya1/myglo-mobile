@@ -61,7 +61,6 @@ class _ProviderHomeScreenState extends ConsumerState<ProviderHomeScreen> {
     final scheme = context.colorScheme;
     final requests = ref.watch(bookingListProvider(_requests).select((s) => s.value));
     final requestBadge = requests == null || requests.items.isEmpty ? null : requests.items.length;
-    final requiresApproval = ref.watch(ownBookingSettingsProvider.select((s) => s.value?.requiresApproval ?? false));
 
     return Scaffold(
       backgroundColor: scheme.surface,
@@ -148,12 +147,11 @@ class _ProviderHomeScreenState extends ConsumerState<ProviderHomeScreen> {
                         actionLabel: 'Manage availability',
                         onAction: () => context.pushNamed(AppRoute.workingHours.name),
                       ),
-                    1 => BookingsEmptyState(
+                    1 => const BookingsEmptyState(
                         icon: Icons.inbox_outlined,
                         title: 'No requests waiting',
-                        message: requiresApproval
-                            ? "When a client requests a time, it shows up here for you to accept or decline."
-                            : 'Bookings are confirmed instantly. Turn on approvals in Settings to review each one first.',
+                        message: 'When a client requests a time, it shows up here for you to accept or decline. '
+                            'Cash bookings always come in as requests.',
                       ),
                     _ => const BookingsEmptyState(
                         icon: Icons.history_rounded,

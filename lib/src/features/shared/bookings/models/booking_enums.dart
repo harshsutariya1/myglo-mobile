@@ -77,6 +77,14 @@ enum PaymentMethod {
         googlePay => 'Google Pay',
         afterpay => 'Afterpay',
       };
+
+  /// Paid in person on the day. Cash bookings are always requests the
+  /// provider accepts and never carry a fee (see [BookingTerms]).
+  bool get isCash => this == cash;
+
+  /// Can be chosen when booking. Card, wallets and Afterpay go live with
+  /// Stripe; the server rejects them until then.
+  bool get isAvailable => isCash;
 }
 
 /// Where the appointment happens. Mirrors `bookings.location_type`.

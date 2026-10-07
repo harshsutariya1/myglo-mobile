@@ -120,9 +120,9 @@ class _ProviderBookingActionSheetState extends ConsumerState<_ProviderBookingAct
           title: "$client didn't show up?",
           body: fee > 0
               ? 'This closes the booking as a missed appointment. Under your policy, '
-                  '${Formatters.audCents(fee)} (${_booking.cancellationFeePercent}%) is owed. '
-                  'Cash bookings only track this; nothing is charged automatically.'
-              : 'This closes the booking as a missed appointment and lets $client know.',
+                  '${Formatters.audCents(fee)} (${_booking.lateFeePercent}%) is owed.'
+              : 'This closes the booking as a missed appointment and lets $client know.'
+                  '${_booking.paymentMethod.isCash ? ' Cash bookings carry no no-show fee.' : ''}',
           confirm: 'Mark as no-show',
         ),
     };

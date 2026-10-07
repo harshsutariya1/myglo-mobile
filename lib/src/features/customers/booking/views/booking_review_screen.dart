@@ -11,6 +11,7 @@ import '../../../shared/bookings/controllers/booking_controllers.dart';
 import '../../../shared/bookings/models/available_slot.dart';
 import '../../../shared/bookings/models/booking_enums.dart';
 import '../../../shared/bookings/models/booking_settings.dart';
+import '../../../shared/bookings/models/booking_terms.dart';
 import '../../../shared/bookings/models/booking_time.dart';
 import '../../../shared/bookings/models/cancellation_policy.dart';
 import '../../../shared/bookings/views/widgets/booking_card.dart';
@@ -95,6 +96,7 @@ class _BookingReviewScreenState extends ConsumerState<BookingReviewScreen> {
     final provider = ref.watch(publicProviderProfileProvider(_providerId)).value;
     final slot = draft.slot;
     final ready = selection.isNotEmpty && slot != null && draft.hasLocation && settings != null && provider != null;
+    final terms = settings == null ? null : BookingTerms.of(settings, draft.paymentMethod);
 
     return BookingFlowScaffold(
       step: BookingStep.review,
@@ -130,11 +132,11 @@ class _BookingReviewScreenState extends ConsumerState<BookingReviewScreen> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              settings.requiresApproval ? 'Confirms requests personally' : 'Instant confirmation',
+                              terms!.requiresApproval ? 'Confirms requests personally' : 'Instant confirmation',
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: settings.requiresApproval ? AppTheme.warning : AppTheme.success,
+                                color: terms.requiresApproval ? AppTheme.warning : AppTheme.success,
                               ),
                             ),
                           ],
@@ -219,14 +221,15 @@ class _BookingReviewScreenState extends ConsumerState<BookingReviewScreen> {
                     ),
                   ),
                   const SizedBox(height: 22),
-                  if (settings.requiresApproval) ...[
+                  if (terms.requiresApproval) ...[
                     BookingNotice(
                       icon: Icons.hourglass_top_rounded,
                       color: AppTheme.warning,
                       title: 'This is a booking request',
                       body:
-                          '${providerDisplayName(provider)} confirms each booking personally. Your time is held while they '
-                          "review it, and we'll let you know as soon as they respond.",
+                          '${draft.paymentMethod.isCash ? "You're paying in cash, so ${providerDisplayName(provider)} confirms "
+                              'this booking personally' : '${providerDisplayName(provider)} confirms each booking personally'}. '
+                          "Your time is held while they review it, and we'll let you know as soon as they respond.",
                     ),
                     const SizedBox(height: 12),
                   ],
@@ -234,9 +237,9 @@ class _BookingReviewScreenState extends ConsumerState<BookingReviewScreen> {
                     icon: Icons.event_available_outlined,
                     title: 'Cancellation policy',
                     body: CancellationPolicy.forBooking(
-                      freeUntilLocal: slot.local.subtract(Duration(hours: settings.cancellationWindowHours)),
-                      windowHours: settings.cancellationWindowHours,
-                      feePercent: settings.cancellationFeePercent,
+                      freeUntilLocal: slot.local.subtract(Duration(hours: terms.cancellationWindowHours)),
+                      windowHours: terms.cancellationWindowHours,
+                      feePercent: terms.cancellationFeePercent,
                       totalCents: selection.totalCents,
                     ),
                   ),

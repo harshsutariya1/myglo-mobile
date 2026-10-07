@@ -31,12 +31,19 @@ User _user(String id) => User(
       createdAt: DateTime.utc(2026, 1, 1).toIso8601String(),
     );
 
-AppNotification _notification(String id, {String? bookingId, bool read = false}) => AppNotification(
+AppNotification _notification(
+  String id, {
+  String? bookingId,
+  bool read = false,
+  NotificationKind kind = NotificationKind.bookingNew,
+  String title = 'New booking: Lash lift',
+}) =>
+    AppNotification(
       id: id,
       recipientId: 'prov-1',
-      actorId: 'client-1',
-      kind: NotificationKind.bookingNew,
-      title: 'New booking: Lash lift',
+      actorId: kind == NotificationKind.bookingRequestReminder ? null : 'client-1',
+      kind: kind,
+      title: title,
       body: 'Michelle Zhang booked Thu 8 Oct, 9:30 am. Payment pending (cash).',
       bookingId: bookingId,
       createdAt: DateTime.now().toUtc().subtract(const Duration(minutes: 5)),
@@ -140,6 +147,39 @@ void main() {
       ]);
     });
 
+    testWidgets('a reminder about an unanswered request opens it for the provider', (tester) async {
+      await pumpInbox(tester, [
+        _notification(
+          'n-1',
+          bookingId: 'booking-9',
+          kind: NotificationKind.bookingRequestReminder,
+          title: 'Request waiting for you',
+        ),
+      ]);
+
+      expect(find.byIcon(NotificationKind.bookingRequestReminder.icon), findsOneWidget);
+      await tester.tap(find.text('Request waiting for you'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Appointment booking-9'), findsOneWidget);
+    });
+
+    test('request reminders are read from the server with request styling', () {
+      final notification = AppNotification.fromJson({
+        'id': 'n-1',
+        'recipient_id': 'prov-1',
+        'kind': 'booking_request_reminder',
+        'title': 'Respond before it expires',
+        'body': "Michelle Zhang's request still needs an answer.",
+        'booking_id': 'booking-9',
+        'created_at': '2026-10-07T10:00:00Z',
+      });
+
+      expect(notification.kind, NotificationKind.bookingRequestReminder);
+      expect(notification.actorId, isNull);
+      expect(notification.kind.color(AppTheme.lightTheme.colorScheme), AppTheme.warning);
+    });
+
     testWidgets('shows an empty state when there is nothing yet', (tester) async {
       await pumpInbox(tester, const []);
 
@@ -222,6 +262,7 @@ void main() {
     testWidgets('a late cancellation spells out the fee and must be acknowledged', (tester) async {
       final booking = sampleBooking(
         startsAt: DateTime.now().toUtc().add(const Duration(hours: 5)),
+        paymentMethod: PaymentMethod.card,
         cancellationFeePercent: 50,
       );
       final actions = await pumpSheet(tester, booking);
@@ -232,6 +273,27 @@ void main() {
       expect(tester.widget<FilledButton>(confirm).onPressed, isNull);
 
       await tester.tap(find.text('I understand the fee and want to cancel'));
+      await tester.pump();
+      await tester.tap(confirm);
+      await tester.pumpAndSettle();
+      expect(actions.cancelled, [('', true)]);
+    });
+
+    testWidgets('a late cash cancellation has no fee but is still acknowledged', (tester) async {
+      // Even with a fee percentage on record, cash bookings never carry one.
+      final booking = sampleBooking(
+        startsAt: DateTime.now().toUtc().add(const Duration(hours: 5)),
+        cancellationFeePercent: 50,
+      );
+      final actions = await pumpSheet(tester, booking);
+
+      expect(find.text('This is a late cancellation'), findsOneWidget);
+      expect(find.textContaining("There's no fee on cash bookings."), findsOneWidget);
+      expect(find.textContaining(r'$57.50'), findsNothing);
+      final confirm = find.widgetWithText(FilledButton, 'Cancel booking');
+      expect(tester.widget<FilledButton>(confirm).onPressed, isNull);
+
+      await tester.tap(find.text('I understand and want to cancel'));
       await tester.pump();
       await tester.tap(confirm);
       await tester.pumpAndSettle();

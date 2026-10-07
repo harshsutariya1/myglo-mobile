@@ -137,10 +137,17 @@ typedef PriceLine = ({String label, String? detail, int cents});
 /// Itemised prices with subtotal, fee and total.
 ///
 /// Myglo charges clients no booking fee (the platform's commission, if any,
-/// is settled with the provider), so for clients the fee line always reads
+/// is charged to the provider), so for clients the fee line always reads
 /// "Free". Providers pass [platformFeeCents] to see what they earn instead.
 class PriceBreakdown extends StatelessWidget {
-  const PriceBreakdown({super.key, required this.lines, required this.totalCents, this.footnote, this.platformFeeCents});
+  const PriceBreakdown({
+    super.key,
+    required this.lines,
+    required this.totalCents,
+    this.footnote,
+    this.platformFeeCents,
+    this.noPlatformFeeLabel = 'Free',
+  });
 
   final List<PriceLine> lines;
   final int totalCents;
@@ -148,6 +155,9 @@ class PriceBreakdown extends StatelessWidget {
 
   /// Provider view: Myglo's commission on the booking. Null for clients.
   final int? platformFeeCents;
+
+  /// Provider view: what the Myglo fee line reads when there's no fee.
+  final String noPlatformFeeLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -192,7 +202,7 @@ class PriceBreakdown extends StatelessWidget {
           const SizedBox(height: 6),
           _AmountRow(
             label: 'Myglo fee',
-            value: fee == 0 ? 'Free' : '−${Formatters.audCents(fee)}',
+            value: fee == 0 ? noPlatformFeeLabel : '−${Formatters.audCents(fee)}',
             style: _style(muted),
             valueStyle: fee == 0 ? _style(AppTheme.success).copyWith(fontWeight: FontWeight.w800) : null,
           ),

@@ -145,8 +145,8 @@ class _ProviderBookingDetailScreenState extends ConsumerState<ProviderBookingDet
                         ? '${booking.clientName} can cancel for free up to the start time.'
                         : '${booking.clientName} can cancel for free until '
                             '${Formatters.dateTimeShort(booking.startsAtLocal.subtract(Duration(hours: booking.cancellationWindowHours)))}. '
-                            '${booking.cancellationFeePercent > 0 ? 'After that, ${Formatters.audCents(booking.lateFeeCents)} '
-                                '(${booking.cancellationFeePercent}%) is owed.' : 'Later cancellations are marked as late.'}',
+                            '${booking.lateFeePercent > 0 ? 'After that, ${Formatters.audCents(booking.lateFeeCents)} '
+                                '(${booking.lateFeePercent}%) is owed.' : 'Later cancellations are marked as late${booking.paymentMethod.isCash ? ', with no fee on cash bookings' : ''}.'}',
                   ),
                 ],
                 const SizedBox(height: 22),

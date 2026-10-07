@@ -157,11 +157,21 @@ void main() {
       await tester.pump();
       expect(find.text('Afterpay is coming soon'), findsOneWidget);
 
-      expect(find.widgetWithText(FilledButton, 'Confirm booking'), findsOneWidget);
       expect(find.text(r'$115'), findsWidgets);
     });
 
-    testWidgets('a provider who approves requests receives a request', (tester) async {
+    testWidgets('a cash booking is always a request, with no fees', (tester) async {
+      // The provider confirms instantly, but that only applies to bookings
+      // paid in the app.
+      await _pumpPayment(tester, repository: _FakeBookingRepository());
+
+      expect(find.widgetWithText(FilledButton, 'Send request'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Confirm booking'), findsNothing);
+      await _scrollTo(tester, find.textContaining('Cash bookings have no booking or cancellation fees.'));
+      await _scrollTo(tester, find.textContaining('Your booking is confirmed once they accept it.'));
+    });
+
+    testWidgets('a provider who approves every booking also receives a request', (tester) async {
       await _pumpPayment(tester, repository: _FakeBookingRepository(), requiresApproval: true);
 
       expect(find.widgetWithText(FilledButton, 'Send request'), findsOneWidget);
@@ -172,7 +182,7 @@ void main() {
       final container = await _pumpPayment(tester, repository: repository);
       final attemptId = container.read(bookingDraftProvider(_providerId)).attemptId;
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Confirm booking'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Send request'));
       await tester.pumpAndSettle();
 
       final request = repository.lastRequest!;
@@ -191,7 +201,7 @@ void main() {
         ..failure = const BookingFailure(BookingFailureCode.slotUnavailable);
       final container = await _pumpPayment(tester, repository: repository);
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Confirm booking'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Send request'));
       await tester.pumpAndSettle();
 
       expect(find.text('That time is no longer available'), findsOneWidget);

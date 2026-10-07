@@ -9,6 +9,7 @@ import '../../../discovery_feed/controllers/user_posts_controller.dart';
 import '../../../providers/provider_profiles/controllers/provider_services_controller.dart';
 import '../../../shared/authentication/controllers/user_profile_provider.dart';
 import '../../../shared/authentication/models/profile_model.dart';
+import '../../../shared/bookings/controllers/booking_controllers.dart';
 import '../../favourites/views/favourite_button.dart';
 import '../controllers/public_provider_profile_controller.dart';
 import 'widgets/provider_about_tab.dart';
@@ -69,6 +70,7 @@ class _PublicProviderProfileScreenState extends ConsumerState<PublicProviderProf
     ref.invalidate(publicProviderProfileProvider(_id));
     ref.invalidate(providerServicesProvider(_id));
     ref.invalidate(userPostsProvider(_id));
+    ref.invalidate(workingHoursProvider(_id));
     // Wait for every section to settle. Failures are rendered (and already
     // reported) by the section that owns them, so they are not rethrown here.
     Future<void> settle(Future<Object?> future) => future.then((_) {}, onError: (Object _) {});
@@ -76,6 +78,7 @@ class _PublicProviderProfileScreenState extends ConsumerState<PublicProviderProf
       settle(ref.read(publicProviderProfileProvider(_id).future)),
       settle(ref.read(providerServicesProvider(_id).future)),
       settle(ref.read(userPostsProvider(_id).future)),
+      settle(ref.read(workingHoursProvider(_id).future)),
     ]);
   }
 

@@ -130,8 +130,8 @@ class _CancelBookingSheetState extends ConsumerState<_CancelBookingSheet> {
                     Text(
                       'Free cancellation ended ${Formatters.dateTimeShort(booking.startsAtLocal.subtract(Duration(hours: booking.cancellationWindowHours)))} '
                       '(${booking.cancellationWindowHours} hours before the appointment). '
-                      '${fee > 0 ? 'A late-cancellation fee of ${Formatters.audCents(fee)} (${booking.cancellationFeePercent}%) '
-                          'will be owed to ${booking.providerName}.' : '${booking.providerName} will see it marked as a late cancellation.'}',
+                      '${fee > 0 ? 'A late-cancellation fee of ${Formatters.audCents(fee)} (${booking.lateFeePercent}%) '
+                          'will be owed to ${booking.providerName}.' : '${booking.providerName} will see it marked as a late cancellation${booking.paymentMethod.isCash ? ". There's no fee on cash bookings" : ''}.'}',
                       style: TextStyle(fontSize: 13.5, height: 1.45, color: scheme.onSurface.withValues(alpha: 0.75)),
                     ),
                     const SizedBox(height: 6),

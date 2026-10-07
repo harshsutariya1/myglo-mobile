@@ -251,6 +251,8 @@ void main() {
       await _scrollTo(tester, find.text('0412 345 678'));
       await _scrollTo(tester, find.text('You earn'));
       expect(find.text('Myglo fee'), findsOneWidget);
+      // Myglo takes no commission on cash bookings.
+      expect(find.text('None on cash'), findsOneWidget);
       expect(find.text('Client pays'), findsOneWidget);
     });
 

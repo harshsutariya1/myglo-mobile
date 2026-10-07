@@ -99,7 +99,7 @@ class ClientBookingDetailScreen extends ConsumerWidget {
                             freeUntilLocal:
                                 booking.startsAtLocal.subtract(Duration(hours: booking.cancellationWindowHours)),
                             windowHours: booking.cancellationWindowHours,
-                            feePercent: booking.cancellationFeePercent,
+                            feePercent: booking.lateFeePercent,
                             totalCents: booking.totalCents,
                           ),
                   ),

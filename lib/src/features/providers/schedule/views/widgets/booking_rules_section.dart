@@ -50,6 +50,11 @@ abstract final class BookingRuleLabels {
         100 => 'Full price',
         _ => '$percent% of the booking',
       };
+
+  /// The fee rule's current value: it only ever applies to bookings paid in
+  /// the app, never to cash.
+  static String lateFeeSummary(int percent) =>
+      percent == 0 ? 'No fee' : '${cancellationFee(percent)} · paid in app only';
 }
 
 /// The "Availability & bookings" settings: live booking rules, each saved as
@@ -148,8 +153,8 @@ class _BookingRulesSectionState extends ConsumerState<BookingRulesSection> {
           subtitle: settings == null
               ? null
               : settings.requiresApproval
-                  ? 'Requests wait for you to accept'
-                  : 'Bookings are confirmed instantly',
+                  ? 'Every booking waits for you to accept'
+                  : 'Cash bookings wait for you; ones paid in the app confirm instantly',
           onTap: enabled ? () => _save('requires_approval', !settings.requiresApproval) : null,
           trailing: _progress('requires_approval') ??
               Switch.adaptive(
@@ -241,15 +246,15 @@ class _BookingRulesSectionState extends ConsumerState<BookingRulesSection> {
         _RuleTile(
           icon: Icons.money_off_csred_outlined,
           title: 'Late cancellation fee',
-          value: settings == null ? null : BookingRuleLabels.cancellationFee(settings.cancellationFeePercent),
+          value: settings == null ? null : BookingRuleLabels.lateFeeSummary(settings.cancellationFeePercent),
           progress: _progress('cancellation_fee_percent'),
           onTap: !enabled
               ? null
               : () => _pick(
                     column: 'cancellation_fee_percent',
                     title: 'Late cancellation fee',
-                    message: 'Owed for late cancellations and no-shows. For cash bookings Myglo records it; '
-                        'nothing is charged automatically. Changes apply to new bookings only.',
+                    message: 'Owed for late cancellations and no-shows on bookings paid in the app. '
+                        'Cash bookings never have a fee. Changes apply to new bookings only.',
                     options: _cancellationFees,
                     current: settings.cancellationFeePercent,
                     label: BookingRuleLabels.cancellationFee,
