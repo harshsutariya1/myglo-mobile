@@ -50,8 +50,21 @@ abstract class ProfileModel with _$ProfileModel {
     @JsonKey(name: 'provider_name') String? providerName,
     @JsonKey(name: 'address_text') String? addressText,
     @LocationCoordinatesConverter() LocationCoordinates? coordinates,
+
+    /// Public URLs of up to five cover photos, in display order (providers).
+    @JsonKey(name: 'cover_photos') @Default(<String>[]) List<String> coverPhotos,
   }) = _ProfileModel;
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) =>
       _$ProfileModelFromJson(json);
+}
+
+extension ProfileLocation on ProfileModel {
+  /// The saved business location as a point, if it's set and valid.
+  GeoPoint? get location {
+    final coordinates = this.coordinates?.coordinates;
+    if (coordinates == null || coordinates.length < 2) return null;
+    final point = GeoPoint(latitude: coordinates[1], longitude: coordinates[0]);
+    return point.isValid ? point : null;
+  }
 }

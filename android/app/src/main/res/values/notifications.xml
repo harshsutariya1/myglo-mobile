@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Must match ANDROID_CHANNEL_ID in supabase/functions/send-notifications. -->
+    <string name="notification_channel_bookings_id" translatable="false">bookings</string>
+    <string name="notification_channel_bookings_name">Bookings</string>
+    <string name="notification_channel_bookings_description">New requests, confirmations, cancellations and appointment reminders</string>
+    <color name="notification_accent">#FC69C3</color>
+</resources>

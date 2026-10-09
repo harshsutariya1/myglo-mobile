@@ -2,98 +2,121 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../../../../core/location/geo_point.dart';
+import '../../../../../core/maps/app_map.dart';
+import '../../../../../core/maps/marker_icons.dart';
 import '../../../../../core/theme/app_theme.dart';
+import '../../../../../core/utils/app_logger.dart';
 
-/// A picture of where an appointment is.
+/// A small, non-interactive map of where an appointment is.
 ///
-/// Maps aren't integrated yet, so this paints a stylised street map with a
-/// pin, varied by the address so each place looks a little different. When
-/// Google Maps lands, swap the painter for a static map image behind this
-/// same widget; no screen needs to change.
-class LocationPreview extends StatelessWidget {
-  const LocationPreview({super.key, required this.label, this.height = 150});
+/// With a [point] it shows the real map (through the app's map interface,
+/// so no screen depends on a map SDK) with a branded pin. Without one it
+/// paints a stylised street map, varied by the address so each place looks
+/// a little different.
+class LocationPreview extends StatefulWidget {
+  const LocationPreview({super.key, required this.label, this.point, this.height = 150});
 
-  /// Usually the address; also seeds the drawing.
+  /// Usually the address; also seeds the drawing when there's no [point].
   final String label;
+  final GeoPoint? point;
   final double height;
 
   @override
+  State<LocationPreview> createState() => _LocationPreviewState();
+}
+
+class _LocationPreviewState extends State<LocationPreview> {
+  MarkerImage? _pin;
+  double? _pinRatio;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final ratio = MediaQuery.devicePixelRatioOf(context);
+    if (widget.point != null && _pinRatio != ratio) {
+      _pinRatio = ratio;
+      MarkerIconFactory(pixelRatio: ratio).placePin().then((pin) {
+        if (mounted) setState(() => _pin = pin);
+      }).catchError((Object e, StackTrace st) {
+        AppLogger.e('Drawing the map preview pin failed', tag: 'LocationPreview', error: e, stackTrace: st);
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
+    final point = widget.point;
+    final pin = _pin;
     return Semantics(
-      label: 'Map preview of $label',
+      label: 'Map of ${widget.label}',
       image: true,
       excludeSemantics: true,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(18),
         child: SizedBox(
-          height: height,
+          height: widget.height,
           width: double.infinity,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              CustomPaint(painter: _StreetMapPainter(seed: label.hashCode)),
-              Center(
-                child: Transform.translate(
-                  offset: const Offset(0, -10),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(7),
-                        decoration: BoxDecoration(
-                          color: scheme.primary,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 3),
-                          boxShadow: [
-                            BoxShadow(color: scheme.primary.withValues(alpha: 0.45), blurRadius: 16, spreadRadius: 2),
-                          ],
-                        ),
-                        child: const Icon(Icons.spa_rounded, size: 16, color: Colors.white),
-                      ),
-                      Container(
-                        width: 10,
-                        height: 4,
-                        margin: const EdgeInsets.only(top: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.18),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                    ],
-                  ),
+          child: point == null || !point.isValid
+              ? _PaintedMap(label: widget.label)
+              : AppMap(
+                  key: ValueKey(point),
+                  initialCamera: MapCamera(target: point, zoom: 15.5),
+                  markers: [if (pin != null) AppMapMarker(id: 'place', point: point, image: pin)],
+                  interactive: false,
+                  lite: true,
                 ),
-              ),
-              Positioned(
-                top: 10,
-                right: 10,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.88),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.map_outlined, size: 12, color: scheme.onSurface.withValues(alpha: 0.6)),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Map coming soon',
-                        style: TextStyle(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w700,
-                          color: scheme.onSurface.withValues(alpha: 0.6),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
         ),
       ),
+    );
+  }
+}
+
+/// The stand-in drawing used when there are no coordinates to map.
+class _PaintedMap extends StatelessWidget {
+  const _PaintedMap({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        CustomPaint(painter: _StreetMapPainter(seed: label.hashCode)),
+        Center(
+          child: Transform.translate(
+            offset: const Offset(0, -10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: scheme.primary,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 3),
+                    boxShadow: [
+                      BoxShadow(color: scheme.primary.withValues(alpha: 0.45), blurRadius: 16, spreadRadius: 2),
+                    ],
+                  ),
+                  child: const Icon(Icons.spa_rounded, size: 16, color: Colors.white),
+                ),
+                Container(
+                  width: 10,
+                  height: 4,
+                  margin: const EdgeInsets.only(top: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

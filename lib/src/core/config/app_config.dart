@@ -1,3 +1,5 @@
+import '../location/geo_point.dart';
+
 class AppConfig {
   AppConfig._();
 
@@ -25,4 +27,32 @@ class AppConfig {
   /// How far from a provider's business address Discover looks for posts.
   /// The server clamps this to 1–100 km.
   static const double nearbyRadiusMetres = 25000;
+
+  /// Where maps open when we don't know where the user is: Surfers Paradise,
+  /// the centre of the Gold Coast launch area.
+  static const GeoPoint mapDefaultCenter = GeoPoint(latitude: -28.0023, longitude: 153.4145);
+
+  /// Zoom that shows most of the Gold Coast.
+  static const double mapDefaultZoom = 11.5;
+
+  /// Zoom close enough to place a pin on a building entrance.
+  static const double mapStreetZoom = 17;
+
+  /// Zoom for "near me": a few suburbs around the user.
+  static const double mapNearbyZoom = 13.5;
+
+  /// Most providers the map loads for one area. The server caps it at 300.
+  static const int mapProvidersLimit = 200;
+
+  /// Most cover photos on a provider profile. The database enforces the same.
+  static const int coverPhotosMax = 5;
+
+  /// Shortest search the server answers; shorter input shows suggestions.
+  static const int searchMinLength = 2;
+
+  /// Results per search. The server caps it at 50.
+  static const int searchResultsLimit = 30;
+
+  /// Recent searches remembered on this device.
+  static const int recentSearchesMax = 8;
 }

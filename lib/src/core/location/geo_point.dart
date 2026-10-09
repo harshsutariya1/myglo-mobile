@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 /// A WGS84 coordinate.
@@ -16,6 +17,27 @@ class GeoPoint {
 
   /// GeoJSON order: `[longitude, latitude]`.
   List<double> toGeoJsonCoordinates() => [longitude, latitude];
+
+  /// This point rounded to [decimals] places (3 is about 110 m), for sharing
+  /// roughly where someone is without pinpointing them.
+  GeoPoint coarse([int decimals = 3]) {
+    final factor = math.pow(10, decimals);
+    return GeoPoint(
+      latitude: (latitude * factor).roundToDouble() / factor,
+      longitude: (longitude * factor).roundToDouble() / factor,
+    );
+  }
+
+  /// Great-circle distance to [other], in kilometres.
+  double distanceKmTo(GeoPoint other) {
+    const earthRadiusKm = 6371.0088;
+    double rad(double degrees) => degrees * math.pi / 180;
+    final dLat = rad(other.latitude - latitude);
+    final dLng = rad(other.longitude - longitude);
+    final h = math.pow(math.sin(dLat / 2), 2) +
+        math.cos(rad(latitude)) * math.cos(rad(other.latitude)) * math.pow(math.sin(dLng / 2), 2);
+    return 2 * earthRadiusKm * math.asin(math.min(1, math.sqrt(h)));
+  }
 
   @override
   bool operator ==(Object other) =>

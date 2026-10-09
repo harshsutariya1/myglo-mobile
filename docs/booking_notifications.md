@@ -136,30 +136,64 @@ wrong (e.g. a missing key or an unverified domain); `failed` means Resend
 rejected it permanently. Function logs are under Edge Functions →
 `send-notifications` → Logs.
 
-## Later: push notifications
+## Push notifications
 
-Push isn't wired up yet; the outbox already accepts a `push` channel, so it
-slots in without changing the booking logic.
+Every in-app notification is also pushed to the recipient's phone through
+Firebase Cloud Messaging, except ones about something they did themselves.
+Push is live on **Android**; iOS follows once APNs is set up (see below).
 
-1. **Firebase project** (under the Google account that owns Google Cloud).
-   Add the iOS app (`app.myglo.myglo`) and the Android app.
-2. **APNs key.** In the Apple Developer account create an APNs auth key
-   (`.p8`) and upload it to Firebase → Project settings → Cloud Messaging.
-3. **App side** (needs approval for new packages: `firebase_core`,
-   `firebase_messaging`):
-   - `flutterfire configure` to generate the Firebase options.
-   - iOS: enable the *Push Notifications* and *Background Modes → Remote
-     notifications* capabilities.
-   - Android 13+: request the `POST_NOTIFICATIONS` permission at a sensible
-     moment (e.g. after the first booking), not on launch.
-   - After sign-in (and whenever the token refreshes) save the device token;
-     delete it on sign-out.
-   - Opening a notification should route to `/booking/:id` (client) or
-     `/appointments/:id` (provider), as the in-app banner already does.
-4. **Database:** a `public.push_tokens` table (user id, token, platform,
-   updated at) with RLS so users only manage their own tokens; have
-   `private.notify` also queue a `push` delivery when the recipient has
-   tokens.
-5. **Edge Function:** send `push` deliveries through the FCM HTTP v1 API using
-   a Firebase service account stored as a function secret, and delete tokens
-   FCM reports as unregistered.
+```
+private.notify ──► public.notifications                      (in-app, as before)
+              ├──► private.notification_deliveries 'email'   (important events)
+              └──► private.notification_deliveries 'push'    (recipient has a registered phone)
+                              │
+                              ▼
+            Edge Function send-notifications ──► FCM HTTP v1 ──► phone
+```
+
+- **Devices.** After sign-in the app registers this install's FCM token with
+  `register_push_token` (tokens live in `private.push_tokens`, reachable only
+  through RPCs). Signing out calls `unregister_push_token` first, and a token
+  is re-assigned when someone else signs in on the same phone. FCM's
+  "unregistered" replies prune dead tokens automatically.
+- **Asking for permission.** Never on launch. Providers see a "Never miss a
+  booking request" card on their home screen; clients see one on the booking
+  confirmation. Both settings screens have a Push notifications switch;
+  when Android has blocked notifications it opens the system settings.
+- **What a push looks like.** Title and body are the notification's own.
+  Android posts it to the "Bookings" channel (high importance) with the
+  Myglo icon. A repeat delivery replaces the earlier one instead of stacking.
+  Pushes older than 2 hours are skipped (the inbox still has them).
+- **Tapping one** opens the booking (`/booking/:id` for clients,
+  `/appointments/:id` for providers), including when it launched the app.
+  With the app open, nothing is shown by the system: the in-app banner
+  covers it.
+
+### To do: turn on sending
+
+Until this is done, push deliveries are queued and retried, then marked
+`failed`; in-app and email keep working.
+
+1. Firebase console → Project settings → **Service accounts** → *Generate new
+   private key*. This downloads a JSON file. Keep it out of the repo and chat.
+2. Store the whole JSON as an Edge Function secret:
+
+   ```bash
+   supabase secrets set FIREBASE_SERVICE_ACCOUNT="$(cat path/to/service-account.json)" --project-ref oyveznxdnbduqgaddklr
+   ```
+
+   or Dashboard → Edge Functions → Secrets (paste the JSON as the value).
+
+Check deliveries with the query above (`channel = 'push'`).
+
+### To do: iOS
+
+1. Apple Developer → Keys → create an **APNs** key (`.p8`) and upload it in
+   Firebase → Project settings → Cloud Messaging → Apple app configuration.
+2. In Xcode, add the **Push Notifications** capability and **Background
+   Modes → Remote notifications** to the Runner target (needs a provisioning
+   profile with push enabled).
+3. Enable iOS in the app: `FirebasePushMessaging.isSupported` (in
+   `lib/src/features/shared/notifications/push/push_messaging.dart`) and the
+   `'android'` platform passed to `register_push_token` in
+   `push_notifications_controller.dart`.

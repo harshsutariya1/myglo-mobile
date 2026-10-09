@@ -10,6 +10,8 @@ import '../../../../shared/bookings/models/booking_enums.dart';
 import '../../../../shared/bookings/models/booking_time.dart';
 import '../../../../shared/bookings/models/cancellation_policy.dart';
 import '../../../../shared/bookings/models/working_hours.dart';
+import '../../../booking/views/widgets/location_preview.dart';
+import 'provider_profile_header.dart' show providerDisplayName;
 import 'section_states.dart';
 
 const TextStyle _headingStyle = TextStyle(fontSize: 17, fontWeight: FontWeight.w800);
@@ -26,11 +28,15 @@ class ProviderAboutTab extends StatelessWidget {
     required this.profile,
     required this.onRetry,
     this.distanceKm,
+    this.mobileOnly = false,
   });
 
   final AsyncValue<ProfileModel?> profile;
   final VoidCallback onRetry;
   final double? distanceKm;
+
+  /// Only visits clients, so their address and pin aren't shown.
+  final bool mobileOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -69,11 +75,26 @@ class ProviderAboutTab extends StatelessWidget {
       ),
       _Section(
         title: 'Location',
-        child: _InfoCard(
-          icon: Icons.location_on_outlined,
-          title: address.isNotEmpty ? address : 'Address not provided',
-          subtitle: distance == null ? null : '${Formatters.distanceKm(distance)} away',
-        ),
+        child: mobileOnly
+            ? const _InfoCard(
+                icon: Icons.directions_car_outlined,
+                title: 'Mobile service',
+                subtitle: 'They come to you. Add your address when you book to check they travel to your area.',
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (profile.location case final point?) ...[
+                    LocationPreview(label: address.isNotEmpty ? address : providerDisplayName(profile), point: point, height: 160),
+                    const SizedBox(height: 10),
+                  ],
+                  _InfoCard(
+                    icon: Icons.location_on_outlined,
+                    title: address.isNotEmpty ? address : 'Address not provided',
+                    subtitle: distance == null ? null : '${Formatters.distanceKm(distance)} away',
+                  ),
+                ],
+              ),
       ),
       _Section(
         title: 'Opening hours',

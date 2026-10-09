@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -9,6 +10,7 @@ import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/routing/app_router.dart';
 import '../../../../../core/widgets/skeleton/skeletons.dart';
 import '../../../../shared/authentication/controllers/user_profile_provider.dart';
+import '../../../../shared/cover_photos/views/cover_carousel.dart';
 import '../../../../customers/provider_profile/views/widgets/provider_services_tab.dart'
     show groupServicesByCategory;
 import '../../../../customers/provider_profile/views/widgets/section_states.dart';
@@ -92,6 +94,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     address: addressText,
                     bio: bio,
                     profilePicUrl: appUser.profile.profilePic,
+                    coverPhotos: appUser.profile.coverPhotos,
                   ),
                 ),
                 SliverPersistentHeader(
@@ -144,6 +147,7 @@ class _ProfileHeader extends ConsumerWidget {
     required this.address,
     required this.bio,
     required this.profilePicUrl,
+    required this.coverPhotos,
   });
 
   final String userId;
@@ -151,6 +155,7 @@ class _ProfileHeader extends ConsumerWidget {
   final String address;
   final String bio;
   final String? profilePicUrl;
+  final List<String> coverPhotos;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -162,29 +167,21 @@ class _ProfileHeader extends ConsumerWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        // Cover with a scrim so the glass controls stay legible on any photo.
+        // Cover photos with a scrim so the glass controls stay legible on any
+        // photo; the page dots sit above the overlapping sheet.
         SizedBox(
           height: _ProfileMetrics.coverHeight,
           width: double.infinity,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Image.asset('assets/images/myglo_cover.png', fit: BoxFit.cover),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withValues(alpha: 0.35),
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.15),
-                    ],
-                    stops: const [0, 0.5, 1],
-                  ),
-                ),
-              ),
-            ],
+          // Light status bar icons while a photo is behind them.
+          child: AnnotatedRegion<SystemUiOverlayStyle>(
+            value: coverPhotos.isEmpty ? SystemUiOverlayStyle.dark : SystemUiOverlayStyle.light,
+            child: CoverCarousel(
+              photos: coverPhotos,
+              heroPrefix: 'own-cover',
+              // Beside the avatar, above the sheet's rounded edge.
+              indicatorPadding: const EdgeInsets.only(left: _ProfileMetrics.pagePadding, bottom: _ProfileMetrics.sheetOverlap + 12),
+              indicatorAlignment: MainAxisAlignment.start,
+            ),
           ),
         ),
 
@@ -301,14 +298,24 @@ class _ProfileHeader extends ConsumerWidget {
           child: Center(child: _ProfileAvatar(name: name, url: profilePicUrl)),
         ),
 
-        // Glass settings control.
+        // Glass controls: cover photos and settings.
         Positioned(
           top: MediaQuery.paddingOf(context).top + 8,
           right: 16,
-          child: _GlassIconButton(
-            icon: Icons.settings_outlined,
-            tooltip: 'Settings',
-            onPressed: () => context.pushNamed(AppRoute.settings.name),
+          child: Row(
+            children: [
+              _GlassIconButton(
+                icon: Icons.add_photo_alternate_outlined,
+                tooltip: coverPhotos.isEmpty ? 'Add cover photos' : 'Edit cover photos',
+                onPressed: () => context.pushNamed(AppRoute.coverPhotos.name),
+              ),
+              const SizedBox(width: 10),
+              _GlassIconButton(
+                icon: Icons.settings_outlined,
+                tooltip: 'Settings',
+                onPressed: () => context.pushNamed(AppRoute.settings.name),
+              ),
+            ],
           ),
         ),
       ],

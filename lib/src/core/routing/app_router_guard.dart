@@ -16,8 +16,33 @@ const publicProviderProfilePrefix = '/provider/';
 /// has a trailing slash so it doesn't match the `/bookings` tab.
 const clientBookingPrefixes = ['/booking/', '/booking-confirmed/'];
 
-/// Provider-only pages: appointments and availability editors.
-const providerOnlyPrefixes = ['/appointments/', '/schedule/'];
+/// Provider-only pages: appointments, availability and business profile
+/// editors. `/business/` has a trailing slash so it doesn't match the
+/// `/business_tools` tab.
+const providerOnlyPrefixes = ['/appointments/', '/schedule/', '/business/'];
+
+/// Client-only discovery pages: search and the map.
+const clientDiscoveryPaths = ['/search', '/map'];
+
+/// Whether only clients may open [path].
+bool isClientOnlyPath(String path) => [
+      AppRoute.customerHome.path,
+      AppRoute.bookings.path,
+      AppRoute.customerProfile.path,
+      // Client view of a provider (`/provider/:id`), which includes booking.
+      publicProviderProfilePrefix,
+      ...clientBookingPrefixes,
+      ...clientDiscoveryPaths,
+    ].any(path.startsWith);
+
+/// Whether only providers may open [path].
+bool isProviderOnlyPath(String path) => [
+      AppRoute.providerHome.path,
+      AppRoute.businessTools.path,
+      AppRoute.providerProfile.path,
+      AppRoute.settings.path,
+      ...providerOnlyPrefixes,
+    ].any(path.startsWith);
 
 /// Handles the redirection logic for the application based on authentication
 /// and onboarding state.
@@ -119,24 +144,7 @@ String? appRouterRedirect(BuildContext context, GoRouterState state, Ref ref) {
   // 3. Role-based route guarding
   final currentPath = state.uri.path;
 
-  final customerRoutes = [
-    AppRoute.customerHome.path,
-    AppRoute.bookings.path,
-    AppRoute.customerProfile.path,
-    // Client view of a provider (`/provider/:id`), which includes booking.
-    publicProviderProfilePrefix,
-    ...clientBookingPrefixes,
-  ];
-
-  final providerRoutes = [
-    AppRoute.providerHome.path,
-    AppRoute.businessTools.path,
-    AppRoute.providerProfile.path,
-    AppRoute.settings.path,
-    ...providerOnlyPrefixes,
-  ];
-
-  if (isCustomer && providerRoutes.any((route) => currentPath.startsWith(route))) {
+  if (isCustomer && isProviderOnlyPath(currentPath)) {
     AppLogger.d(
       'Customer attempted provider route ($currentPath). Rerouting to ${AppRoute.customerHome.path}',
       tag: 'RouterGuard',
@@ -144,7 +152,7 @@ String? appRouterRedirect(BuildContext context, GoRouterState state, Ref ref) {
     return AppRoute.customerHome.path;
   }
 
-  if (isProvider && customerRoutes.any((route) => currentPath.startsWith(route))) {
+  if (isProvider && isClientOnlyPath(currentPath)) {
     AppLogger.d(
       'Provider attempted customer route ($currentPath). Rerouting to ${AppRoute.providerHome.path}',
       tag: 'RouterGuard',

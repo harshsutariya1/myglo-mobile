@@ -227,7 +227,7 @@ class _BookingLocationScreenState extends ConsumerState<BookingLocationScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              LocationPreview(label: studioAddress),
+              LocationPreview(label: studioAddress, point: provider.location),
               const SizedBox(height: 12),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,

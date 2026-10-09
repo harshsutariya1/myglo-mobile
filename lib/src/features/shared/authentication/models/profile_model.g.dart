@@ -42,6 +42,11 @@ _ProfileModel _$ProfileModelFromJson(Map<String, dynamic> json) =>
       coordinates: const LocationCoordinatesConverter().fromJson(
         json['coordinates'],
       ),
+      coverPhotos:
+          (json['cover_photos'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const <String>[],
     );
 
 Map<String, dynamic> _$ProfileModelToJson(_ProfileModel instance) =>
@@ -63,6 +68,7 @@ Map<String, dynamic> _$ProfileModelToJson(_ProfileModel instance) =>
       'coordinates': const LocationCoordinatesConverter().toJson(
         instance.coordinates,
       ),
+      'cover_photos': instance.coverPhotos,
     };
 
 const _$UserRoleEnumMap = {

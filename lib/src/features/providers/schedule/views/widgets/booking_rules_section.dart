@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -70,6 +72,52 @@ class _BookingRulesSectionState extends ConsumerState<BookingRulesSection> {
   /// The rule being saved, so its row can show progress.
   String? _saving;
 
+  /// Values just saved, shown until the live settings catch up so a row
+  /// doesn't flick back to its old value in between.
+  final Map<String, Object?> _optimistic = {};
+  final Map<String, Timer> _settleTimers = {};
+
+  @override
+  void dispose() {
+    for (final timer in _settleTimers.values) {
+      timer.cancel();
+    }
+    super.dispose();
+  }
+
+  /// [settings] with any just-saved values the server hasn't echoed yet.
+  ProviderBookingSettings _withOptimistic(ProviderBookingSettings settings) {
+    var result = settings;
+    for (final MapEntry(key: column, :value) in _optimistic.entries.toList()) {
+      final live = switch (column) {
+        'requires_approval' => settings.requiresApproval,
+        'slot_interval_minutes' => settings.slotIntervalMinutes,
+        'buffer_minutes' => settings.bufferMinutes,
+        'min_notice_minutes' => settings.minNoticeMinutes,
+        'max_advance_days' => settings.maxAdvanceDays,
+        'cancellation_window_hours' => settings.cancellationWindowHours,
+        'cancellation_fee_percent' => settings.cancellationFeePercent,
+        _ => value,
+      };
+      if (live == value && _saving != column) {
+        _optimistic.remove(column);
+        _settleTimers.remove(column)?.cancel();
+        continue;
+      }
+      result = switch ((column, value)) {
+        ('requires_approval', final bool v) => result.copyWith(requiresApproval: v),
+        ('slot_interval_minutes', final int v) => result.copyWith(slotIntervalMinutes: v),
+        ('buffer_minutes', final int v) => result.copyWith(bufferMinutes: v),
+        ('min_notice_minutes', final int v) => result.copyWith(minNoticeMinutes: v),
+        ('max_advance_days', final int v) => result.copyWith(maxAdvanceDays: v),
+        ('cancellation_window_hours', final int v) => result.copyWith(cancellationWindowHours: v),
+        ('cancellation_fee_percent', final int v) => result.copyWith(cancellationFeePercent: v),
+        _ => result,
+      };
+    }
+    return result;
+  }
+
   static const _slotIntervals = [5, 10, 15, 20, 30, 45, 60];
   static const _buffers = [0, 5, 10, 15, 20, 30, 45, 60];
   static const _notices = [0, 30, 60, 120, 240, 720, 1440, 2880];
@@ -78,10 +126,19 @@ class _BookingRulesSectionState extends ConsumerState<BookingRulesSection> {
   static const _cancellationFees = [0, 25, 50, 100];
 
   Future<void> _save(String column, Object? value) async {
-    setState(() => _saving = column);
+    _settleTimers.remove(column)?.cancel();
+    setState(() {
+      _saving = column;
+      _optimistic[column] = value;
+    });
     try {
       await ref.read(providerScheduleActionsProvider).updateSettings({column: value});
+      // Fallback if the live update never arrives (e.g. realtime is down).
+      _settleTimers[column] = Timer(const Duration(seconds: 8), () {
+        if (mounted) setState(() => _optimistic.remove(column));
+      });
     } on BookingFailure catch (failure) {
+      _optimistic.remove(column);
       if (mounted) context.showAppSnackBar(failure.message, isError: true);
     } finally {
       if (mounted) setState(() => _saving = null);
@@ -114,7 +171,8 @@ class _BookingRulesSectionState extends ConsumerState<BookingRulesSection> {
 
   @override
   Widget build(BuildContext context) {
-    final settings = ref.watch(ownBookingSettingsProvider).value;
+    final live = ref.watch(ownBookingSettingsProvider).value;
+    final settings = live == null ? null : _withOptimistic(live);
     final hours = ref.watch(ownWorkingHoursProvider);
     final timeOff = ref.watch(ownTimeOffProvider).value;
     final timeZone = settings?.timeZone ?? BookingTime.defaultTimeZone;

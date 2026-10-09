@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/config/app_config.dart';
+import '../../../../core/routing/app_router.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../providers/provider_profiles/views/screens/edit_provider_profile_screen.dart';
 import '../../controllers/discovery_feed_controller.dart';
 import 'bento_grid.dart';
 import 'discover_tab_body.dart';
@@ -72,9 +73,7 @@ class _NearbyNotice extends StatelessWidget {
           title: 'See what’s happening near you',
           message: 'Add your business address and Discover will show looks from clients and salons around you.',
           actionLabel: 'Add address',
-          onAction: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(builder: (_) => const EditProviderProfileScreen()),
-          ),
+          onAction: () => context.pushNamed(AppRoute.businessLocation.name),
         ),
       NearbyFallback.nothingNearby => const _NoticeCard(
           icon: Icons.travel_explore_rounded,

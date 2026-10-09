@@ -34,10 +34,14 @@ class ProviderProfileHeader extends StatelessWidget {
     required this.onBookNow,
     required this.onContact,
     this.distanceKm,
+    this.mobileOnly = false,
   });
 
   final ProfileModel profile;
   final double? distanceKm;
+
+  /// Only visits clients, so their address isn't shown.
+  final bool mobileOnly;
   final VoidCallback onBookNow;
   final VoidCallback onContact;
 
@@ -83,7 +87,7 @@ class ProviderProfileHeader extends StatelessWidget {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        Icon(Icons.location_on_outlined, size: 16, color: muted),
+                        Icon(mobileOnly ? Icons.directions_car_outlined : Icons.location_on_outlined, size: 16, color: muted),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
@@ -143,7 +147,7 @@ class ProviderProfileHeader extends StatelessWidget {
   }
 
   String _locationLine(String address) {
-    final place = address.isNotEmpty ? address : 'Location not provided';
+    final place = mobileOnly ? 'Mobile service · comes to you' : (address.isNotEmpty ? address : 'Location not provided');
     final distance = distanceKm;
     return distance == null ? place : '${Formatters.distanceKm(distance)} · $place';
   }

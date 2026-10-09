@@ -33,11 +33,14 @@ class SettingsCard extends StatelessWidget {
 
 /// A titled group of [SettingsTile]s separated by inset hairlines.
 class SettingsSection extends StatelessWidget {
-  const SettingsSection({super.key, required this.title, required this.children, this.footer});
+  const SettingsSection({super.key, required this.title, required this.children, this.footer, this.showDividers = true});
 
   final String title;
   final List<Widget> children;
   final String? footer;
+
+  /// Hairlines between rows; off for groups of form fields.
+  final bool showDividers;
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +76,7 @@ class SettingsSection extends StatelessWidget {
             child: Column(
               children: [
                 for (var i = 0; i < children.length; i++) ...[
-                  if (i > 0) divider,
+                  if (i > 0 && showDividers) divider,
                   children[i],
                 ],
               ],

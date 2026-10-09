@@ -15,16 +15,15 @@ class EditProviderProfileController extends _$EditProviderProfileController {
     // Initial state is data(null)
   }
 
+  /// Saves the provider's public profile details. The business location and
+  /// contact visibility are edited elsewhere (location picker, Settings).
   Future<bool> saveProfile({
     required String id,
     required String firstName,
     required String lastName,
     required String providerName,
-    required String addressText,
     required String phone,
     required String bio,
-    required bool isEmailPublic,
-    required bool isPhonePublic,
     File? newProfilePic,
   }) async {
     AppLogger.d('EditProviderProfileController: Saving profile for provider $id', tag: 'EditProviderProfile');
@@ -44,11 +43,8 @@ class EditProviderProfileController extends _$EditProviderProfileController {
         firstName: firstName,
         lastName: lastName,
         providerName: providerName.isEmpty ? null : providerName,
-        addressText: addressText.isEmpty ? null : addressText,
         phone: phone,
         bio: bio,
-        isEmailPublic: isEmailPublic,
-        isPhonePublic: isPhonePublic,
         profilePic: profilePicUrl,
       );
 

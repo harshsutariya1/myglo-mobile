@@ -71,6 +71,10 @@
 	<key>NSCameraUsageDescription</key>
 	<string>This app requires access to the camera to update your profile picture.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>This app requires access to the photo library to select your profile picture.</string>
+	<string>Myglo lets you choose photos from your library for your profile, cover and posts.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Myglo uses your location to show salons near you and to pin your studio on the map.</string>
+	<key>GMSApiKey</key>
+	<string>$(GOOGLE_MAPS_API_KEY)</string>
 </dict>
 </plist>

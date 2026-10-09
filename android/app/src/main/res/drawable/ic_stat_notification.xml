@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Status-bar icon for push notifications: the Myglo burst, white on
+     transparent as Android requires (the system tints it). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12.320,8.100 L13.050,2.300 A1.05,1.05 0 0,0 10.950,2.300 L11.680,8.100 A0.32,0.32 0 0,0 12.320,8.100 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M14.984,9.469 L19.601,5.884 A1.05,1.05 0 0,0 18.116,4.399 L14.531,9.016 A0.32,0.32 0 0,0 14.984,9.469 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M15.900,12.320 L21.700,13.050 A1.05,1.05 0 0,0 21.700,10.950 L15.900,11.680 A0.32,0.32 0 0,0 15.900,12.320 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M14.531,14.984 L18.116,19.601 A1.05,1.05 0 0,0 19.601,18.116 L14.984,14.531 A0.32,0.32 0 0,0 14.531,14.984 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M11.680,15.900 L10.950,21.700 A1.05,1.05 0 0,0 13.050,21.700 L12.320,15.900 A0.32,0.32 0 0,0 11.680,15.900 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M9.016,14.531 L4.399,18.116 A1.05,1.05 0 0,0 5.884,19.601 L9.469,14.984 A0.32,0.32 0 0,0 9.016,14.531 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M8.100,11.680 L2.300,10.950 A1.05,1.05 0 0,0 2.300,13.050 L8.100,12.320 A0.32,0.32 0 0,0 8.100,11.680 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M9.469,9.016 L5.884,4.399 A1.05,1.05 0 0,0 4.399,5.884 L9.016,9.469 A0.32,0.32 0 0,0 9.469,9.016 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12,9.25 Q12.55,11.45 14.75,12 Q12.55,12.55 12,14.75 Q11.45,12.55 9.25,12 Q11.45,11.45 12,9.25 Z" />
+</vector>

@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../shared/authentication/models/auth_repository.dart';
+import '../../../../core/utils/app_logger.dart';
+import '../../../../core/widgets/snackbar_utils.dart';
+import '../../../shared/authentication/controllers/session_actions.dart';
+import '../../../shared/notifications/push/push_notifications_controller.dart';
+import '../../../shared/notifications/push/push_settings.dart';
 import 'widgets/profile_menu_tile.dart';
 
 class AccountSettingsScreen extends ConsumerWidget {
@@ -9,6 +13,7 @@ class AccountSettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final pushStatus = ref.watch(pushNotificationsProvider).value;
     return Scaffold(
       backgroundColor: context.colorScheme.surface,
       appBar: AppBar(
@@ -29,6 +34,10 @@ class AccountSettingsScreen extends ConsumerWidget {
         child: Column(
           children: [
             const SizedBox(height: 16),
+            if (pushStatus != PushStatus.unsupported) ...[
+              const _PushNotificationsTile(),
+              Divider(color: Colors.grey.shade300, height: 1),
+            ],
             ProfileMenuTile(
               title: 'Forgot Password',
               icon: Icons.lock_reset,
@@ -67,6 +76,7 @@ class AccountSettingsScreen extends ConsumerWidget {
   }
 
   void _showLogoutDialog(BuildContext context, WidgetRef ref) {
+    final outerContext = context;
     showDialog(
       context: context,
       builder: (context) {
@@ -90,7 +100,14 @@ class AccountSettingsScreen extends ConsumerWidget {
             ElevatedButton(
               onPressed: () async {
                 Navigator.pop(context); // Close dialog
-                await ref.read(authRepositoryProvider).signOut();
+                try {
+                  await ref.read(sessionActionsProvider).signOut();
+                } catch (e, st) {
+                  AppLogger.e('Sign out failed', tag: 'AccountSettings', error: e, stackTrace: st);
+                  if (outerContext.mounted) {
+                    outerContext.showAppSnackBar("Couldn't log you out. Please try again.", isError: true);
+                  }
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: context.colorScheme.error,
@@ -108,6 +125,38 @@ class AccountSettingsScreen extends ConsumerWidget {
           ],
         );
       },
+    );
+  }
+}
+
+/// Push notifications on/off for this phone.
+class _PushNotificationsTile extends ConsumerStatefulWidget {
+  const _PushNotificationsTile();
+
+  @override
+  ConsumerState<_PushNotificationsTile> createState() => _PushNotificationsTileState();
+}
+
+class _PushNotificationsTileState extends ConsumerState<_PushNotificationsTile> with PushToggleState {
+  @override
+  Widget build(BuildContext context) {
+    final model = PushToggleModel.of(ref.watch(pushNotificationsProvider).value);
+    final busy = pendingPushValue != null;
+    final value = pendingPushValue ?? model.value;
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+      leading: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: context.colorScheme.primary.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(Icons.notifications_active_outlined, color: context.colorScheme.primary, size: 22),
+      ),
+      title: const Text('Push notifications', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+      subtitle: Text(model.subtitle, style: TextStyle(fontSize: 12.5, color: context.colorScheme.onSurface.withValues(alpha: 0.55))),
+      onTap: model.enabled && !busy ? () => setPush(!value) : null,
+      trailing: Switch.adaptive(value: value, onChanged: model.enabled && !busy ? setPush : null),
     );
   }
 }

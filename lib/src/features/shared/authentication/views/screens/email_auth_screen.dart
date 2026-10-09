@@ -21,7 +21,7 @@ class EmailAuthScreen extends ConsumerStatefulWidget {
 class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
     with SingleTickerProviderStateMixin {
   final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final _passwordController = TextEditingController(text: '123456'); //default password during development only
 
   bool _isLoading = false;
   bool _isValidEmail = false;

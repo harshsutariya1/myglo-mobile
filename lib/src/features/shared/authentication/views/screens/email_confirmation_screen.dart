@@ -37,8 +37,8 @@ class EmailConfirmationScreen extends ConsumerStatefulWidget {
 class _EmailConfirmationScreenState
     extends ConsumerState<EmailConfirmationScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
+  final _passwordController = TextEditingController(text: '123456'); //default password during development only
+  final _confirmPasswordController = TextEditingController(text: '123456'); //default password during development only
   final _pinController = TextEditingController();
 
   Timer? _cooldownTimer;

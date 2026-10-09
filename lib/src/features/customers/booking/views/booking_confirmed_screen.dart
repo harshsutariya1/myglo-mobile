@@ -12,6 +12,7 @@ import '../../../shared/bookings/models/booking.dart';
 import '../../../shared/bookings/models/booking_enums.dart';
 import '../../../shared/bookings/views/widgets/booking_overview.dart';
 import '../../../shared/bookings/views/widgets/booking_summary.dart';
+import '../../../shared/notifications/push/push_prompt_card.dart';
 import '../../provider_profile/views/widgets/section_states.dart';
 
 /// Shown after a booking is placed: what happens next, the reference, a
@@ -151,6 +152,7 @@ class _Confirmation extends StatelessWidget {
               BookingOverviewCard(booking: booking),
               const SizedBox(height: 14),
               BookingPriceCard(booking: booking),
+              if (booking.status.isActive) const PushPromptCard.booking(margin: EdgeInsets.only(top: 14)),
               if (pending) ...[
                 const SizedBox(height: 14),
                 const BookingNotice(

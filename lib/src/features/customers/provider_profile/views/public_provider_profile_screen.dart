@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -10,6 +11,7 @@ import '../../../providers/provider_profiles/controllers/provider_services_contr
 import '../../../shared/authentication/controllers/user_profile_provider.dart';
 import '../../../shared/authentication/models/profile_model.dart';
 import '../../../shared/bookings/controllers/booking_controllers.dart';
+import '../../../shared/cover_photos/views/cover_carousel.dart';
 import '../../favourites/views/favourite_button.dart';
 import '../controllers/public_provider_profile_controller.dart';
 import 'widgets/provider_about_tab.dart';
@@ -39,11 +41,21 @@ class _PublicProviderProfileScreenState extends ConsumerState<PublicProviderProf
   static const _tabs = ['Services', 'Posts', 'About'];
 
   late final TabController _tabController;
+  final ScrollController _scroll = ScrollController();
+
+  /// The cover has scrolled away under the pinned bar.
+  bool _collapsed = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: _tabs.length, vsync: this)..addListener(_onTabChanged);
+    _scroll.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    final collapsed = _scroll.offset > _coverHeight - kToolbarHeight - MediaQuery.paddingOf(context).top;
+    if (collapsed != _collapsed) setState(() => _collapsed = collapsed);
   }
 
   int _shownTab = 0;
@@ -60,6 +72,9 @@ class _PublicProviderProfileScreenState extends ConsumerState<PublicProviderProf
   void dispose() {
     _tabController
       ..removeListener(_onTabChanged)
+      ..dispose();
+    _scroll
+      ..removeListener(_onScroll)
       ..dispose();
     super.dispose();
   }
@@ -98,6 +113,10 @@ class _PublicProviderProfileScreenState extends ConsumerState<PublicProviderProf
       userProfileProvider.select((p) => p.value?.profile.coordinates?.coordinates),
     );
     final distanceKm = Geo.distanceKm(clientPoint, profileAsync.value?.coordinates?.coordinates);
+    final bookingSettings = ref.watch(bookingSettingsProvider(_id)).value;
+    // Mobile-only providers usually work from home: show that they travel,
+    // never their street address.
+    final mobileOnly = bookingSettings != null && !bookingSettings.offersStudio && bookingSettings.offersMobile;
 
     if (profileAsync case AsyncData(value: null)) {
       return _NotFoundView(onBack: _goBack);
@@ -110,11 +129,17 @@ class _PublicProviderProfileScreenState extends ConsumerState<PublicProviderProf
         edgeOffset: _coverHeight,
         onRefresh: _refresh,
         child: CustomScrollView(
+          controller: _scroll,
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             SliverAppBar(
               pinned: true,
               expandedHeight: _coverHeight,
+              // Light status bar icons over a cover photo, dark once the
+              // white bar takes over.
+              systemOverlayStyle: (profileAsync.value?.coverPhotos.isNotEmpty ?? false) && !_collapsed
+                  ? SystemUiOverlayStyle.light
+                  : SystemUiOverlayStyle.dark,
               backgroundColor: context.colorScheme.surface,
               surfaceTintColor: Colors.transparent,
               automaticallyImplyLeading: false,
@@ -139,10 +164,10 @@ class _PublicProviderProfileScreenState extends ConsumerState<PublicProviderProf
                     child: FavouriteButton(providerId: provider.id, providerName: providerDisplayName(provider)),
                   ),
               ],
-              flexibleSpace: const FlexibleSpaceBar(
-                background: Image(
-                  image: AssetImage('assets/images/myglo_cover.png'),
-                  fit: BoxFit.cover,
+              flexibleSpace: FlexibleSpaceBar(
+                background: CoverCarousel(
+                  photos: profileAsync.value?.coverPhotos ?? const [],
+                  heroPrefix: 'provider-cover-$_id',
                 ),
               ),
             ),
@@ -151,6 +176,7 @@ class _PublicProviderProfileScreenState extends ConsumerState<PublicProviderProf
                 AsyncData(:final value?) => ProviderProfileHeader(
                   profile: value,
                   distanceKm: distanceKm,
+                  mobileOnly: mobileOnly,
                   onBookNow: () => context.pushNamed(
                     AppRoute.selectServices.name,
                     pathParameters: {'id': _id},
@@ -172,7 +198,7 @@ class _PublicProviderProfileScreenState extends ConsumerState<PublicProviderProf
                 tabBar: _buildTabBar(context),
               ),
             ),
-            ..._buildTabContent(profileAsync, distanceKm),
+            ..._buildTabContent(profileAsync, distanceKm, mobileOnly),
             SliverToBoxAdapter(
               child: SizedBox(height: 32 + MediaQuery.paddingOf(context).bottom),
             ),
@@ -182,7 +208,7 @@ class _PublicProviderProfileScreenState extends ConsumerState<PublicProviderProf
     );
   }
 
-  List<Widget> _buildTabContent(AsyncValue<ProfileModel?> profileAsync, double? distanceKm) {
+  List<Widget> _buildTabContent(AsyncValue<ProfileModel?> profileAsync, double? distanceKm, bool mobileOnly) {
     switch (_shownTab) {
       case 0:
         return [
@@ -199,6 +225,7 @@ class _PublicProviderProfileScreenState extends ConsumerState<PublicProviderProf
           ProviderAboutTab(
             profile: profileAsync,
             distanceKm: distanceKm,
+            mobileOnly: mobileOnly,
             onRetry: () => ref.invalidate(publicProviderProfileProvider(_id)),
           ),
         ];

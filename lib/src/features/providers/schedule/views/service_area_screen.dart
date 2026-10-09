@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-import '../../../../core/location/address_geocoder.dart';
+import '../../../../core/location/geo_point.dart';
+import '../../../../core/routing/app_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/skeleton/skeletons.dart';
@@ -10,6 +12,7 @@ import '../../../../core/widgets/snackbar_utils.dart';
 import '../../../customers/booking/views/widgets/location_preview.dart';
 import '../../../customers/provider_profile/views/widgets/section_states.dart';
 import '../../../shared/authentication/controllers/user_profile_provider.dart';
+import '../../../shared/authentication/models/profile_model.dart';
 import '../../../shared/bookings/controllers/booking_controllers.dart';
 import '../../../shared/bookings/models/booking_failure.dart';
 import '../../../shared/bookings/models/booking_settings.dart';
@@ -28,19 +31,8 @@ class _ServiceAreaScreenState extends ConsumerState<ServiceAreaScreen> {
   /// Travel limits offered, in km; null means no limit.
   static const List<double?> radiusOptions = [5, 10, 15, 25, 40, 60, null];
 
-  final _address = TextEditingController();
-  bool _addressLoaded = false;
-  bool _locating = false;
-  String? _locationError;
-
   /// The setting being saved, so its control can show progress.
   String? _savingKey;
-
-  @override
-  void dispose() {
-    _address.dispose();
-    super.dispose();
-  }
 
   Future<void> _update(String key, Map<String, Object?> changes) async {
     setState(() => _savingKey = key);
@@ -54,52 +46,6 @@ class _ServiceAreaScreenState extends ConsumerState<ServiceAreaScreen> {
     }
   }
 
-  Future<void> _locate() async {
-    final text = _address.text.trim();
-    FocusScope.of(context).unfocus();
-    if (text.length < 8) {
-      setState(() => _locationError = 'Enter your full business address, including suburb and postcode.');
-      return;
-    }
-    setState(() {
-      _locating = true;
-      _locationError = null;
-    });
-    try {
-      final query = text.toLowerCase().contains('australia') ? text : '$text, Australia';
-      final point = await ref.read(addressGeocoderProvider).locate(query);
-      if (!mounted) return;
-      if (point == null || !point.isInAustralia) {
-        setState(() {
-          _locating = false;
-          _locationError = point == null
-              ? "We couldn't find that address. Check the street, suburb and postcode."
-              : "That address doesn't look like it's in Australia.";
-        });
-        return;
-      }
-      await ref.read(providerScheduleActionsProvider).setBusinessLocation(addressText: text, point: point);
-      if (!mounted) return;
-      HapticFeedback.mediumImpact();
-      setState(() => _locating = false);
-      context.showAppSnackBar('Business location saved');
-    } on GeocodingUnavailableException {
-      if (mounted) {
-        setState(() {
-          _locating = false;
-          _locationError = "We can't look up addresses right now. Check your connection and try again.";
-        });
-      }
-    } on BookingFailure catch (failure) {
-      if (mounted) {
-        setState(() {
-          _locating = false;
-          _locationError = failure.message;
-        });
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
@@ -108,10 +54,6 @@ class _ServiceAreaScreenState extends ConsumerState<ServiceAreaScreen> {
     final profile = ref.watch(userProfileProvider.select((p) => p.value?.profile));
     final savedAddress = profile?.addressText?.trim() ?? '';
     final located = profile?.coordinates != null && savedAddress.isNotEmpty;
-    if (!_addressLoaded && profile != null) {
-      _address.text = savedAddress;
-      _addressLoaded = true;
-    }
 
     return Scaffold(
       backgroundColor: scheme.surface,
@@ -185,15 +127,11 @@ class _ServiceAreaScreenState extends ConsumerState<ServiceAreaScreen> {
               const SizedBox(height: 26),
               _SectionTitle('Business location'),
               _LocationCard(
-                controller: _address,
                 savedAddress: savedAddress,
+                point: profile?.location,
                 located: located,
-                locating: _locating,
-                error: _locationError,
-                onLocate: _locate,
-                onChanged: () {
-                  if (_locationError != null) setState(() => _locationError = null);
-                },
+                mobileOnly: !settings.offersStudio && settings.offersMobile,
+                onEdit: () => context.pushNamed(AppRoute.businessLocation.name),
               ),
               if (settings.offersMobile) ...[
                 const SizedBox(height: 26),
@@ -305,22 +243,18 @@ class _ModeTile extends StatelessWidget {
 
 class _LocationCard extends StatelessWidget {
   const _LocationCard({
-    required this.controller,
     required this.savedAddress,
+    required this.point,
     required this.located,
-    required this.locating,
-    required this.error,
-    required this.onLocate,
-    required this.onChanged,
+    required this.mobileOnly,
+    required this.onEdit,
   });
 
-  final TextEditingController controller;
   final String savedAddress;
+  final GeoPoint? point;
   final bool located;
-  final bool locating;
-  final String? error;
-  final VoidCallback onLocate;
-  final VoidCallback onChanged;
+  final bool mobileOnly;
+  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -335,9 +269,13 @@ class _LocationCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          LocationPreview(label: savedAddress.isEmpty ? 'Your business' : savedAddress, height: 130),
+          GestureDetector(
+            onTap: onEdit,
+            child: LocationPreview(label: savedAddress.isEmpty ? 'Your business' : savedAddress, point: point, height: 140),
+          ),
           const SizedBox(height: 12),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(
                 located ? Icons.check_circle_rounded : Icons.error_outline_rounded,
@@ -347,40 +285,22 @@ class _LocationCard extends StatelessWidget {
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  located ? 'Location set' : 'Not set yet. Clients need it to book you.',
-                  style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: scheme.onSurface),
+                  located ? savedAddress : 'Not set yet. Clients need it to find and book you.',
+                  style: TextStyle(fontSize: 13.5, height: 1.35, fontWeight: FontWeight.w700, color: scheme.onSurface),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: controller,
-            enabled: !locating,
-            onChanged: (_) => onChanged(),
-            textCapitalization: TextCapitalization.words,
-            textInputAction: TextInputAction.done,
-            onSubmitted: (_) => onLocate(),
-            autofillHints: const [AutofillHints.fullStreetAddress],
-            maxLength: 200,
-            decoration: InputDecoration(
-              labelText: 'Business address',
-              hintText: 'e.g. 1 Cavill Ave, Surfers Paradise QLD 4217',
-              counterText: '',
-              errorText: error,
-              errorMaxLines: 3,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-            ),
-          ),
           const SizedBox(height: 10),
           Text(
-            'Clients see this address for studio appointments. For mobile visits it\'s only used to work out '
-            'travel distance, never shown.',
+            mobileOnly
+                ? "Only used to work out travel distance. Clients don't see your address."
+                : 'Clients see this address and pin for studio appointments, and find you on the map.',
             style: TextStyle(fontSize: 12.5, height: 1.4, color: scheme.onSurface.withValues(alpha: 0.58)),
           ),
           const SizedBox(height: 12),
           FilledButton.icon(
-            onPressed: locating ? null : onLocate,
+            onPressed: onEdit,
             style: FilledButton.styleFrom(
               backgroundColor: scheme.onSurface,
               foregroundColor: scheme.surface,
@@ -388,10 +308,8 @@ class _LocationCard extends StatelessWidget {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
             ),
-            icon: locating
-                ? SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2, color: scheme.surface))
-                : const Icon(Icons.my_location_rounded, size: 19),
-            label: Text(located ? 'Update location' : 'Save location'),
+            icon: Icon(located ? Icons.edit_location_alt_outlined : Icons.add_location_alt_outlined, size: 19),
+            label: Text(located ? 'Change location' : 'Set location'),
           ),
         ],
       ),

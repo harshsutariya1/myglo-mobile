@@ -20,7 +20,11 @@ import '../../features/providers/business_tools/views/business_tools_screen.dart
 import '../../features/customers/customer_profile/views/customer_profile_screen.dart';
 import '../../features/providers/provider_profiles/views/screens/profile_screen.dart';
 import '../../features/providers/provider_profiles/views/screens/settings_screen.dart';
-import '../../features/providers/provider_profiles/views/screens/account_details_screen.dart';
+import '../../features/providers/provider_profiles/views/screens/cover_photos_screen.dart';
+import '../../features/providers/provider_profiles/views/screens/edit_provider_profile_screen.dart';
+import '../../features/providers/location/views/business_location_screen.dart';
+import '../../features/customers/explore/views/provider_search_screen.dart';
+import '../../features/customers/explore/views/providers_map_screen.dart';
 import '../../features/discovery_feed/views/discovery_screen.dart';
 import '../../features/customers/provider_profile/views/public_provider_profile_screen.dart';
 import '../../features/customers/booking/views/select_services_screen.dart';
@@ -74,12 +78,18 @@ enum AppRoute {
   providerBookingDetail(path: '/appointments/:bookingId'),
   notifications(path: '/notifications'),
   settings(path: 'settings'),
-  accountDetails(path: 'account-details'),
+  // Client discovery, full-screen over the home tab.
+  providerSearch(path: '/search'),
+  providersMap(path: '/map'),
   // Provider availability editors: full-screen, outside the tab shell, so
   // their save bar isn't covered by the tab bar.
   workingHours(path: '/schedule/working-hours'),
   timeOff(path: '/schedule/time-off'),
-  serviceArea(path: '/schedule/service-area');
+  serviceArea(path: '/schedule/service-area'),
+  // Provider business profile editors, full-screen for the same reason.
+  editProviderProfile(path: '/business/profile'),
+  coverPhotos(path: '/business/cover-photos'),
+  businessLocation(path: '/business/location');
 
   final String path;
   const AppRoute({required this.path});
@@ -229,6 +239,31 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: AppRoute.serviceArea.name,
         builder: (context, state) => const ServiceAreaScreen(),
       ),
+      GoRoute(
+        path: AppRoute.editProviderProfile.path,
+        name: AppRoute.editProviderProfile.name,
+        builder: (context, state) => const EditProviderProfileScreen(),
+      ),
+      GoRoute(
+        path: AppRoute.coverPhotos.path,
+        name: AppRoute.coverPhotos.name,
+        builder: (context, state) => const CoverPhotosScreen(),
+      ),
+      GoRoute(
+        path: AppRoute.businessLocation.path,
+        name: AppRoute.businessLocation.name,
+        builder: (context, state) => const BusinessLocationScreen(),
+      ),
+      GoRoute(
+        path: AppRoute.providerSearch.path,
+        name: AppRoute.providerSearch.name,
+        builder: (context, state) => ProviderSearchScreen(initialQuery: state.uri.queryParameters['q']),
+      ),
+      GoRoute(
+        path: AppRoute.providersMap.path,
+        name: AppRoute.providersMap.name,
+        builder: (context, state) => const ProvidersMapScreen(),
+      ),
       ShellRoute(
         builder: (context, state, child) {
           return MainScaffold(child: child);
@@ -273,13 +308,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: AppRoute.settings.path,
                 name: AppRoute.settings.name,
                 builder: (context, state) => const SettingsScreen(),
-                routes: [
-                  GoRoute(
-                    path: AppRoute.accountDetails.path,
-                    name: AppRoute.accountDetails.name,
-                    builder: (context, state) => const AccountDetailsScreen(),
-                  ),
-                ],
               ),
             ],
           ),

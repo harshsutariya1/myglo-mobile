@@ -57,6 +57,9 @@ dependencies:
   http: ^1.6.0
   pinput: ^6.0.2
   firebase_core: ^4.15.0
+  google_maps_flutter: ^2.18.1
+  geolocator: ^14.0.1
+  firebase_messaging: ^16.7.0
 
 dev_dependencies:
   sentry_dart_plugin: ^3.4.0

@@ -1,7 +1,9 @@
 import EventKit
 import EventKitUI
 import Flutter
+import GoogleMaps
 import UIKit
+import UserNotifications
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
@@ -9,6 +11,12 @@ import UIKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    // The key comes from Info.plist (GMSApiKey), which Secrets.xcconfig fills
+    // in. Without one the app shows a "map unavailable" placeholder rather
+    // than creating a map (see SystemBridgePlugin.mapsAvailable).
+    if let key = AppDelegate.mapsApiKey {
+      GMSServices.provideAPIKey(key)
+    }
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
@@ -16,6 +24,49 @@ import UIKit
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "CalendarBridgePlugin") {
       CalendarBridgePlugin.register(with: registrar)
+    }
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "SystemBridgePlugin") {
+      SystemBridgePlugin.register(with: registrar)
+    }
+  }
+
+  static var mapsApiKey: String? {
+    guard let key = Bundle.main.object(forInfoDictionaryKey: "GMSApiKey") as? String else { return nil }
+    let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
+    return trimmed.isEmpty || trimmed.hasPrefix("$(") ? nil : trimmed
+  }
+}
+
+/// App-level system queries and shortcuts (channel `app.myglo/system`).
+final class SystemBridgePlugin: NSObject, FlutterPlugin {
+  static func register(with registrar: FlutterPluginRegistrar) {
+    let channel = FlutterMethodChannel(name: "app.myglo/system", binaryMessenger: registrar.messenger())
+    registrar.addMethodCallDelegate(SystemBridgePlugin(), channel: channel)
+  }
+
+  func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    switch call.method {
+    case "mapsAvailable":
+      result(AppDelegate.mapsApiKey != nil)
+    case "notificationsEnabled":
+      UNUserNotificationCenter.current().getNotificationSettings { settings in
+        let enabled = [.authorized, .provisional, .ephemeral].contains(settings.authorizationStatus)
+        DispatchQueue.main.async { result(enabled) }
+      }
+    case "openNotificationSettings":
+      let target: String
+      if #available(iOS 16.0, *) {
+        target = UIApplication.openNotificationSettingsURLString
+      } else {
+        target = UIApplication.openSettingsURLString
+      }
+      guard let url = URL(string: target) else {
+        result(false)
+        return
+      }
+      UIApplication.shared.open(url) { opened in result(opened) }
+    default:
+      result(FlutterMethodNotImplemented)
     }
   }
 }

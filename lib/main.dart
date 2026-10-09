@@ -12,6 +12,7 @@ import 'src/core/utils/app_provider_observer.dart';
 import 'src/core/widgets/init_error_app.dart';
 import 'src/core/widgets/offline_overlay.dart';
 import 'src/core/widgets/shorebird_update_listener.dart';
+import 'src/features/shared/notifications/push/push_notification_host.dart';
 import 'src/features/shared/notifications/views/in_app_notification_host.dart';
 
 void main() async {
@@ -77,7 +78,9 @@ class MyApp extends ConsumerWidget {
         theme: AppTheme.lightTheme,
         routerConfig: router,
         debugShowCheckedModeBanner: false,
-        builder: (context, child) => OfflineOverlay(child: InAppNotificationHost(child: child!)),
+        builder: (context, child) => OfflineOverlay(
+          child: PushNotificationHost(child: InAppNotificationHost(child: child!)),
+        ),
       ),
     );
   }

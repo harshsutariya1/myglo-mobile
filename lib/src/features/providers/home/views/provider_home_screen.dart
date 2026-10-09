@@ -14,6 +14,7 @@ import '../../../shared/bookings/models/booking_repository.dart';
 import '../../../shared/bookings/views/widgets/booking_card.dart';
 import '../../../shared/bookings/views/widgets/booking_list_view.dart';
 import '../../../shared/bookings/views/widgets/booking_segmented_control.dart';
+import '../../../shared/notifications/push/push_prompt_card.dart';
 import '../../../shared/notifications/views/notification_bell.dart';
 import '../../schedule/controllers/provider_schedule_controller.dart';
 import 'widgets/booking_setup_card.dart';
@@ -108,7 +109,11 @@ class _ProviderHomeScreenState extends ConsumerState<ProviderHomeScreen> {
                 sliver: SliverToBoxAdapter(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [BookingSetupCard(), _PausedBanner()],
+                    children: [
+                      PushPromptCard.provider(margin: EdgeInsets.only(bottom: 16)),
+                      BookingSetupCard(),
+                      _PausedBanner(),
+                    ],
                   ),
                 ),
               ),
