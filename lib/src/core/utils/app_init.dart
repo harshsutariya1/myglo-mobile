@@ -1,7 +1,9 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../firebase_options.dart';
 import '../network/connectivity_aware_client.dart';
 import 'app_logger.dart';
 
@@ -21,6 +23,12 @@ Future<void> initializeApp({required void Function(SharedPreferences preferences
   final sentryDsn = dotenv.env['SENTRY_DSN'];
 
   Future<void> initRest() async {
+    AppLogger.d('Initializing Firebase...', tag: 'Init');
+    final firebaseWatch = Stopwatch()..start();
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    firebaseWatch.stop();
+    AppLogger.i('✅ Firebase initialized in ${firebaseWatch.elapsedMilliseconds}ms', tag: 'Init');
+
     final supabaseUrl = dotenv.env['SUPABASE_URL'];
     final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'];
 

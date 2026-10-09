@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "624359806821",
+    "project_id": "myglo-511108",
+    "storage_bucket": "myglo-511108.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:624359806821:android:3595c5c08ef8e3944c338c",
+        "android_client_info": {
+          "package_name": "app.myglo.myglo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC2F6cM4wl0tz6uEv9fFN2Q-pngD1xWERc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
