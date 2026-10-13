@@ -13,6 +13,7 @@ import '../../../shared/bookings/models/cancellation_policy.dart';
 import '../../../shared/bookings/views/widgets/booking_overview.dart';
 import '../../../shared/bookings/views/widgets/booking_status_banner.dart';
 import '../../../shared/bookings/views/widgets/booking_summary.dart';
+import '../../../shared/reviews/views/widgets/booking_review_section.dart';
 import '../../provider_profile/controllers/public_provider_profile_controller.dart';
 import '../../provider_profile/views/widgets/provider_action_sheets.dart';
 import '../../provider_profile/views/widgets/section_states.dart';
@@ -80,6 +81,10 @@ class ClientBookingDetailScreen extends ConsumerWidget {
               padding: EdgeInsets.fromLTRB(20, 8, 20, 32 + MediaQuery.paddingOf(context).bottom),
               children: [
                 BookingStatusBanner(booking: booking, now: now),
+                if (booking.canReview) ...[
+                  const SizedBox(height: 16),
+                  ClientBookingReviewSection(booking: booking),
+                ],
                 const SizedBox(height: 16),
                 BookingOverviewCard(booking: booking),
                 const SizedBox(height: 14),

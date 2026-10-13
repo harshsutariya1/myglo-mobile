@@ -147,120 +147,132 @@ class BookingCard extends StatelessWidget {
         ? (booking.distanceKm == null ? 'Mobile visit' : 'Mobile · ${Formatters.distanceKm(booking.distanceKm!)}')
         : 'At the studio';
 
-    return Semantics(
-      button: true,
-      label: '${booking.servicesSummary} with $name, ${Formatters.dateShort(booking.startsAtLocal)}, $time, '
-          '${booking.status.label}',
-      excludeSemantics: true,
-      child: Material(
-        color: scheme.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: scheme.onSurface.withValues(alpha: 0.08)),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    BookingDateTile(date: booking.startsAtLocal, muted: muted),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              PersonAvatar(name: name, url: avatar, size: 22),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: muteColor),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            booking.servicesSummary,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 16,
-                              height: 1.25,
-                              fontWeight: FontWeight.w800,
-                              color: scheme.onSurface,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              Icon(Icons.schedule_rounded, size: 14, color: muteColor),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  time,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: muteColor),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(
-                                booking.isMobile ? Icons.home_outlined : Icons.storefront_outlined,
-                                size: 14,
-                                color: muteColor,
-                              ),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  where,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(fontSize: 13, color: muteColor),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+    final summary = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            BookingDateTile(date: booking.startsAtLocal, muted: muted),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      PersonAvatar(name: name, url: avatar, size: 22),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: muteColor),
+                        ),
                       ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    booking.servicesSummary,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 16,
+                      height: 1.25,
+                      fontWeight: FontWeight.w800,
+                      color: scheme.onSurface,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  children: [
-                    BookingStatusPill(status: booking.status, dense: true),
-                    if (booking.status.isActive || booking.paymentStatus == PaymentStatus.paid)
-                      PaymentStatusPill(method: booking.paymentMethod, status: booking.paymentStatus, dense: true),
-                    BookingPill(
-                      label: Formatters.audCents(booking.totalCents),
-                      color: scheme.onSurface.withValues(alpha: 0.6),
-                      dense: true,
-                    ),
-                  ],
-                ),
-                if (footer != null) ...[
-                  const SizedBox(height: 12),
-                  footer!,
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(Icons.schedule_rounded, size: 14, color: muteColor),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          time,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: muteColor),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        booking.isMobile ? Icons.home_outlined : Icons.storefront_outlined,
+                        size: 14,
+                        color: muteColor,
+                      ),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          where,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 13, color: muteColor),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
-              ],
+              ),
             ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: [
+            BookingStatusPill(status: booking.status, dense: true),
+            if (booking.status.isActive || booking.paymentStatus == PaymentStatus.paid)
+              PaymentStatusPill(method: booking.paymentMethod, status: booking.paymentStatus, dense: true),
+            BookingPill(
+              label: Formatters.audCents(booking.totalCents),
+              color: scheme.onSurface.withValues(alpha: 0.6),
+              dense: true,
+            ),
+          ],
+        ),
+      ],
+    );
+
+    return Material(
+      color: scheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: scheme.onSurface.withValues(alpha: 0.08)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        // The summary below is the card's one semantic button.
+        excludeFromSemantics: true,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Read as one label, while footer actions stay reachable on
+              // their own.
+              Semantics(
+                button: true,
+                label: '${booking.servicesSummary} with $name, ${Formatters.dateShort(booking.startsAtLocal)}, $time, '
+                    '${booking.status.label}',
+                onTap: onTap,
+                excludeSemantics: true,
+                child: summary,
+              ),
+              if (footer != null) ...[
+                const SizedBox(height: 12),
+                footer!,
+              ],
+            ],
           ),
         ),
       ),

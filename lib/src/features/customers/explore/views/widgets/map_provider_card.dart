@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/utils/formatters.dart';
+import '../../../../shared/reviews/views/widgets/star_rating.dart' show starColor;
 import '../../models/provider_listing.dart';
 import 'listing_widgets.dart';
 
@@ -30,6 +31,7 @@ class MapProviderCard extends StatelessWidget {
     final muted = scheme.onSurface.withValues(alpha: 0.58);
     final categories = listingCategoryLine(listing, max: 2);
     final distance = distanceKm;
+    final rating = listing.reviewCount > 0 ? listing.ratingAverage : null;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 220),
@@ -75,11 +77,20 @@ class MapProviderCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       Row(
                         children: [
-                          Icon(Icons.star_rounded, size: 15, color: scheme.primary),
+                          Icon(
+                            Icons.star_rounded,
+                            size: 15,
+                            color: rating == null ? scheme.primary : starColor,
+                          ),
                           const SizedBox(width: 3),
                           Expanded(
                             child: Text(
-                              categories == null ? 'New on Myglo' : 'New · $categories',
+                              [
+                                rating == null
+                                    ? (categories == null ? 'New on Myglo' : 'New')
+                                    : '${Formatters.rating(rating)} (${Formatters.compactCount(listing.reviewCount)})',
+                                ?categories,
+                              ].join(' · '),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: scheme.secondary),

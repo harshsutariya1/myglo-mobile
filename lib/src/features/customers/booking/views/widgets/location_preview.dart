@@ -14,13 +14,17 @@ import '../../../../../core/utils/app_logger.dart';
 /// so no screen depends on a map SDK) with a branded pin. Without one it
 /// paints a stylised street map, varied by the address so each place looks
 /// a little different.
+///
+/// With [onTap] the whole preview is a button (e.g. to open the place in a
+/// maps app), labelled with an "Open in Maps" pill.
 class LocationPreview extends StatefulWidget {
-  const LocationPreview({super.key, required this.label, this.point, this.height = 150});
+  const LocationPreview({super.key, required this.label, this.point, this.height = 150, this.onTap});
 
   /// Usually the address; also seeds the drawing when there's no [point].
   final String label;
   final GeoPoint? point;
   final double height;
+  final VoidCallback? onTap;
 
   @override
   State<LocationPreview> createState() => _LocationPreviewState();
@@ -48,24 +52,72 @@ class _LocationPreviewState extends State<LocationPreview> {
   Widget build(BuildContext context) {
     final point = widget.point;
     final pin = _pin;
+    final onTap = widget.onTap;
+    final map = point == null || !point.isValid
+        ? _PaintedMap(label: widget.label)
+        : AppMap(
+            key: ValueKey(point),
+            initialCamera: MapCamera(target: point, zoom: 15.5),
+            markers: [if (pin != null) AppMapMarker(id: 'place', point: point, image: pin)],
+            interactive: false,
+            lite: true,
+          );
     return Semantics(
       label: 'Map of ${widget.label}',
-      image: true,
+      hint: onTap == null ? null : 'Opens in Maps',
+      image: onTap == null,
+      button: onTap != null,
+      onTap: onTap,
       excludeSemantics: true,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(18),
         child: SizedBox(
           height: widget.height,
           width: double.infinity,
-          child: point == null || !point.isValid
-              ? _PaintedMap(label: widget.label)
-              : AppMap(
-                  key: ValueKey(point),
-                  initialCamera: MapCamera(target: point, zoom: 15.5),
-                  markers: [if (pin != null) AppMapMarker(id: 'place', point: point, image: pin)],
-                  interactive: false,
-                  lite: true,
+          child: onTap == null
+              ? map
+              : Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    map,
+                    // Above the map so the tap reaches Flutter, not the native map view.
+                    Material(
+                      type: MaterialType.transparency,
+                      child: InkWell(onTap: onTap, child: const SizedBox.expand()),
+                    ),
+                    const Positioned(right: 10, bottom: 10, child: IgnorePointer(child: _OpenInMapsPill())),
+                  ],
                 ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OpenInMapsPill extends StatelessWidget {
+  const _OpenInMapsPill();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.open_in_new_rounded, size: 15, color: scheme.onSurface),
+            const SizedBox(width: 6),
+            Text(
+              'Open in Maps',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: scheme.onSurface),
+            ),
+          ],
         ),
       ),
     );

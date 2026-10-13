@@ -48,6 +48,8 @@ class ProviderListing {
     this.acceptsBookings = true,
     this.offersStudio = true,
     this.offersMobile = false,
+    this.ratingAverage,
+    this.reviewCount = 0,
   });
 
   final String id;
@@ -76,6 +78,10 @@ class ProviderListing {
   final bool acceptsBookings;
   final bool offersStudio;
   final bool offersMobile;
+
+  /// Average star rating; null until someone reviews them.
+  final double? ratingAverage;
+  final int reviewCount;
 
   /// Comes to the client and has no studio.
   bool get mobileOnly => offersMobile && !offersStudio;
@@ -109,6 +115,8 @@ class ProviderListing {
       acceptsBookings: json['accepts_bookings'] as bool? ?? true,
       offersStudio: json['offers_studio'] as bool? ?? true,
       offersMobile: json['offers_mobile'] as bool? ?? false,
+      ratingAverage: (json['rating_average'] as num?)?.toDouble(),
+      reviewCount: (json['review_count'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -134,6 +142,8 @@ class ProviderListing {
       acceptsBookings: acceptsBookings,
       offersStudio: offersStudio,
       offersMobile: offersMobile,
+      ratingAverage: ratingAverage,
+      reviewCount: reviewCount,
     );
   }
 

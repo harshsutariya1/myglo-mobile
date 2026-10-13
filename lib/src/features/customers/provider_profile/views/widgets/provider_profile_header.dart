@@ -5,6 +5,7 @@ import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/utils/formatters.dart';
 import '../../../../../core/widgets/skeleton/skeletons.dart';
 import '../../../../shared/authentication/models/profile_model.dart';
+import '../../../../shared/reviews/views/widgets/rating_summary.dart';
 
 /// Layout constants shared by [ProviderProfileHeader] and its skeleton so both
 /// occupy exactly the same space.
@@ -33,6 +34,7 @@ class ProviderProfileHeader extends StatelessWidget {
     required this.profile,
     required this.onBookNow,
     required this.onContact,
+    this.onOpenReviews,
     this.distanceKm,
     this.mobileOnly = false,
   });
@@ -44,6 +46,9 @@ class ProviderProfileHeader extends StatelessWidget {
   final bool mobileOnly;
   final VoidCallback onBookNow;
   final VoidCallback onContact;
+
+  /// Opens every review, from the rating line.
+  final VoidCallback? onOpenReviews;
 
   @override
   Widget build(BuildContext context) {
@@ -73,16 +78,17 @@ class ProviderProfileHeader extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    // Reviews are not collected yet, so every provider is new.
-                    Row(
-                      children: [
-                        Icon(Icons.star_outline_rounded, size: 16, color: context.colorScheme.secondary),
-                        const SizedBox(width: 4),
-                        Text(
-                          'New · No reviews yet',
+                    Semantics(
+                      button: onOpenReviews != null,
+                      hint: onOpenReviews == null ? null : 'Show all reviews',
+                      child: InkWell(
+                        onTap: onOpenReviews,
+                        borderRadius: BorderRadius.circular(8),
+                        child: ProviderRatingLine(
+                          providerId: profile.id,
                           style: ProviderHeaderMetrics.metaStyle.copyWith(color: muted),
                         ),
-                      ],
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Row(

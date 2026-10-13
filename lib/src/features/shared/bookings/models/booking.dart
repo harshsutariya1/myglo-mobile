@@ -88,6 +88,10 @@ abstract class Booking with _$Booking {
     /// Myglo's commission on this booking. Only the provider can see it
     /// (null for the client, who pays no booking fee).
     @JsonKey(name: 'platform_fee_cents') int? platformFeeCents,
+
+    /// The client's review of this booking, if they left one.
+    @JsonKey(name: 'review_id') String? reviewId,
+    @JsonKey(name: 'review_rating') int? reviewRating,
   }) = _Booking;
 
   factory Booking.fromJson(Map<String, dynamic> json) => _$BookingFromJson(json);
@@ -123,4 +127,8 @@ abstract class Booking with _$Booking {
 
   /// Started already, so the provider can mark it done or a no-show.
   bool hasStarted(DateTime now) => !startsAt.isAfter(now);
+
+  /// Completed and still linked to its provider, so the client can review it
+  /// (the server checks the same).
+  bool get canReview => status == BookingStatus.completed && providerId != null;
 }

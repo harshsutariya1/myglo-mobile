@@ -18,6 +18,10 @@ import 'package:myglo/src/features/shared/authentication/models/profile_model.da
 import 'package:myglo/src/features/shared/authentication/models/user_role.dart';
 import 'package:myglo/src/features/shared/bookings/controllers/booking_controllers.dart';
 import 'package:myglo/src/features/shared/notifications/controllers/notifications_controller.dart';
+import 'package:myglo/src/features/shared/reviews/controllers/reviews_controllers.dart';
+import 'package:myglo/src/features/shared/reviews/models/review.dart';
+import 'package:myglo/src/features/shared/reviews/models/review_summary.dart';
+import 'package:myglo/src/features/shared/reviews/models/reviews_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 final _providerUser = User(
@@ -31,6 +35,33 @@ final _providerUser = User(
 class _EmptyInbox extends NotificationsController {
   @override
   Future<NotificationsState> build() async => NotificationsState.empty;
+}
+
+/// One unanswered review; the summary comes from an override.
+class _FakeReviews implements ReviewsRepository {
+  @override
+  Future<List<Review>> list({
+    String? providerId,
+    String? serviceId,
+    String? bookingId,
+    Review? before,
+    required int limit,
+  }) async =>
+      [
+        Review(
+          id: 'r-1',
+          bookingId: 'b-1',
+          providerId: 'prov-1',
+          clientId: 'c-1',
+          reviewerName: 'Mia T.',
+          rating: 5,
+          body: 'Loved it',
+          createdAt: DateTime.utc(2026, 10, 1),
+        ),
+      ];
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(invocation.memberName.toString());
 }
 
 /// Fails the first [failures] calls, then serves [stats].
@@ -222,21 +253,35 @@ void main() {
       expect(find.text(r'$1,240.50'), findsOneWidget);
     });
 
-    testWidgets('profile views and rating are "Soon" placeholders, not numbers', (tester) async {
-      await _pump(tester, _overrides(_FakeRepository(_october)));
+    testWidgets('rating and review count are live, and profile views are gone', (tester) async {
+      await _pump(tester, [
+        ..._overrides(_FakeRepository(_october)),
+        providerReviewSummaryProvider('prov-1').overrideWith(
+          (ref) async => const ReviewSummary(count: 12, average: 4.75, starCounts: [0, 0, 1, 1, 10]),
+        ),
+        reviewsRepositoryProvider.overrideWithValue(_FakeReviews()),
+      ]);
 
-      for (final title in ['Profile views', 'Rating']) {
-        expect(
-          find.descendant(of: find.ancestor(of: find.text(title), matching: find.byType(InkWell)), matching: find.byType(SoonBadge)),
-          findsOneWidget,
-        );
-      }
-
-      await _tapVisible(tester, find.text('Profile views'));
-      expect(find.text('Profile views is coming soon'), findsOneWidget);
+      expect(find.text('Profile views'), findsNothing);
+      expect(find.byType(SoonBadge), findsOneWidget); // Only Financials.
+      expect(find.text('4.8'), findsOneWidget);
+      expect(find.text('12'), findsOneWidget);
 
       await _tapVisible(tester, find.text('Rating'));
-      expect(find.text('Ratings is coming soon'), findsOneWidget);
+      expect(find.text('Your reviews'), findsOneWidget);
+      expect(find.text('Mia T.'), findsOneWidget);
+      // Providers can answer from here.
+      expect(find.text('Reply publicly'), findsOneWidget);
+    });
+
+    testWidgets('a provider nobody has reviewed yet reads as new', (tester) async {
+      await _pump(tester, [
+        ..._overrides(_FakeRepository(_october)),
+        providerReviewSummaryProvider('prov-1').overrideWith((ref) async => ReviewSummary.empty),
+      ]);
+
+      expect(find.text('New'), findsOneWidget);
+      expect(find.text('Reviews'), findsOneWidget);
     });
   });
 

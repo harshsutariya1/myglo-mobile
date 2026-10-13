@@ -1,10 +1,11 @@
-// Delivers queued booking notifications by email (Resend) and push (Firebase
-// Cloud Messaging).
+// Delivers queued booking and review notifications by email (Resend) and push
+// (Firebase Cloud Messaging).
 //
 // The database calls this function through pg_net right after a booking
 // event queues its deliveries, and a pg_cron sweeper calls it every minute to
 // retry anything still due (see migrations 20261005130000_booking_notifications
-// and 20261009120000_push_notifications).
+// and 20261009120000_push_notifications; review notifications are queued by
+// the review RPCs in 20261013130000_reviews).
 //
 // Work is claimed atomically in the database (FOR UPDATE SKIP LOCKED), so two
 // invocations never pick up the same delivery. Every email carries a Resend
@@ -80,6 +81,16 @@ interface Delivery {
   booking_id: string | null;
   /** Recipient's device tokens, newest first (push deliveries only). */
   push_tokens: string[] | null;
+  /** The notification's extra details (e.g. the review for review emails). */
+  data: Record<string, unknown> | null;
+}
+
+/** `notifications.data` of review notifications (see submit_review). */
+interface ReviewData {
+  rating: number;
+  body: string | null;
+  services: string[];
+  provider_name: string | null;
 }
 
 type Outcome = 'sent' | 'retry' | 'failed' | 'skipped';
@@ -458,12 +469,18 @@ function badgeFor(kind: string, booking: BookingSummary | null): Badge {
       return { label: 'Missed', color: '#B91C1C', background: '#FEE2E2' };
     case 'booking_completed':
       return { label: 'Completed', color: '#15803D', background: '#DCFCE7' };
+    case 'review_thanks':
+    case 'review_received':
+    case 'review_updated':
+    case 'review_reply':
+      return { label: 'Review', color: '#BE185D', background: '#FCE7F3' };
     default:
       return { label: 'Reminder', color: '#BE185D', background: '#FCE7F3' };
   }
 }
 
 function renderEmail(delivery: Delivery): { subject: string; html: string; text: string } {
+  if (delivery.kind.startsWith('review_')) return renderReviewEmail(delivery);
   const booking = delivery.booking;
   const forProvider = delivery.recipient_role === 'provider';
   const counterpart = booking ? (forProvider ? booking.client_name : booking.provider_name) : null;
@@ -574,6 +591,102 @@ Open the Myglo app to view or manage this booking.${zoneLabel ? `<br>Times are s
   ].join('\n');
 
   return { subject, html, text };
+}
+
+/** Review emails: the stars and words the client wrote, not booking logistics. */
+function renderReviewEmail(delivery: Delivery): { subject: string; html: string; text: string } {
+  const review = reviewData(delivery);
+  const provider = review?.provider_name ?? delivery.booking?.provider_name ?? null;
+  const subject = provider ? `${delivery.title} · ${provider}` : delivery.title;
+  const badge = badgeFor(delivery.kind, delivery.booking);
+  const greeting = delivery.recipient_name ? `Hi ${delivery.recipient_name.split(' ')[0]},` : 'Hi,';
+
+  const rows: string[] = [];
+  const textLines: string[] = [];
+  if (review) {
+    const stars = '★'.repeat(review.rating) + '☆'.repeat(5 - review.rating);
+    rows.push(detailRow(
+      'Rating',
+      `<span style="font-size:20px;letter-spacing:2px;color:${BRAND.pink};">${stars}</span>`
+        + `<br><span style="color:${BRAND.muted};">${review.rating} out of 5</span>`,
+    ));
+    textLines.push(`Rating: ${stars} (${review.rating} out of 5)`);
+    if (review.body) {
+      rows.push(detailRow('Review', `<span style="font-style:italic;">“${esc(review.body)}”</span>`));
+      textLines.push(`Review: "${review.body}"`);
+    }
+    if (provider) {
+      rows.push(detailRow('Provider', esc(provider)));
+      textLines.push(`Provider: ${provider}`);
+    }
+    if (review.services.length > 0) {
+      rows.push(detailRow('Services', esc(review.services.join(', '))));
+      textLines.push(`Services: ${review.services.join(', ')}`);
+    }
+  }
+  const footer = delivery.recipient_role === 'provider'
+    ? 'Open the Myglo app to read the full review and reply.'
+    : 'Open the Myglo app to edit or delete your review at any time.';
+
+  const html = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>${esc(subject)}</title>
+</head>
+<body style="margin:0;padding:0;background:${BRAND.canvas};">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${esc(delivery.body)}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BRAND.canvas};padding:32px 12px;font-family:${FONT};">
+<tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#FFFFFF;border:1px solid ${BRAND.border};border-radius:20px;">
+<tr><td style="padding:28px 28px 0;font-size:22px;font-weight:800;letter-spacing:-0.4px;color:${BRAND.ink};">my<span style="color:${BRAND.pink};">glo</span></td></tr>
+<tr><td style="padding:22px 28px 0;">
+<span style="display:inline-block;padding:6px 12px;border-radius:999px;background:${badge.background};color:${badge.color};font-size:12px;font-weight:700;letter-spacing:0.2px;">${esc(badge.label)}</span>
+<h1 style="margin:16px 0 10px;font-size:24px;line-height:1.25;font-weight:800;color:${BRAND.ink};">${esc(delivery.title)}</h1>
+<p style="margin:0 0 6px;font-size:15px;line-height:1.55;color:${BRAND.body};">${esc(greeting)}</p>
+<p style="margin:0;font-size:15px;line-height:1.55;color:${BRAND.body};">${esc(delivery.body)}</p>
+</td></tr>
+${rows.length ? `<tr><td style="padding:22px 28px 0;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BRAND.card};border-radius:16px;">
+<tr><td style="padding:6px 20px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${detailRows(rows)}</table>
+</td></tr>
+</table>
+</td></tr>` : ''}
+<tr><td style="padding:22px 28px 28px;font-size:12.5px;line-height:1.55;color:${BRAND.muted};">${esc(footer)}</td></tr>
+</table>
+<p style="margin:18px 0 0;font-size:11.5px;line-height:1.5;color:${BRAND.muted};">You're receiving this email because of a booking on Myglo.</p>
+</td></tr>
+</table>
+</body>
+</html>`;
+
+  const text = [
+    greeting,
+    '',
+    delivery.title,
+    delivery.body,
+    ...(textLines.length ? ['', ...textLines] : []),
+    '',
+    footer,
+  ].join('\n');
+
+  return { subject, html, text };
+}
+
+/** The review in a notification's data, if it's well formed. */
+function reviewData(delivery: Delivery): ReviewData | null {
+  const data = delivery.data;
+  const rating = Number(data?.rating);
+  if (!data || !Number.isInteger(rating) || rating < 1 || rating > 5) return null;
+  const body = typeof data.body === 'string' && data.body.trim() ? data.body.trim() : null;
+  const services = Array.isArray(data.services)
+    ? data.services.filter((name): name is string => typeof name === 'string' && name.trim() !== '')
+    : [];
+  const provider = typeof data.provider_name === 'string' && data.provider_name.trim() ? data.provider_name.trim() : null;
+  return { rating, body, services, provider_name: provider };
 }
 
 function policyLine(booking: BookingSummary): string | null {

@@ -3,7 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:myglo/src/core/theme/app_theme.dart';
+import 'package:myglo/src/core/platform/system_bridge.dart';
 import 'package:myglo/src/features/discovery_feed/controllers/post_detail_controller.dart';
+import 'package:myglo/src/features/discovery_feed/models/comments_repository.dart';
+import 'package:myglo/src/features/discovery_feed/models/post_comment.dart';
+import 'package:myglo/src/features/discovery_feed/models/post_engagement.dart';
 import 'package:myglo/src/features/discovery_feed/models/post_model.dart';
 import 'package:myglo/src/features/discovery_feed/models/post_repository.dart';
 import 'package:myglo/src/features/discovery_feed/views/post_detail_screen.dart';
@@ -12,9 +16,52 @@ import 'package:myglo/src/features/providers/provider_profiles/models/service_mo
 import 'package:myglo/src/features/shared/authentication/controllers/user_profile_provider.dart';
 import 'package:myglo/src/features/shared/authentication/models/profile_model.dart';
 import 'package:myglo/src/features/shared/authentication/models/user_role.dart';
+import 'package:myglo/src/features/shared/reviews/controllers/reviews_controllers.dart';
+import 'package:myglo/src/features/shared/reviews/models/review_summary.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class _MockPostRepository extends Mock implements PostRepository {}
+
+class _MockCommentsRepository extends Mock implements CommentsRepository {}
+
+class _FakeSystem implements SystemBridge {
+  final shared = <Uri>[];
+
+  @override
+  Future<bool> mapsAvailable() async => true;
+
+  @override
+  Future<bool> notificationsEnabled() async => true;
+
+  @override
+  Future<bool> openNotificationSettings() async => true;
+
+  @override
+  Future<bool> share({required String text, required Uri url, String? subject, Rect? origin}) async {
+    shared.add(url);
+    return true;
+  }
+
+  @override
+  Future<bool> openUrl(Uri url, {Uri? appUrl, String? appPackage}) async => true;
+}
+
+PostEngagement _engagement({int likes = 12, int comments = 0, bool liked = false}) =>
+    PostEngagement(likesCount: likes, commentsCount: comments, liked: liked, updatedAt: DateTime.now());
+
+/// Mocks a post repository whose server holds [likes] likes, applying likes
+/// the way `set_post_like` does.
+void _stubLikes(_MockPostRepository repository, {int likes = 12, bool liked = false}) {
+  var serverLikes = likes;
+  var serverLiked = liked;
+  when(() => repository.getEngagement(any())).thenAnswer((_) async => _engagement(likes: serverLikes, liked: serverLiked));
+  when(() => repository.setLiked(postId: any(named: 'postId'), liked: any(named: 'liked'))).thenAnswer((call) async {
+    final want = call.namedArguments[#liked] as bool;
+    if (want != serverLiked) serverLikes += want ? 1 : -1;
+    serverLiked = want;
+    return serverLikes;
+  });
+}
 
 const _providerId = 'prov-1';
 
@@ -56,7 +103,13 @@ AppUserProfile _viewer(String id, UserRole role) => AppUserProfile(
   profile: ProfileModel(id: id, role: role, firstName: 'Sam'),
 );
 
-Future<_MockPostRepository> _pump(WidgetTester tester, {required PostModel post, required AppUserProfile viewer}) async {
+Future<_MockPostRepository> _pump(
+  WidgetTester tester, {
+  required PostModel post,
+  required AppUserProfile viewer,
+  _MockCommentsRepository? comments,
+  _FakeSystem? system,
+}) async {
   // Phone-sized viewport, so the content under the 4:5 media is on screen.
   tester.view
     ..physicalSize = const Size(390, 844)
@@ -64,10 +117,7 @@ Future<_MockPostRepository> _pump(WidgetTester tester, {required PostModel post,
   addTearDown(tester.view.reset);
 
   final repository = _MockPostRepository();
-  when(() => repository.hasLiked(postId: any(named: 'postId'), userId: any(named: 'userId')))
-      .thenAnswer((_) async => false);
-  when(() => repository.likePost(postId: any(named: 'postId'), userId: any(named: 'userId'))).thenAnswer((_) async {});
-  when(() => repository.unlikePost(postId: any(named: 'postId'), userId: any(named: 'userId'))).thenAnswer((_) async {});
+  _stubLikes(repository);
 
   await tester.pumpWidget(
     ProviderScope(
@@ -75,8 +125,11 @@ Future<_MockPostRepository> _pump(WidgetTester tester, {required PostModel post,
       overrides: [
         userProfileProvider.overrideWith((ref) async => viewer),
         postRepositoryProvider.overrideWithValue(repository),
+        commentsRepositoryProvider.overrideWithValue(comments ?? _MockCommentsRepository()),
+        systemBridgeProvider.overrideWithValue(system ?? _FakeSystem()),
         postProfileProvider(_providerId).overrideWith((ref) async => _author),
         serviceByIdProvider('svc-1').overrideWith((ref) async => _service),
+        providerReviewSummaryProvider(_providerId).overrideWith((ref) async => ReviewSummary.empty),
       ],
       child: MaterialApp(theme: AppTheme.lightTheme, home: PostDetailScreen(post: post)),
     ),
@@ -119,12 +172,59 @@ void main() {
 
     expect(find.text('13'), findsOneWidget);
     expect(find.byTooltip('Unlike'), findsOneWidget);
-    verify(() => repository.likePost(postId: 'post-1', userId: 'client-1')).called(1);
+    verify(() => repository.setLiked(postId: 'post-1', liked: true)).called(1);
+  });
+
+  testWidgets('opening a post shows its live counts, not the stale ones it arrived with', (tester) async {
+    // The feed page said 12; since then the server has 20 and the viewer's like.
+    tester.view
+      ..physicalSize = const Size(390, 844)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final repository = _MockPostRepository();
+    when(() => repository.getEngagement(any())).thenAnswer((_) async => _engagement(likes: 20, comments: 3, liked: true));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        retry: (_, _) => null,
+        overrides: [
+          userProfileProvider.overrideWith((ref) async => _viewer('client-1', UserRole.customer)),
+          postRepositoryProvider.overrideWithValue(repository),
+          postProfileProvider(_providerId).overrideWith((ref) async => _author),
+          serviceByIdProvider('svc-1').overrideWith((ref) async => _service),
+          providerReviewSummaryProvider(_providerId).overrideWith((ref) async => ReviewSummary.empty),
+        ],
+        child: MaterialApp(theme: AppTheme.lightTheme, home: PostDetailScreen(post: _post())),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('20'), findsOneWidget);
+    expect(find.text('3'), findsOneWidget);
+    expect(find.byTooltip('Unlike'), findsOneWidget);
+    expect(find.text('View all 3 comments'), findsOneWidget);
+  });
+
+  testWidgets('rapid like/unlike taps settle on the last choice', (tester) async {
+    final repository = await _pump(tester, post: _post(), viewer: _viewer('client-1', UserRole.customer));
+
+    await tester.tap(find.byTooltip('Like'));
+    await tester.pump();
+    await tester.tap(find.byTooltip('Unlike'));
+    await tester.pump();
+    await tester.tap(find.byTooltip('Like'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('13'), findsOneWidget);
+    expect(find.byTooltip('Unlike'), findsOneWidget);
+    // Whatever was sent in between, the server ends on "liked".
+    final calls = verify(() => repository.setLiked(postId: 'post-1', liked: captureAny(named: 'liked'))).captured;
+    expect(calls.last, isTrue);
   });
 
   testWidgets('a failed like rolls back and tells the user', (tester) async {
     final repository = await _pump(tester, post: _post(), viewer: _viewer('client-1', UserRole.customer));
-    when(() => repository.likePost(postId: any(named: 'postId'), userId: any(named: 'userId')))
+    when(() => repository.setLiked(postId: any(named: 'postId'), liked: any(named: 'liked')))
         .thenThrow(Exception('offline'));
 
     await tester.tap(find.byTooltip('Like'));
@@ -172,8 +272,7 @@ void main() {
     addTearDown(tester.view.reset);
 
     final repository = _MockPostRepository();
-    when(() => repository.hasLiked(postId: any(named: 'postId'), userId: any(named: 'userId')))
-        .thenAnswer((_) async => false);
+    _stubLikes(repository);
     when(() => repository.deletePost(any(), any())).thenAnswer((_) async {
       await Future<void>.delayed(const Duration(milliseconds: 300));
     });
@@ -185,6 +284,7 @@ void main() {
           postRepositoryProvider.overrideWithValue(repository),
           postProfileProvider(_providerId).overrideWith((ref) async => _author),
           serviceByIdProvider('svc-1').overrideWith((ref) async => _service),
+          providerReviewSummaryProvider(_providerId).overrideWith((ref) async => ReviewSummary.empty),
         ],
         child: MaterialApp(
           theme: AppTheme.lightTheme,
@@ -216,5 +316,57 @@ void main() {
     expect(find.text('Post deleted'), findsOneWidget);
     expect(find.textContaining("Couldn't delete"), findsNothing);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('comments: the sheet lists them and posts a new one at once', (tester) async {
+    final comments = _MockCommentsRepository();
+    final existing = PostComment(
+      id: 'c-1',
+      postId: 'post-1',
+      authorId: _providerId,
+      authorName: 'Glow Studio',
+      content: 'Thanks for coming in!',
+      createdAt: DateTime.utc(2026, 9, 30, 10),
+    );
+    when(() => comments.list('post-1', limit: any(named: 'limit'), after: any(named: 'after')))
+        .thenAnswer((_) async => [existing]);
+    when(() => comments.add(
+          id: any(named: 'id'),
+          postId: any(named: 'postId'),
+          authorId: any(named: 'authorId'),
+          content: any(named: 'content'),
+        )).thenAnswer((_) async {});
+
+    await _pump(tester, post: _post(), viewer: _viewer('client-1', UserRole.customer), comments: comments);
+
+    await tester.tap(find.byTooltip('Comments'));
+    await tester.pumpAndSettle();
+    expect(find.text('Thanks for coming in!'), findsOneWidget);
+    expect(find.textContaining('Author', findRichText: true), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), '  Love this  ');
+    await tester.pump();
+    await tester.tap(find.byTooltip('Post comment'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Love this'), findsOneWidget);
+    verify(() => comments.add(
+          id: any(named: 'id'),
+          postId: 'post-1',
+          authorId: 'client-1',
+          content: 'Love this',
+        )).called(1);
+    // The comment count beside the icon moved with it.
+    expect(find.text('Comments · 1'), findsOneWidget);
+  });
+
+  testWidgets('sharing a post sends its public link to the share sheet', (tester) async {
+    final system = _FakeSystem();
+    await _pump(tester, post: _post(), viewer: _viewer('client-1', UserRole.customer), system: system);
+
+    await tester.tap(find.byTooltip('Share'));
+    await tester.pumpAndSettle();
+
+    expect(system.shared, [Uri.parse('https://myglo.app/p/post-1')]);
   });
 }

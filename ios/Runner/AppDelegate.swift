@@ -65,10 +65,81 @@ final class SystemBridgePlugin: NSObject, FlutterPlugin {
         return
       }
       UIApplication.shared.open(url) { opened in result(opened) }
+    case "share":
+      share(call.arguments as? [String: Any] ?? [:], result: result)
+    case "openUrl":
+      openUrl(call.arguments as? [String: Any] ?? [:], result: result)
     default:
       result(FlutterMethodNotImplemented)
     }
   }
+
+  /// Opens an http(s) link outside the app: `appUrl` first (e.g. a maps
+  /// app's own link), and the web link if that app isn't installed. `open`
+  /// needs no LSApplicationQueriesSchemes entry; only `canOpenURL` does.
+  private func openUrl(_ args: [String: Any], result: @escaping FlutterResult) {
+    guard
+      let url = (args["url"] as? String).flatMap(URL.init(string:)),
+      let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http"
+    else {
+      result(false)
+      return
+    }
+    let openWeb = { UIApplication.shared.open(url) { opened in result(opened) } }
+    guard let appUrl = (args["appUrl"] as? String).flatMap(URL.init(string:)) else {
+      openWeb()
+      return
+    }
+    UIApplication.shared.open(appUrl) { opened in
+      if opened {
+        result(true)
+      } else {
+        openWeb()
+      }
+    }
+  }
+
+  /// Presents the system share sheet with the text and link. On iPad it
+  /// points at the button that was tapped (originX/Y/Width/Height), as a
+  /// popover there needs an anchor.
+  private func share(_ args: [String: Any], result: @escaping FlutterResult) {
+    guard
+      let link = (args["url"] as? String).flatMap(URL.init(string:)),
+      let presenter = appTopViewController()
+    else {
+      result(false)
+      return
+    }
+    let text = (args["text"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    var items: [Any] = []
+    if !text.isEmpty { items.append(text) }
+    items.append(link)
+
+    let sheet = UIActivityViewController(activityItems: items, applicationActivities: nil)
+    if let popover = sheet.popoverPresentationController {
+      popover.sourceView = presenter.view
+      if let x = args["originX"] as? Double, let y = args["originY"] as? Double,
+         let width = args["originWidth"] as? Double, let height = args["originHeight"] as? Double {
+        popover.sourceRect = CGRect(x: x, y: y, width: width, height: height)
+      } else {
+        popover.sourceRect = CGRect(x: presenter.view.bounds.midX, y: presenter.view.bounds.midY, width: 0, height: 0)
+        popover.permittedArrowDirections = []
+      }
+    }
+    presenter.present(sheet, animated: true)
+    result(true)
+  }
+}
+
+/// The view controller currently on top, to present system sheets from.
+private func appTopViewController() -> UIViewController? {
+  let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+  let window = scenes.flatMap(\.windows).first(where: \.isKeyWindow) ?? scenes.first?.windows.first
+  var top = window?.rootViewController
+  while let presented = top?.presentedViewController {
+    top = presented
+  }
+  return top
 }
 
 /// Presents Apple's own "New Event" sheet pre-filled with a booking, so the

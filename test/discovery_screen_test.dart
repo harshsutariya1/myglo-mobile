@@ -61,8 +61,6 @@ class _Mocks {
   _Mocks({List<String> favouriteIds = const []}) {
     when(() => users.getPublicProfiles(any())).thenAnswer((_) async => {_providerId: _author});
     when(() => favourites.getFavouriteProviderIds(any())).thenAnswer((_) async => favouriteIds);
-    when(() => posts.hasLiked(postId: any(named: 'postId'), userId: any(named: 'userId')))
-        .thenAnswer((_) async => false);
   }
 
   void feedReturns(List<PostModel> page) {

@@ -30,6 +30,17 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Shared post and provider links (App Links). They open the app
+                 only once https://myglo.app/.well-known/assetlinks.json lists
+                 this app's signing certificate; until then they open the
+                 website. See docs/share_links.md. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="myglo.app" android:pathPrefix="/p/"/>
+                <data android:scheme="https" android:host="myglo.app" android:pathPrefix="/provider/"/>
+            </intent-filter>
         </activity>
         <!-- Google Maps SDK key, injected from local.properties (see app/build.gradle.kts). -->
         <meta-data

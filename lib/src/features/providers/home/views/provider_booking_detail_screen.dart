@@ -14,6 +14,7 @@ import '../../../shared/bookings/models/booking_failure.dart';
 import '../../../shared/bookings/views/widgets/booking_overview.dart';
 import '../../../shared/bookings/views/widgets/booking_status_banner.dart';
 import '../../../shared/bookings/views/widgets/booking_summary.dart';
+import '../../../shared/reviews/views/widgets/booking_review_section.dart';
 import 'widgets/provider_booking_sheets.dart';
 
 /// One of the provider's bookings, kept live, with whatever can be done next:
@@ -104,6 +105,10 @@ class _ProviderBookingDetailScreenState extends ConsumerState<ProviderBookingDet
               padding: EdgeInsets.fromLTRB(20, 8, 20, 32 + MediaQuery.paddingOf(context).bottom),
               children: [
                 BookingStatusBanner(booking: booking, now: now, forProvider: true),
+                if (booking.reviewId != null) ...[
+                  const SizedBox(height: 16),
+                  ProviderBookingReviewSection(booking: booking),
+                ],
                 const SizedBox(height: 16),
                 BookingOverviewCard(
                   booking: booking,

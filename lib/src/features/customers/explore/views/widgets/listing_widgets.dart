@@ -5,6 +5,7 @@ import '../../../../../core/maps/marker_icons.dart' show markerInitials;
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/utils/formatters.dart';
 import '../../../../../core/widgets/skeleton/skeletons.dart';
+import '../../../../shared/reviews/views/widgets/star_rating.dart' show starColor;
 import '../../models/provider_listing.dart';
 
 /// [text] split into spans with every occurrence of any of [words]
@@ -205,6 +206,19 @@ class ProviderResultCard extends StatelessWidget {
                               ],
                             ],
                           ),
+                          if ((listing.ratingAverage, listing.reviewCount) case (final rating?, final count) when count > 0) ...[
+                            const SizedBox(height: 3),
+                            Row(
+                              children: [
+                                const Icon(Icons.star_rounded, size: 15, color: starColor),
+                                const SizedBox(width: 3),
+                                Text(
+                                  '${Formatters.rating(rating)} (${Formatters.reviewCount(count)})',
+                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: muted),
+                                ),
+                              ],
+                            ),
+                          ],
                           if (categories != null) ...[
                             const SizedBox(height: 3),
                             Text(

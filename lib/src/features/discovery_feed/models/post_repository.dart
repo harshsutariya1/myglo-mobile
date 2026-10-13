@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../../core/utils/app_logger.dart';
 import '../../providers/provider_profiles/models/service_model.dart';
 import '../../shared/authentication/models/auth_repository.dart';
+import 'post_engagement.dart';
 import 'post_model.dart';
 
 class ProviderSearchResult {
@@ -271,55 +272,64 @@ class PostRepository {
     }
   }
 
-  /// Whether [userId] has liked [postId].
-  Future<bool> hasLiked({required String postId, required String userId}) async {
+  /// One post by id, or null when it doesn't exist or the viewer can't see
+  /// it (row-level security hides other people's unapproved posts).
+  Future<PostModel?> getPost(String postId) async {
     final sw = Stopwatch()..start();
     try {
-      final response = await _client
-          .from('likes')
-          .select('id')
-          .eq('post_id', postId)
-          .eq('user_id', userId)
-          .maybeSingle();
+      final response = await _client.from('posts').select().eq('id', postId).maybeSingle();
       sw.stop();
-      AppLogger.api('likes.select(own)', endpoint: 'post=$postId', duration: sw.elapsed);
-      return response != null;
+      AppLogger.api('posts.select(one)', endpoint: 'id=$postId', duration: sw.elapsed);
+      return response == null ? null : PostModel.fromJson(response);
     } catch (e, st) {
-      AppLogger.e('Failed to read like state for post $postId', tag: 'PostRepository', error: e, stackTrace: st);
+      AppLogger.e('Failed to fetch post $postId', tag: 'PostRepository', error: e, stackTrace: st);
       rethrow;
     }
   }
 
-  /// Likes [postId] as [userId]. Liking twice is a no-op (the pair is unique),
-  /// so a retried request can't double count. `posts.likes_count` is kept in
-  /// step by a database trigger.
-  Future<void> likePost({required String postId, required String userId}) async {
+  /// [postId]'s current like and comment counts and whether the signed-in
+  /// user likes it, in one round trip. Null when the post is gone or hidden.
+  Future<PostEngagement?> getEngagement(String postId) async {
     final sw = Stopwatch()..start();
     try {
-      await _client.from('likes').insert({'post_id': postId, 'user_id': userId});
+      final rows = await _client.rpc('get_post_engagement', params: {'p_post_id': postId}) as List<dynamic>;
       sw.stop();
-      AppLogger.api('likes.insert', endpoint: 'post=$postId', duration: sw.elapsed);
-    } on PostgrestException catch (e) {
-      if (e.code == _uniqueViolation) return;
-      AppLogger.e('Failed to like post $postId', tag: 'PostRepository', error: e);
-      rethrow;
+      AppLogger.api('rpc.get_post_engagement', endpoint: 'post=$postId', duration: sw.elapsed);
+      if (rows.isEmpty) return null;
+      return PostEngagement.fromJson(Map<String, dynamic>.from(rows.first as Map));
     } catch (e, st) {
-      AppLogger.e('Failed to like post $postId', tag: 'PostRepository', error: e, stackTrace: st);
+      AppLogger.e('Failed to read engagement for post $postId', tag: 'PostRepository', error: e, stackTrace: st);
       rethrow;
     }
   }
 
-  /// Removes [userId]'s like from [postId], if any.
-  Future<void> unlikePost({required String postId, required String userId}) async {
+  /// Likes or unlikes [postId] as the signed-in user and returns the post's
+  /// like count afterwards. Idempotent, so a retried request can't double
+  /// count; `posts.likes_count` is kept in step by a database trigger.
+  Future<int> setLiked({required String postId, required bool liked}) async {
     final sw = Stopwatch()..start();
     try {
-      await _client.from('likes').delete().eq('post_id', postId).eq('user_id', userId);
+      final rows = await _client.rpc('set_post_like', params: {'p_post_id': postId, 'p_liked': liked}) as List<dynamic>;
       sw.stop();
-      AppLogger.api('likes.delete', endpoint: 'post=$postId', duration: sw.elapsed);
+      AppLogger.api('rpc.set_post_like', endpoint: 'post=$postId liked=$liked', duration: sw.elapsed);
+      if (rows.isEmpty) throw StateError('set_post_like returned no row');
+      return ((rows.first as Map)['likes_count'] as num).toInt();
     } catch (e, st) {
-      AppLogger.e('Failed to unlike post $postId', tag: 'PostRepository', error: e, stackTrace: st);
+      AppLogger.e('Failed to ${liked ? 'like' : 'unlike'} post $postId', tag: 'PostRepository', error: e, stackTrace: st);
       rethrow;
     }
+  }
+
+  /// Removes uploaded post media (the caller's own files) from storage.
+  /// Only URLs inside the post-media bucket are touched.
+  Future<void> removeMedia(List<String> mediaUrls) async {
+    final paths = mediaUrls.map((url) {
+      final parts = url.split('/post-media/');
+      return parts.length > 1 ? parts.last.split('?').first : '';
+    }).where((path) => path.isNotEmpty).toList();
+    if (paths.isEmpty) return;
+    AppLogger.d('Removing media paths from storage: $paths', tag: 'PostRepository');
+    await _client.storage.from('post-media').remove(paths);
   }
 
   Future<void> deletePost(String postId, List<String> mediaUrls) async {
@@ -327,20 +337,7 @@ class PostRepository {
     final sw = Stopwatch()..start();
     try {
       // 1. Delete associated media from Storage
-      if (mediaUrls.isNotEmpty) {
-        final pathsToDelete = mediaUrls.map((url) {
-          final parts = url.split('/post-media/');
-          if (parts.length > 1) {
-            return parts.last;
-          }
-          return '';
-        }).where((path) => path.isNotEmpty).toList();
-
-        if (pathsToDelete.isNotEmpty) {
-          AppLogger.d('Removing media paths from storage: $pathsToDelete', tag: 'PostRepository');
-          await _client.storage.from('post-media').remove(pathsToDelete);
-        }
-      }
+      await removeMedia(mediaUrls);
 
       // 2. Delete the post record from Database
       await _client.from('posts').delete().eq('id', postId);

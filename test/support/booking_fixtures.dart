@@ -18,6 +18,8 @@ Booking sampleBooking({
   CancelledBy? cancelledBy,
   bool lateCancellation = false,
   int cancellationFeeCents = 0,
+  String? reviewId,
+  int? reviewRating,
 }) {
   final start = startsAt ?? DateTime.utc(2026, 10, 7, 23, 30);
   final end = start.add(const Duration(minutes: 90));
@@ -57,6 +59,8 @@ Booking sampleBooking({
     createdAt: DateTime.utc(2026, 10, 5),
     updatedAt: DateTime.utc(2026, 10, 5),
     platformFeeCents: platformFeeCents,
+    reviewId: reviewId,
+    reviewRating: reviewRating,
     items: const [
       BookingItem(serviceId: 'svc-1', name: 'Lash lift', durationMinutes: 70, priceCents: 8500),
       BookingItem(serviceId: 'svc-2', name: 'Lash tint', durationMinutes: 20, priceCents: 3000),

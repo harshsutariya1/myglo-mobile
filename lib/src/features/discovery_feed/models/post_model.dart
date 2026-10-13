@@ -12,6 +12,10 @@ abstract class PostModel with _$PostModel {
     String? caption,
     @JsonKey(name: 'service_id') String? serviceId,
     @JsonKey(name: 'tagged_provider_id') String? taggedProviderId,
+
+    /// Set when the post holds a review's photos (published with the review,
+    /// and deleted with it).
+    @JsonKey(name: 'review_id') String? reviewId,
     @JsonKey(name: 'tag_status') required String tagStatus,
     @JsonKey(name: 'likes_count') required int likesCount,
     @JsonKey(name: 'comments_count') required int commentsCount,

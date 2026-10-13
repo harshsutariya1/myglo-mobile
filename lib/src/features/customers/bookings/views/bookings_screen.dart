@@ -11,6 +11,8 @@ import '../../../shared/bookings/views/widgets/booking_card.dart';
 import '../../../shared/bookings/views/widgets/booking_list_view.dart';
 import '../../../shared/bookings/views/widgets/booking_segmented_control.dart';
 import '../../../shared/notifications/views/notification_bell.dart';
+import '../../../shared/reviews/views/review_composer_screen.dart';
+import '../../../shared/reviews/views/widgets/star_rating.dart';
 
 /// The client's bookings: upcoming (requests and confirmed) and past, kept
 /// live so a provider accepting, declining or cancelling shows up at once.
@@ -119,6 +121,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> {
                     booking: booking,
                     muted: _tab == 1,
                     onTap: () => _open(booking),
+                    footer: booking.canReview ? _ReviewFooter(booking: booking) : null,
                   ),
                   empty: _tab == 0
                       ? BookingsEmptyState(
@@ -137,6 +140,46 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Under a completed booking: the client's rating, or a prompt to leave one.
+class _ReviewFooter extends StatelessWidget {
+  const _ReviewFooter({required this.booking});
+
+  final Booking booking;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    final rating = booking.reviewRating;
+    if (booking.reviewId != null && rating != null) {
+      return Row(
+        children: [
+          Text(
+            'You rated',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: scheme.onSurface.withValues(alpha: 0.6)),
+          ),
+          const SizedBox(width: 6),
+          StarRating(rating: rating.toDouble(), size: 15),
+        ],
+      );
+    }
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () => openReviewComposer(context, booking: booking),
+        icon: const Icon(Icons.star_outline_rounded, size: 18),
+        label: const Text('Rate & review'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: scheme.secondary,
+          minimumSize: const Size(0, 44),
+          side: BorderSide(color: scheme.secondary.withValues(alpha: 0.4)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          textStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
         ),
       ),
     );

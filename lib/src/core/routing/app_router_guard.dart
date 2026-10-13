@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/shared/authentication/models/auth_repository.dart';
 import '../../features/shared/authentication/controllers/user_profile_provider.dart';
 import '../services/app_preferences.dart';
+import '../sharing/share_links.dart';
 import '../utils/app_logger.dart';
 import 'app_router.dart';
 
@@ -44,11 +45,33 @@ bool isProviderOnlyPath(String path) => [
       ...providerOnlyPrefixes,
     ].any(path.startsWith);
 
+/// A shared link (see [ShareLinks]) that opened the app before it could be
+/// shown: while signing in, loading the profile or finishing onboarding. It's
+/// opened as soon as the user reaches the app.
+class PendingSharedLink {
+  String? _location;
+
+  /// Remembers [location] if it's a shared post or profile link.
+  void remember(Uri location) {
+    if (ShareLinks.isShareable(location.path)) _location = location.path;
+  }
+
+  /// The remembered link, forgetting it.
+  String? take() {
+    final location = _location;
+    _location = null;
+    return location;
+  }
+}
+
+final pendingSharedLinkProvider = Provider<PendingSharedLink>((ref) => PendingSharedLink());
+
 /// Handles the redirection logic for the application based on authentication
 /// and onboarding state.
 String? appRouterRedirect(BuildContext context, GoRouterState state, Ref ref) {
   final authState = ref.read(authStateProvider);
   final userProfileState = ref.read(userProfileProvider);
+  final pendingLink = ref.read(pendingSharedLinkProvider);
 
   if (authState.hasError || userProfileState.hasError) {
     if (state.uri.path != AppRoute.error.path) {
@@ -61,7 +84,10 @@ String? appRouterRedirect(BuildContext context, GoRouterState state, Ref ref) {
     return null;
   }
 
-  if (authState.isLoading) return AppRoute.splash.path;
+  if (authState.isLoading) {
+    pendingLink.remember(state.uri);
+    return AppRoute.splash.path;
+  }
 
   final session = authState.value?.session;
   final isAuth = session != null;
@@ -85,6 +111,7 @@ String? appRouterRedirect(BuildContext context, GoRouterState state, Ref ref) {
       return AppRoute.auth.path;
     }
     if (!isUnauthRoute) {
+      pendingLink.remember(state.uri);
       final target = introSeen ? AppRoute.auth.path : AppRoute.intro.path;
       AppLogger.d(
         'Unauthenticated access to "${state.uri.path}". Redirecting to $target',
@@ -97,6 +124,7 @@ String? appRouterRedirect(BuildContext context, GoRouterState state, Ref ref) {
 
   // If user is authenticated, check their onboarding status
   if (userProfileState.isLoading && !userProfileState.hasValue) {
+    pendingLink.remember(state.uri);
     return AppRoute.splash.path; // Show splash while loading profile
   }
 
@@ -129,6 +157,7 @@ String? appRouterRedirect(BuildContext context, GoRouterState state, Ref ref) {
       profile.profile.lastName == null ||
       profile.profile.lastName!.isEmpty) {
     if (state.uri.path != AppRoute.onboardingDetails.path) {
+      pendingLink.remember(state.uri);
       AppLogger.d(
         'Profile missing name details. Redirecting to ${AppRoute.onboardingDetails.path}',
         tag: 'RouterGuard',
@@ -160,8 +189,16 @@ String? appRouterRedirect(BuildContext context, GoRouterState state, Ref ref) {
     return AppRoute.providerHome.path;
   }
 
-  // 4. Fully onboarded -> Redirect to home if on auth screens
+  // 4. Fully onboarded -> Redirect to home if on auth screens, or to the
+  //    shared link that opened the app, if the role may see it.
   if (isAuthRouteOrSplash) {
+    final shared = pendingLink.take();
+    if (shared != null &&
+        !(isCustomer && isProviderOnlyPath(shared)) &&
+        !(isProvider && isClientOnlyPath(shared))) {
+      AppLogger.d('Opening the shared link that launched the app ($shared)', tag: 'RouterGuard');
+      return shared;
+    }
     final target = isProvider ? AppRoute.providerHome.path : AppRoute.customerHome.path;
     AppLogger.d(
       'Authenticated user at "$currentPath". Redirecting to home ($target)',

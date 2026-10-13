@@ -92,6 +92,8 @@ _Booking _$BookingFromJson(Map<String, dynamic> json) => _Booking(
           .toList() ??
       const <BookingItem>[],
   platformFeeCents: (json['platform_fee_cents'] as num?)?.toInt(),
+  reviewId: json['review_id'] as String?,
+  reviewRating: (json['review_rating'] as num?)?.toInt(),
 );
 
 Map<String, dynamic> _$BookingToJson(_Booking instance) => <String, dynamic>{
@@ -140,6 +142,8 @@ Map<String, dynamic> _$BookingToJson(_Booking instance) => <String, dynamic>{
   'updated_at': instance.updatedAt.toIso8601String(),
   'items': instance.items.map((e) => e.toJson()).toList(),
   'platform_fee_cents': instance.platformFeeCents,
+  'review_id': instance.reviewId,
+  'review_rating': instance.reviewRating,
 };
 
 const _$BookingStatusEnumMap = {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../../core/maps/external_maps.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/utils/formatters.dart';
 import '../../../../../core/widgets/skeleton/skeletons.dart';
@@ -10,6 +11,9 @@ import '../../../../shared/bookings/models/booking_enums.dart';
 import '../../../../shared/bookings/models/booking_time.dart';
 import '../../../../shared/bookings/models/cancellation_policy.dart';
 import '../../../../shared/bookings/models/working_hours.dart';
+import '../../../../shared/reviews/controllers/reviews_controllers.dart';
+import '../../../../shared/reviews/views/widgets/rating_summary.dart';
+import '../../../../shared/reviews/views/widgets/review_card.dart';
 import '../../../booking/views/widgets/location_preview.dart';
 import 'provider_profile_header.dart' show providerDisplayName;
 import 'section_states.dart';
@@ -20,19 +24,23 @@ const TextStyle _bodyStyle = TextStyle(fontSize: 15, height: 1.45);
 /// About / details tab of the public provider profile, as slivers.
 ///
 /// Opening hours and the cancellation policy come live from the provider's
-/// booking schedule and rules. Reviews are not stored yet, so that section
-/// explains that instead of staying blank.
+/// booking schedule and rules; reviews show the rating summary and the
+/// newest few, with a link to the rest.
 class ProviderAboutTab extends StatelessWidget {
   const ProviderAboutTab({
     super.key,
     required this.profile,
     required this.onRetry,
+    this.onOpenReviews,
     this.distanceKm,
     this.mobileOnly = false,
   });
 
   final AsyncValue<ProfileModel?> profile;
   final VoidCallback onRetry;
+
+  /// Opens every review of the provider.
+  final ValueChanged<ProfileModel>? onOpenReviews;
   final double? distanceKm;
 
   /// Only visits clients, so their address and pin aren't shown.
@@ -81,20 +89,7 @@ class ProviderAboutTab extends StatelessWidget {
                 title: 'Mobile service',
                 subtitle: 'They come to you. Add your address when you book to check they travel to your area.',
               )
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (profile.location case final point?) ...[
-                    LocationPreview(label: address.isNotEmpty ? address : providerDisplayName(profile), point: point, height: 160),
-                    const SizedBox(height: 10),
-                  ],
-                  _InfoCard(
-                    icon: Icons.location_on_outlined,
-                    title: address.isNotEmpty ? address : 'Address not provided',
-                    subtitle: distance == null ? null : '${Formatters.distanceKm(distance)} away',
-                  ),
-                ],
-              ),
+            : _StudioLocation(profile: profile, address: address, distanceKm: distance),
       ),
       _Section(
         title: 'Opening hours',
@@ -104,15 +99,117 @@ class ProviderAboutTab extends StatelessWidget {
         title: 'Cancellation policy',
         child: _CancellationPolicy(providerId: profile.id),
       ),
-      const _Section(
+      _Section(
         title: 'Reviews',
-        child: SectionEmptyView(
-          icon: Icons.rate_review_outlined,
-          title: 'No reviews yet',
-          message: 'Reviews from clients will appear here after their appointments.',
+        child: _ReviewsPreview(
+          profile: profile,
+          onSeeAll: onOpenReviews == null ? null : () => onOpenReviews!(profile),
         ),
       ),
     ];
+  }
+}
+
+/// Where the provider works: a map and the address, both opening the place
+/// in Google Maps (the pin when there is one, otherwise the address).
+class _StudioLocation extends ConsumerWidget {
+  const _StudioLocation({required this.profile, required this.address, required this.distanceKm});
+
+  final ProfileModel profile;
+  final String address;
+  final double? distanceKm;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final point = profile.location;
+    final distance = distanceKm;
+    final VoidCallback? open = canOpenInMaps(point: point, address: address)
+        ? () => openInMaps(context, ref, point: point, address: address)
+        : null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (point != null) ...[
+          LocationPreview(
+            label: address.isNotEmpty ? address : providerDisplayName(profile),
+            point: point,
+            height: 160,
+            onTap: open,
+          ),
+          const SizedBox(height: 10),
+        ],
+        _InfoCard(
+          icon: Icons.location_on_outlined,
+          title: address.isNotEmpty ? address : 'Address not provided',
+          subtitle: distance == null ? null : '${Formatters.distanceKm(distance)} away',
+          onTap: open,
+          tapHint: 'Opens in Maps',
+        ),
+      ],
+    );
+  }
+}
+
+/// The provider's rating summary and newest reviews.
+class _ReviewsPreview extends ConsumerWidget {
+  const _ReviewsPreview({required this.profile, required this.onSeeAll});
+
+  final ProfileModel profile;
+  final VoidCallback? onSeeAll;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = context.colorScheme;
+    final summaryAsync = ref.watch(providerReviewSummaryProvider(profile.id));
+    final previewAsync = ref.watch(reviewsPreviewProvider((providerId: profile.id, serviceId: null)));
+    final summary = summaryAsync.value;
+
+    if (summaryAsync case AsyncError(:final error)) {
+      return SectionErrorView(
+        title: "Reviews didn't load",
+        message: describeLoadError(error, subject: 'the reviews'),
+        onRetry: () {
+          ref.invalidate(providerReviewSummaryProvider(profile.id));
+          ref.invalidate(reviewsPreviewProvider((providerId: profile.id, serviceId: null)));
+        },
+      );
+    }
+    if (summary == null) return const ReviewListSkeleton(count: 2);
+    if (summary.isEmpty) {
+      return const SectionEmptyView(
+        icon: Icons.rate_review_outlined,
+        title: 'No reviews yet',
+        message: 'Reviews from clients will appear here after their appointments.',
+      );
+    }
+
+    final reviews = previewAsync.value ?? const [];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        RatingSummaryCard(summary: summary),
+        const SizedBox(height: 16),
+        if (previewAsync.isLoading && reviews.isEmpty) const ReviewListSkeleton(count: 2),
+        for (final (index, review) in reviews.indexed) ...[
+          if (index > 0) Divider(height: 32, color: scheme.onSurface.withValues(alpha: 0.08)),
+          ReviewCard(review: review, providerName: providerDisplayName(profile)),
+        ],
+        if (onSeeAll != null && summary.count > reviews.length) ...[
+          const SizedBox(height: 12),
+          OutlinedButton(
+            onPressed: onSeeAll,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: scheme.onSurface,
+              minimumSize: const Size(0, 48),
+              side: BorderSide(color: scheme.onSurface.withValues(alpha: 0.15)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              textStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+            ),
+            child: Text('See all ${summary.count} reviews'),
+          ),
+        ],
+      ],
+    );
   }
 }
 
@@ -300,19 +397,25 @@ class _DayRow extends StatelessWidget {
 }
 
 class _InfoCard extends StatelessWidget {
-  const _InfoCard({required this.icon, required this.title, this.subtitle});
+  const _InfoCard({required this.icon, required this.title, this.subtitle, this.onTap, this.tapHint});
 
   final IconData icon;
   final String title;
   final String? subtitle;
 
+  /// Makes the card a button, with [tapHint] read out by screen readers.
+  final VoidCallback? onTap;
+  final String? tapHint;
+
   @override
   Widget build(BuildContext context) {
     final subtitle = this.subtitle;
-    return Container(
+    final onTap = this.onTap;
+    final radius = BorderRadius.circular(16);
+    final content = Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: radius,
         border: Border.all(color: context.colorScheme.onSurface.withValues(alpha: 0.1)),
       ),
       child: Row(
@@ -346,7 +449,20 @@ class _InfoCard extends StatelessWidget {
               ],
             ),
           ),
+          if (onTap != null) ...[
+            const SizedBox(width: 8),
+            Icon(Icons.open_in_new_rounded, size: 18, color: context.colorScheme.onSurface.withValues(alpha: 0.45)),
+          ],
         ],
+      ),
+    );
+    if (onTap == null) return content;
+    return Semantics(
+      button: true,
+      hint: tapHint,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(onTap: onTap, borderRadius: radius, child: content),
       ),
     );
   }

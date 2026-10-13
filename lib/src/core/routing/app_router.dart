@@ -26,6 +26,7 @@ import '../../features/providers/location/views/business_location_screen.dart';
 import '../../features/customers/explore/views/provider_search_screen.dart';
 import '../../features/customers/explore/views/providers_map_screen.dart';
 import '../../features/discovery_feed/views/discovery_screen.dart';
+import '../../features/discovery_feed/views/shared_post_screen.dart';
 import '../../features/customers/provider_profile/views/public_provider_profile_screen.dart';
 import '../../features/customers/booking/views/select_services_screen.dart';
 import '../../features/customers/booking/views/select_date_time_screen.dart';
@@ -67,6 +68,8 @@ enum AppRoute {
   customerProfile(path: '/customer_profile'),
   providerProfile(path: '/provider_profile'),
   publicProviderProfile(path: '/provider/:id'),
+  // A post opened from a shared link (https://myglo.app/p/<id>).
+  sharedPost(path: '/p/:id'),
   selectServices(path: 'book'),
   // The rest of the booking flow, nested so each step stacks on the last.
   selectDateTime(path: 'time'),
@@ -198,6 +201,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
+      ),
+      // Shared post links, for clients and providers alike.
+      GoRoute(
+        path: AppRoute.sharedPost.path,
+        name: AppRoute.sharedPost.name,
+        builder: (context, state) => SharedPostScreen(postId: state.pathParameters['id']!),
       ),
       // Booking and notification pages, full-screen over whichever tab opened
       // them (and deep-link targets for notifications).

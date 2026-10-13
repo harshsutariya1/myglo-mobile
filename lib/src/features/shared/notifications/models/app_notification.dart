@@ -17,6 +17,18 @@ enum NotificationKind {
   bookingCompleted('booking_completed', Icons.favorite_border_rounded),
   bookingNoShow('booking_no_show', Icons.person_off_outlined),
   bookingReminder('booking_reminder', Icons.alarm_rounded),
+
+  /// Provider: a client reviewed one of their bookings.
+  reviewReceived('review_received', Icons.star_rounded),
+
+  /// Provider: a client changed their rating.
+  reviewUpdated('review_updated', Icons.star_half_rounded),
+
+  /// Client: their own review was posted (also emailed).
+  reviewThanks('review_thanks', Icons.rate_review_outlined),
+
+  /// Client: the provider replied to their review.
+  reviewReply('review_reply', Icons.reply_rounded),
   unknown('unknown', Icons.notifications_none_rounded);
 
   const NotificationKind(this.key, this.icon);
@@ -31,7 +43,8 @@ enum NotificationKind {
         bookingNew || bookingConfirmed || bookingCompleted => AppTheme.success,
         bookingRequest || bookingRequestReminder || bookingRequested => AppTheme.warning,
         bookingDeclined || bookingCancelled || bookingNoShow => AppTheme.destructive,
-        bookingReminder => scheme.primary,
+        bookingReminder || reviewReply => scheme.primary,
+        reviewReceived || reviewUpdated || reviewThanks => AppTheme.warning,
         bookingExpired || unknown => scheme.onSurface.withValues(alpha: 0.55),
       };
 }

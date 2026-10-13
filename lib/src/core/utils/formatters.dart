@@ -88,6 +88,16 @@ class Formatters {
     return count < 1000000 ? scaled(1000, 'k') : scaled(1000000, 'M');
   }
 
+  /// Formats an average star rating to one decimal place: `4.8`, `5.0`.
+  /// Clamped to 1–5 so rounding can never show an impossible score.
+  static String rating(double average) {
+    final tenths = (average.clamp(1, 5) * 10).round();
+    return (tenths / 10).toStringAsFixed(1);
+  }
+
+  /// `1 review`, `23 reviews`, `1.2k reviews`.
+  static String reviewCount(int count) => '${compactCount(count)} ${count == 1 ? 'review' : 'reviews'}';
+
   /// Formats a distance in kilometres: `850 m`, `4.2 km`, `18 km`.
   static String distanceKm(double km) {
     if (km < 1) return '${math.max(1, (km * 1000).round())} m';

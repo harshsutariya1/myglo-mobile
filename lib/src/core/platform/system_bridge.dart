@@ -16,6 +16,18 @@ abstract interface class SystemBridge {
 
   /// Opens this app's notification settings. Returns whether anything opened.
   Future<bool> openNotificationSettings();
+
+  /// Opens the system share sheet with [text] followed by [url]. [subject] is
+  /// used by apps that take one (e.g. email, on Android). [origin] is where
+  /// the sheet points from on iPad (the tapped button, in global
+  /// coordinates). Returns whether the sheet opened.
+  Future<bool> share({required String text, required Uri url, String? subject, Rect? origin});
+
+  /// Opens [url] (http or https) outside the app. [appUrl] (iOS) or
+  /// [appPackage] (Android) name the app to try first, e.g. a maps app; if
+  /// it isn't installed, [url] opens in whichever app handles it, usually
+  /// the browser. Returns whether anything opened.
+  Future<bool> openUrl(Uri url, {Uri? appUrl, String? appPackage});
 }
 
 final systemBridgeProvider = Provider<SystemBridge>((ref) => const MethodChannelSystemBridge());
@@ -37,9 +49,37 @@ class MethodChannelSystemBridge implements SystemBridge {
   @override
   Future<bool> openNotificationSettings() => _invoke('openNotificationSettings', fallback: false);
 
-  Future<bool> _invoke(String method, {required bool fallback}) async {
+  @override
+  Future<bool> share({required String text, required Uri url, String? subject, Rect? origin}) => _invoke(
+        'share',
+        fallback: false,
+        arguments: {
+          'text': text,
+          'url': url.toString(),
+          'subject': ?subject,
+          if (origin != null) ...{
+            'originX': origin.left,
+            'originY': origin.top,
+            'originWidth': origin.width,
+            'originHeight': origin.height,
+          },
+        },
+      );
+
+  @override
+  Future<bool> openUrl(Uri url, {Uri? appUrl, String? appPackage}) => _invoke(
+        'openUrl',
+        fallback: false,
+        arguments: {
+          'url': url.toString(),
+          'appUrl': ?appUrl?.toString(),
+          'appPackage': ?appPackage,
+        },
+      );
+
+  Future<bool> _invoke(String method, {required bool fallback, Map<String, Object>? arguments}) async {
     try {
-      return await _channel.invokeMethod<bool>(method) ?? fallback;
+      return await _channel.invokeMethod<bool>(method, arguments) ?? fallback;
     } on MissingPluginException {
       // Platforms without the native side (tests, desktop).
       return fallback;

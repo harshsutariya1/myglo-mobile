@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/routing/app_router.dart';
+import '../../../core/sharing/share_links.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/skeleton/skeletons.dart';
@@ -17,18 +18,25 @@ import '../../providers/provider_profiles/models/service_model.dart';
 import '../../shared/authentication/controllers/user_profile_provider.dart';
 import '../../shared/authentication/models/profile_model.dart';
 import '../../shared/authentication/models/user_role.dart';
+import '../../shared/reviews/views/widgets/rating_summary.dart';
 import '../../shared/services/views/widgets/service_details_sheet.dart';
 import '../controllers/delete_post_controller.dart';
 import '../controllers/post_detail_controller.dart';
+import '../controllers/post_engagement_controller.dart';
 import '../models/post_model.dart';
+import 'widgets/post_comments_sheet.dart';
 import 'widgets/post_widgets.dart';
 
 /// Full view of one post: media carousel, engagement, caption and the
 /// service it shows, with a booking shortcut for clients.
 class PostDetailScreen extends ConsumerWidget {
-  const PostDetailScreen({super.key, required this.post});
+  const PostDetailScreen({super.key, required this.post, this.onBack});
 
   final PostModel post;
+
+  /// Replaces the back button's default pop (e.g. for a post opened from a
+  /// link with nothing underneath).
+  final VoidCallback? onBack;
 
   static const double _barHeight = 56;
 
@@ -72,11 +80,16 @@ class PostDetailScreen extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
                 sliver: SliverList.list(
                   children: [
+                    if (post.reviewId != null) ...[
+                      const _VerifiedReviewTag(),
+                      const SizedBox(height: 10),
+                    ],
                     if ((post.caption?.trim() ?? '').isNotEmpty)
                       _ExpandableCaption(
                         author: authorAsync.value == null ? null : postAuthorName(authorAsync.value!),
                         text: post.caption!.trim(),
                       ),
+                    _CommentsLink(post: post),
                     if (serviceId != null) ...[
                       const SizedBox(height: 16),
                       _TaggedServicePill(
@@ -98,6 +111,7 @@ class PostDetailScreen extends ConsumerWidget {
             child: _TopBar(
               height: _barHeight,
               author: authorAsync,
+              onBack: onBack,
               onMore: deleting ? null : () => _showPostActions(context, ref, isOwner: isOwner),
             ),
           ),
@@ -138,7 +152,14 @@ class PostDetailScreen extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _ActionTile(icon: Icons.ios_share_rounded, label: 'Share', onTap: () => comingSoon('Sharing posts')),
+                _ActionTile(
+                  icon: Icons.ios_share_rounded,
+                  label: 'Share',
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    sharePost(context, ref, post);
+                  },
+                ),
                 if (isOwner)
                   _ActionTile(icon: Icons.edit_outlined, label: 'Edit caption', onTap: () => comingSoon('Editing posts'))
                 else
@@ -200,10 +221,11 @@ class PostDetailScreen extends ConsumerWidget {
 
 /// Translucent, blurred bar pinned over the content.
 class _TopBar extends StatelessWidget {
-  const _TopBar({required this.height, required this.author, required this.onMore});
+  const _TopBar({required this.height, required this.author, required this.onMore, this.onBack});
 
   final double height;
   final AsyncValue<ProfileModel?> author;
+  final VoidCallback? onBack;
   /// Null while the post is being deleted.
   final VoidCallback? onMore;
 
@@ -223,7 +245,7 @@ class _TopBar extends StatelessWidget {
           child: Row(
             children: [
               const SizedBox(width: 4),
-              const BackButton(),
+              BackButton(onPressed: onBack),
               Expanded(
                 child: switch (author) {
                   AsyncData(:final value?) => Row(
@@ -278,10 +300,11 @@ class _MediaCarouselState extends ConsumerState<_MediaCarousel> {
   int _burst = 0;
 
   Future<void> _onDoubleTap() async {
-    if (ref.read(postLikeProvider(widget.post)).value?.canLike != true) return;
+    if (ref.read(userProfileProvider).value == null) return;
     HapticFeedback.lightImpact();
     setState(() => _burst++);
-    final ok = await ref.read(postLikeProvider(widget.post).notifier).like();
+    // Double-tap only ever likes.
+    final ok = await ref.read(postEngagementStoreProvider.notifier).setLiked(widget.post, true);
     if (!ok && mounted) context.showAppSnackBar("Couldn't save your like. Please try again.", isError: true);
   }
 
@@ -435,26 +458,59 @@ class _MediaViewerState extends State<_MediaViewer> {
   }
 }
 
-class _EngagementRow extends ConsumerWidget {
+/// Shares [post]'s public link through the system share sheet.
+Future<void> sharePost(BuildContext context, WidgetRef ref, PostModel post) {
+  final caption = post.caption?.trim() ?? '';
+  return shareLink(
+    context,
+    ref,
+    text: caption.isEmpty
+        ? 'Check out this look on Myglo'
+        : 'Check out this look on Myglo: ${caption.length > 80 ? '${caption.substring(0, 79)}…' : caption}',
+    url: ShareLinks.post(post.id),
+    subject: 'A look on Myglo',
+  );
+}
+
+/// Like, comment and share, with live counts. Opening the post loads its
+/// current counts and the viewer's like in one request; taps update at once.
+class _EngagementRow extends ConsumerStatefulWidget {
   const _EngagementRow({required this.post});
 
   final PostModel post;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = context.colorScheme;
-    final likeState = ref.watch(postLikeProvider(post)).value;
-    final liked = likeState?.liked ?? false;
-    final count = likeState?.count ?? post.likesCount;
-    final muted = scheme.onSurface.withValues(alpha: 0.55);
+  ConsumerState<_EngagementRow> createState() => _EngagementRowState();
+}
 
-    Future<void> toggle() async {
-      HapticFeedback.selectionClick();
-      final ok = await ref.read(postLikeProvider(post).notifier).toggle();
-      if (!ok && context.mounted) {
-        context.showAppSnackBar("Couldn't save your like. Please try again.", isError: true);
-      }
+class _EngagementRowState extends ConsumerState<_EngagementRow> {
+  PostModel get post => widget.post;
+
+  @override
+  void initState() {
+    super.initState();
+    // After the first frame: providers can't be changed while building.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(postEngagementStoreProvider.notifier).refresh(post.id);
+    });
+  }
+
+  Future<void> _toggle(bool liked) async {
+    HapticFeedback.selectionClick();
+    final ok = await ref.read(postEngagementStoreProvider.notifier).setLiked(post, !liked);
+    if (!ok && mounted) {
+      context.showAppSnackBar("Couldn't save your like. Please try again.", isError: true);
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    final engagement = PostEngagementView.of(post, ref.watch(postEngagementProvider(post.id)));
+    final liked = engagement.liked ?? false;
+    final canEngage = ref.watch(userProfileProvider.select((p) => p.value != null));
+    final muted = scheme.onSurface.withValues(alpha: 0.55);
+    final countStyle = TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: scheme.onSurface);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 6, 8, 2),
@@ -462,7 +518,7 @@ class _EngagementRow extends ConsumerWidget {
         children: [
           IconButton(
             tooltip: liked ? 'Unlike' : 'Like',
-            onPressed: likeState?.canLike == true ? toggle : null,
+            onPressed: canEngage ? () => _toggle(liked) : null,
             icon: AnimatedSwitcher(
               duration: const Duration(milliseconds: 180),
               transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: child),
@@ -475,18 +531,28 @@ class _EngagementRow extends ConsumerWidget {
             ),
           ),
           Semantics(
-            label: '$count ${count == 1 ? 'like' : 'likes'}',
+            label: '${engagement.likesCount} ${engagement.likesCount == 1 ? 'like' : 'likes'}',
             excludeSemantics: true,
-            child: Text(
-              Formatters.compactCount(count),
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: scheme.onSurface),
-            ),
+            child: Text(Formatters.compactCount(engagement.likesCount), style: countStyle),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
           IconButton(
-            tooltip: 'Share',
-            onPressed: () => context.showComingSoon('Sharing posts'),
-            icon: Icon(Icons.ios_share_rounded, size: 24, color: scheme.onSurface),
+            tooltip: 'Comments',
+            onPressed: () => showPostCommentsSheet(context, post: post),
+            icon: Icon(Icons.chat_bubble_outline_rounded, size: 25, color: scheme.onSurface),
+          ),
+          Semantics(
+            label: '${engagement.commentsCount} ${engagement.commentsCount == 1 ? 'comment' : 'comments'}',
+            excludeSemantics: true,
+            child: Text(Formatters.compactCount(engagement.commentsCount), style: countStyle),
+          ),
+          const SizedBox(width: 4),
+          Builder(
+            builder: (buttonContext) => IconButton(
+              tooltip: 'Share',
+              onPressed: () => sharePost(buttonContext, ref, post),
+              icon: Icon(Icons.ios_share_rounded, size: 24, color: scheme.onSurface),
+            ),
           ),
           const Spacer(),
           Text(Formatters.relativeTime(post.createdAt), style: TextStyle(fontSize: 13, color: muted)),
@@ -496,6 +562,63 @@ class _EngagementRow extends ConsumerWidget {
             icon: Icon(Icons.bookmark_border_rounded, size: 26, color: scheme.onSurface),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// "View all 12 comments" under the caption, once there are any.
+class _CommentsLink extends ConsumerWidget {
+  const _CommentsLink({required this.post});
+
+  final PostModel post;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final count = PostEngagementView.of(post, ref.watch(postEngagementProvider(post.id))).commentsCount;
+    if (count == 0) return const SizedBox.shrink();
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: TextButton(
+        onPressed: () => showPostCommentsSheet(context, post: post),
+        style: TextButton.styleFrom(
+          padding: EdgeInsets.zero,
+          minimumSize: const Size(0, 40),
+          foregroundColor: context.colorScheme.onSurface.withValues(alpha: 0.55),
+          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        ),
+        child: Text(count == 1 ? 'View 1 comment' : 'View all ${Formatters.compactCount(count)} comments'),
+      ),
+    );
+  }
+}
+
+/// Marks a post that holds a review's photos.
+class _VerifiedReviewTag extends StatelessWidget {
+  const _VerifiedReviewTag();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: scheme.secondary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.verified_rounded, size: 15, color: scheme.secondary),
+            const SizedBox(width: 5),
+            Text(
+              'From a verified review',
+              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: scheme.secondary),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -715,20 +838,10 @@ class _ProviderQuickCard extends StatelessWidget {
                             style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: scheme.onSurface),
                           ),
                           const SizedBox(height: 2),
-                          // Reviews aren't collected yet, so every provider is new.
-                          Row(
-                            children: [
-                              Icon(Icons.star_rounded, size: 14, color: AppTheme.warning),
-                              const SizedBox(width: 3),
-                              Flexible(
-                                child: Text(
-                                  'New · No reviews yet',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(fontSize: 12.5, color: scheme.onSurface.withValues(alpha: 0.6)),
-                                ),
-                              ),
-                            ],
+                          ProviderRatingLine(
+                            providerId: provider.id,
+                            iconSize: 14,
+                            style: TextStyle(fontSize: 12.5, color: scheme.onSurface.withValues(alpha: 0.6)),
                           ),
                         ],
                       ),

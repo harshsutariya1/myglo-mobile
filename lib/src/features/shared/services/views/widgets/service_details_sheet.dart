@@ -10,6 +10,11 @@ import '../../../../discovery_feed/models/post_model.dart';
 import '../../../../discovery_feed/views/post_detail_screen.dart';
 import '../../../../providers/provider_profiles/models/service_catalog.dart';
 import '../../../../providers/provider_profiles/models/service_model.dart';
+import '../../../reviews/controllers/reviews_controllers.dart';
+import '../../../reviews/models/review_summary.dart';
+import '../../../reviews/views/reviews_screen.dart';
+import '../../../reviews/views/widgets/rating_summary.dart';
+import '../../../reviews/views/widgets/review_card.dart';
 import 'service_tile.dart';
 
 /// Opens the details sheet for [service] on top of the current screen. It
@@ -101,7 +106,9 @@ class _ServiceDetailsSheet extends StatelessWidget {
                               const SizedBox(height: 20),
                             ],
                             _TitleBlock(service: service),
-                            const SizedBox(height: 18),
+                            const SizedBox(height: 8),
+                            _ServiceRatingLine(service: service),
+                            const SizedBox(height: 14),
                             _FactsRow(service: service),
                             if (details.included.isNotEmpty) ...[
                               const SizedBox(height: _Metrics.sectionGap),
@@ -128,6 +135,7 @@ class _ServiceDetailsSheet extends StatelessWidget {
                       SliverToBoxAdapter(
                         child: _RecentWork(serviceId: service.id, excludePostId: excludePostId),
                       ),
+                      SliverToBoxAdapter(child: _ServiceReviews(service: service)),
                       const SliverToBoxAdapter(child: SizedBox(height: 32)),
                     ],
                   ),
@@ -138,6 +146,103 @@ class _ServiceDetailsSheet extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+void _openServiceReviews(BuildContext context, ServiceModel service) {
+  Navigator.of(context, rootNavigator: true).push(
+    MaterialPageRoute<void>(
+      builder: (_) => ReviewsScreen(
+        query: (providerId: service.providerId, serviceId: service.id),
+        title: '${service.name} reviews',
+      ),
+    ),
+  );
+}
+
+/// This service's rating under its name; taps through to its reviews.
+class _ServiceRatingLine extends ConsumerWidget {
+  const _ServiceRatingLine({required this.service});
+
+  final ServiceModel service;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final summary = switch (ref.watch(serviceReviewSummaryProvider(service.id))) {
+      AsyncData(:final value) => value,
+      // Already reported; reads as "new" rather than a broken section.
+      AsyncError() => ReviewSummary.empty,
+      _ => null,
+    };
+    if (summary == null) return const Shimmer(child: SkeletonBox(width: 120, height: 16, borderRadius: 6));
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: InkWell(
+        onTap: summary.isEmpty ? null : () => _openServiceReviews(context, service),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: RatingLine(summary: summary, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+        ),
+      ),
+    );
+  }
+}
+
+/// The newest reviews of this service, with a link to the rest. Hidden until
+/// someone has reviewed it.
+class _ServiceReviews extends ConsumerWidget {
+  const _ServiceReviews({required this.service});
+
+  final ServiceModel service;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = context.colorScheme;
+    final summary = ref.watch(serviceReviewSummaryProvider(service.id)).value;
+    if (summary == null || summary.isEmpty) return const SizedBox.shrink();
+    final reviews = ref.watch(reviewsPreviewProvider((providerId: null, serviceId: service.id)));
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(_Metrics.gutter, _Metrics.sectionGap, _Metrics.gutter, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _SectionTitle('Reviews'),
+          const SizedBox(height: 12),
+          RatingSummaryCard(summary: summary),
+          const SizedBox(height: 16),
+          switch (reviews) {
+            AsyncData(:final value) => Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final (index, review) in value.indexed) ...[
+                    if (index > 0) Divider(height: 32, color: scheme.onSurface.withValues(alpha: 0.08)),
+                    ReviewCard(review: review, showServices: false),
+                  ],
+                ],
+              ),
+            // Already reported; the summary above still stands.
+            AsyncError() => const SizedBox.shrink(),
+            _ => const ReviewListSkeleton(count: 2),
+          },
+          if (summary.count > (reviews.value?.length ?? 0)) ...[
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: () => _openServiceReviews(context, service),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: scheme.onSurface,
+                minimumSize: const Size(0, 48),
+                side: BorderSide(color: scheme.onSurface.withValues(alpha: 0.15)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                textStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+              ),
+              child: Text('See all ${summary.count} reviews'),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

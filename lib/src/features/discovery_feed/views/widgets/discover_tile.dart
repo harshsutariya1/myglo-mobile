@@ -1,10 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/skeleton/skeletons.dart';
 import '../../controllers/discovery_feed_controller.dart';
+import '../../controllers/post_engagement_controller.dart';
 import '../post_detail_screen.dart';
 import 'post_widgets.dart';
 
@@ -25,17 +27,18 @@ const double discoverTileRadius = 20;
 
 /// One look as a photo tile: the cover image with the author, likes, and
 /// badges for carousels and bookable services laid over it. Tapping opens the
-/// post.
-class DiscoverTile extends StatelessWidget {
+/// post. The like count follows likes made anywhere in the app.
+class DiscoverTile extends ConsumerWidget {
   const DiscoverTile({super.key, required this.entry, this.size = DiscoverTileSize.regular});
 
   final FeedEntry entry;
   final DiscoverTileSize size;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
     final post = entry.post;
+    final likes = PostEngagementView.of(post, ref.watch(postEngagementProvider(post.id))).likesCount;
     final author = entry.author;
     final authorName = author == null ? postAuthorFallbackName : postAuthorName(author);
     final imageUrl = post.mediaUrls.isNotEmpty ? post.mediaUrls.first : null;
@@ -54,7 +57,7 @@ class DiscoverTile extends StatelessWidget {
       label: [
         'Post by $authorName',
         if (caption.isNotEmpty) caption,
-        '${post.likesCount} ${post.likesCount == 1 ? 'like' : 'likes'}',
+        '$likes ${likes == 1 ? 'like' : 'likes'}',
         if (post.mediaUrls.length > 1) '${post.mediaUrls.length} photos',
         if (post.serviceId != null) 'bookable service',
       ].join(', '),
@@ -169,12 +172,12 @@ class DiscoverTile extends StatelessWidget {
                                   ),
                                 ),
                         ),
-                        if (post.likesCount > 0) ...[
+                        if (likes > 0) ...[
                           const SizedBox(width: 6),
                           const Icon(Icons.favorite_rounded, size: 14, color: Colors.white),
                           const SizedBox(width: 3),
                           Text(
-                            Formatters.compactCount(post.likesCount),
+                            Formatters.compactCount(likes),
                             style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,

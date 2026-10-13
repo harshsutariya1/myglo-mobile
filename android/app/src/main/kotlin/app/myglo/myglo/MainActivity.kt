@@ -37,6 +37,8 @@ class MainActivity : FlutterActivity() {
                     "notificationsEnabled" ->
                         result.success(getSystemService(NotificationManager::class.java)?.areNotificationsEnabled() ?: false)
                     "openNotificationSettings" -> result.success(openNotificationSettings())
+                    "share" -> result.success(share(call))
+                    "openUrl" -> result.success(openUrl(call))
                     else -> result.notImplemented()
                 }
             }
@@ -83,6 +85,45 @@ class MainActivity : FlutterActivity() {
         for (intent in listOf(notificationSettings, appDetails)) {
             try {
                 startActivity(intent)
+                return true
+            } catch (e: ActivityNotFoundException) {
+                continue
+            }
+        }
+        return false
+    }
+
+    /** Opens the system share sheet with the text and link. Returns whether it opened. */
+    private fun share(call: MethodCall): Boolean {
+        val text = call.argument<String>("text")?.trim().orEmpty()
+        val url = call.argument<String>("url")?.trim().orEmpty()
+        if (url.isEmpty()) return false
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, if (text.isEmpty()) url else "$text\n$url")
+            call.argument<String>("subject")?.let { putExtra(Intent.EXTRA_SUBJECT, it) }
+        }
+        return try {
+            startActivity(Intent.createChooser(send, null))
+            true
+        } catch (e: ActivityNotFoundException) {
+            false
+        }
+    }
+
+    /**
+     * Opens an http(s) link outside the app: in `appPackage` (e.g. a maps app)
+     * when that's installed, otherwise in whatever handles the link. Returns
+     * whether anything opened.
+     */
+    private fun openUrl(call: MethodCall): Boolean {
+        val uri = call.argument<String>("url")?.let(Uri::parse) ?: return false
+        if (uri.scheme != "https" && uri.scheme != "http") return false
+        val appPackage = call.argument<String>("appPackage")?.takeIf { it.isNotBlank() }
+        val targets = if (appPackage == null) listOf(null) else listOf(appPackage, null)
+        for (target in targets) {
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW, uri).apply { target?.let { setPackage(it) } })
                 return true
             } catch (e: ActivityNotFoundException) {
                 continue

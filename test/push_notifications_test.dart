@@ -1,3 +1,5 @@
+import 'dart:ui' show Rect;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -47,6 +49,12 @@ class _FakeSystem implements SystemBridge {
     settingsOpened++;
     return true;
   }
+
+  @override
+  Future<bool> share({required String text, required Uri url, String? subject, Rect? origin}) async => true;
+
+  @override
+  Future<bool> openUrl(Uri url, {Uri? appUrl, String? appPackage}) async => true;
 }
 
 AppUserProfile _user(String id) => AppUserProfile(

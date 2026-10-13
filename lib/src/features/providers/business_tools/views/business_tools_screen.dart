@@ -8,13 +8,17 @@ import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/skeleton/skeletons.dart';
 import '../../../../core/widgets/snackbar_utils.dart';
 import '../../../../core/widgets/soon_badge.dart';
+import '../../../customers/provider_profile/views/widgets/provider_profile_header.dart' show providerDisplayName;
 import '../../../customers/provider_profile/views/widgets/section_states.dart';
+import '../../../shared/authentication/controllers/user_profile_provider.dart';
 import '../../../shared/notifications/views/notification_bell.dart';
+import '../../../shared/reviews/controllers/reviews_controllers.dart';
+import '../../../shared/reviews/views/reviews_screen.dart';
 import '../controllers/business_stats_controller.dart';
 
 /// The provider's business overview: this month's real numbers (cash
-/// collected, completed bookings), placeholders for metrics that have no
-/// data yet, and shortcuts to the tools that manage the business.
+/// collected, completed bookings), their rating and reviews, and shortcuts to
+/// the tools that manage the business.
 class BusinessToolsScreen extends ConsumerWidget {
   const BusinessToolsScreen({super.key});
 
@@ -22,6 +26,8 @@ class BusinessToolsScreen extends ConsumerWidget {
 
   Future<void> _refresh(WidgetRef ref) async {
     ref.invalidate(businessStatsProvider);
+    final providerId = ref.read(userProfileProvider).value?.rawUser.id;
+    if (providerId != null) ref.invalidate(providerReviewSummaryProvider(providerId));
     try {
       await ref.read(businessStatsProvider.future);
     } catch (_) {
@@ -84,27 +90,7 @@ class BusinessToolsScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               const _MonthStats(),
               const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _StatCard(
-                      title: 'Profile views',
-                      icon: Icons.visibility,
-                      value: const SoonBadge(),
-                      onTap: () => context.showComingSoon('Profile views'),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _StatCard(
-                      title: 'Rating',
-                      icon: Icons.star,
-                      value: const SoonBadge(),
-                      onTap: () => context.showComingSoon('Ratings'),
-                    ),
-                  ),
-                ],
-              ),
+              const _ReviewStats(),
               const SizedBox(height: 32),
               Text(
                 'Quick Actions',
@@ -143,6 +129,66 @@ class BusinessToolsScreen extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The provider's average rating and review count (all time). Both open
+/// their reviews, where they can reply.
+class _ReviewStats extends ConsumerWidget {
+  const _ReviewStats();
+
+  void _open(BuildContext context, WidgetRef ref) {
+    final profile = ref.read(userProfileProvider).value;
+    if (profile == null) return;
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ReviewsScreen(
+          query: (providerId: profile.rawUser.id, serviceId: null),
+          title: 'Your reviews',
+          providerName: providerDisplayName(profile.profile),
+          canReply: true,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final providerId = ref.watch(userProfileProvider.select((p) => p.value?.rawUser.id));
+    if (providerId == null) return const SizedBox.shrink();
+    final async = ref.watch(providerReviewSummaryProvider(providerId));
+    final summary = async.value;
+
+    final Widget rating;
+    final Widget count;
+    if (summary != null) {
+      rating = _StatValue(summary.isEmpty ? 'New' : Formatters.rating(summary.average!));
+      count = _StatValue(Formatters.compactCount(summary.count));
+    } else if (async.hasError) {
+      // Already reported; tapping through retries.
+      rating = const _StatValue('–');
+      count = const _StatValue('–');
+    } else {
+      rating = const Shimmer(child: SkeletonText(style: BusinessToolsScreen._valueStyle, widthFactor: 0.5));
+      count = rating;
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          child: _StatCard(title: 'Rating', icon: Icons.star_rounded, value: rating, onTap: () => _open(context, ref)),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _StatCard(
+            title: 'Reviews',
+            icon: Icons.rate_review_outlined,
+            value: count,
+            onTap: () => _open(context, ref),
+          ),
+        ),
+      ],
     );
   }
 }

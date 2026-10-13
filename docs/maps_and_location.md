@@ -17,9 +17,15 @@ In Google Cloud, restrict each key:
 
 - **Android key:** *Android apps* → package `app.myglo.myglo` with the SHA-1
   of every signing key (debug keystore, upload key, and the Play App Signing
-  key from Play Console). API restriction: *Maps SDK for Android*.
-- **iOS key:** *iOS apps* → bundle id `app.myglo.myglo`. API restriction:
-  *Maps SDK for iOS*.
+  key from Play Console). API restrictions: *Maps SDK for Android*,
+  *Firebase Installations API*, *FCM Registration API*.
+- **iOS key:** *iOS apps* → bundle id `app.myglo.myglo`. API restrictions:
+  *Maps SDK for iOS*, *Firebase Installations API*, *FCM Registration API*.
+
+These are the same keys Firebase uses (`google-services.json`,
+`GoogleService-Info.plist`). Leaving out the two Firebase APIs breaks push
+registration with "FCM Registration failed". An API only shows up in the
+key's list once it's enabled under APIs & Services → Library.
 
 Mobile dynamic maps are free on Google Maps Platform; no Places or Geocoding
 web APIs are used.

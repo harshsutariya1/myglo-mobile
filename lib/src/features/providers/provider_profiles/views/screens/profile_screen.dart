@@ -8,6 +8,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:readmore/readmore.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/routing/app_router.dart';
+import '../../../../../core/sharing/share_links.dart';
 import '../../../../../core/widgets/skeleton/skeletons.dart';
 import '../../../../shared/authentication/controllers/user_profile_provider.dart';
 import '../../../../shared/cover_photos/views/cover_carousel.dart';
@@ -298,12 +299,26 @@ class _ProfileHeader extends ConsumerWidget {
           child: Center(child: _ProfileAvatar(name: name, url: profilePicUrl)),
         ),
 
-        // Glass controls: cover photos and settings.
+        // Glass controls: share, cover photos and settings.
         Positioned(
           top: MediaQuery.paddingOf(context).top + 8,
           right: 16,
           child: Row(
             children: [
+              Builder(
+                builder: (buttonContext) => _GlassIconButton(
+                  icon: Icons.ios_share_rounded,
+                  tooltip: 'Share your profile',
+                  onPressed: () => shareLink(
+                    buttonContext,
+                    ref,
+                    text: 'Book with $name on Myglo',
+                    url: ShareLinks.provider(userId),
+                    subject: '$name on Myglo',
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
               _GlassIconButton(
                 icon: Icons.add_photo_alternate_outlined,
                 tooltip: coverPhotos.isEmpty ? 'Add cover photos' : 'Edit cover photos',

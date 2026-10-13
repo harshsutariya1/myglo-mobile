@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/routing/app_router.dart';
+import '../../../../core/sharing/share_links.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/geo.dart';
 import '../../../discovery_feed/controllers/user_posts_controller.dart';
@@ -12,6 +13,8 @@ import '../../../shared/authentication/controllers/user_profile_provider.dart';
 import '../../../shared/authentication/models/profile_model.dart';
 import '../../../shared/bookings/controllers/booking_controllers.dart';
 import '../../../shared/cover_photos/views/cover_carousel.dart';
+import '../../../shared/reviews/controllers/reviews_controllers.dart';
+import '../../../shared/reviews/views/reviews_screen.dart';
 import '../../favourites/views/favourite_button.dart';
 import '../controllers/public_provider_profile_controller.dart';
 import 'widgets/provider_about_tab.dart';
@@ -24,8 +27,9 @@ import 'widgets/section_states.dart';
 /// Client-facing profile of a single provider, reached from a provider card
 /// or directly via `/provider/:id`.
 ///
-/// The header, services and posts each come from their own provider, so any
-/// one of them can be loading, failed or empty without holding up the others.
+/// The header, services, portfolio and reviews each come from their own
+/// provider, so any one of them can be loading, failed or empty without
+/// holding up the others.
 class PublicProviderProfileScreen extends ConsumerStatefulWidget {
   const PublicProviderProfileScreen({super.key, required this.providerId});
 
@@ -38,7 +42,7 @@ class PublicProviderProfileScreen extends ConsumerStatefulWidget {
 class _PublicProviderProfileScreenState extends ConsumerState<PublicProviderProfileScreen>
     with SingleTickerProviderStateMixin {
   static const double _coverHeight = 180;
-  static const _tabs = ['Services', 'Posts', 'About'];
+  static const _tabs = ['Services', 'Portfolio', 'About'];
 
   late final TabController _tabController;
   final ScrollController _scroll = ScrollController();
@@ -86,6 +90,8 @@ class _PublicProviderProfileScreenState extends ConsumerState<PublicProviderProf
     ref.invalidate(providerServicesProvider(_id));
     ref.invalidate(userPostsProvider(_id));
     ref.invalidate(workingHoursProvider(_id));
+    ref.invalidate(providerReviewSummaryProvider(_id));
+    ref.invalidate(reviewsPreviewProvider((providerId: _id, serviceId: null)));
     // Wait for every section to settle. Failures are rendered (and already
     // reported) by the section that owns them, so they are not rethrown here.
     Future<void> settle(Future<Object?> future) => future.then((_) {}, onError: (Object _) {});
@@ -95,6 +101,18 @@ class _PublicProviderProfileScreenState extends ConsumerState<PublicProviderProf
       settle(ref.read(userPostsProvider(_id).future)),
       settle(ref.read(workingHoursProvider(_id).future)),
     ]);
+  }
+
+  void _openReviews(ProfileModel provider) {
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ReviewsScreen(
+          query: (providerId: provider.id, serviceId: null),
+          title: 'Reviews',
+          providerName: providerDisplayName(provider),
+        ),
+      ),
+    );
   }
 
   void _goBack() {
@@ -158,11 +176,31 @@ class _PublicProviderProfileScreenState extends ConsumerState<PublicProviderProf
                 ),
               ),
               actions: [
-                if (profileAsync.value case final provider?)
+                if (profileAsync.value case final provider?) ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.4), shape: BoxShape.circle),
+                      child: Builder(
+                        builder: (buttonContext) => IconButton(
+                          tooltip: 'Share profile',
+                          icon: const Icon(Icons.ios_share_rounded, color: Colors.white, size: 20),
+                          onPressed: () => shareLink(
+                            buttonContext,
+                            ref,
+                            text: 'Check out ${providerDisplayName(provider)} on Myglo',
+                            url: ShareLinks.provider(provider.id),
+                            subject: '${providerDisplayName(provider)} on Myglo',
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                   Padding(
                     padding: const EdgeInsets.all(8),
                     child: FavouriteButton(providerId: provider.id, providerName: providerDisplayName(provider)),
                   ),
+                ],
               ],
               flexibleSpace: FlexibleSpaceBar(
                 background: CoverCarousel(
@@ -182,6 +220,7 @@ class _PublicProviderProfileScreenState extends ConsumerState<PublicProviderProf
                     pathParameters: {'id': _id},
                   ),
                   onContact: () => showProviderContactSheet(context, value),
+                  onOpenReviews: () => _openReviews(value),
                 ),
                 AsyncError(:final error) => SectionErrorView(
                   title: "Profile didn't load",
@@ -227,6 +266,7 @@ class _PublicProviderProfileScreenState extends ConsumerState<PublicProviderProf
             distanceKm: distanceKm,
             mobileOnly: mobileOnly,
             onRetry: () => ref.invalidate(publicProviderProfileProvider(_id)),
+            onOpenReviews: _openReviews,
           ),
         ];
     }

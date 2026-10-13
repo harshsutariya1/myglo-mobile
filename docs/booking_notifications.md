@@ -169,20 +169,47 @@ private.notify ──► public.notifications                      (in-app, as b
   With the app open, nothing is shown by the system: the in-app banner
   covers it.
 
-### To do: turn on sending
+### Sending setup (done 2026-10-12)
 
-Until this is done, push deliveries are queued and retried, then marked
-`failed`; in-app and email keep working.
+`FIREBASE_SERVICE_ACCOUNT` is set to a key for `myglo-fcm-sender`, which can
+only send pushes. Android delivery has been verified end to end. Next key
+rotation is due October 2027. The steps below are kept for rotation or for a
+new project. Without a valid secret, push deliveries retry and then end up
+`failed`; in-app and email notifications keep working.
 
-1. Firebase console → Project settings → **Service accounts** → *Generate new
-   private key*. This downloads a JSON file. Keep it out of the repo and chat.
-2. Store the whole JSON as an Edge Function secret:
+Use a dedicated service account that can only send pushes. Don't use the
+key behind Firebase's *Generate new private key* button: it belongs to
+`firebase-adminsdk-fbsvc@…`, which can administer all of Firebase.
+
+1. Google Cloud console (project `myglo-511108`) → IAM & Admin → **Service
+   accounts** → *Create service account*, named e.g. `myglo-fcm-sender`.
+   Give it one role only: **Firebase Cloud Messaging API Admin**
+   (`roles/firebasecloudmessaging.admin`). Skip "grant users access".
+2. Organisations created since 2024 block key creation
+   (`iam.disableServiceAccountKeyCreation`). To make one key:
+   - At the **organisation** level, grant yourself *Organization Policy
+     Administrator*.
+   - In Organization policies, select the **project** `myglo-511108`, open
+     "Disable service account key creation", choose *Override parent's
+     policy* and set it to *Not enforced*.
+   - Open the new service account → Keys → *Add key* → JSON. It downloads
+     once. Keep it out of the repo, chat and cloud drives.
+   - Set the project's policy back to *Inherit parent's policy* (existing
+     keys keep working), then remove your Organization Policy Administrator
+     role.
+3. Store the whole JSON as an Edge Function secret, then delete the file:
 
    ```bash
    supabase secrets set FIREBASE_SERVICE_ACCOUNT="$(cat path/to/service-account.json)" --project-ref oyveznxdnbduqgaddklr
    ```
 
    or Dashboard → Edge Functions → Secrets (paste the JSON as the value).
+4. Rotate the key about once a year, or immediately if it may have leaked:
+   add a new key, update the secret, then delete the old key.
+
+Supabase can't use keyless Workload Identity Federation (Edge Functions have
+no Google-trusted identity token), so one narrow, rotated key is the
+practical option.
 
 Check deliveries with the query above (`channel = 'push'`).
 

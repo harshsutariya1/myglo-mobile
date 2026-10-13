@@ -55,4 +55,32 @@ class AppConfig {
 
   /// Recent searches remembered on this device.
   static const int recentSearchesMax = 8;
+
+  /// Public site that shared post and profile links point at. The app opens
+  /// these links itself once the site serves the app-link verification files
+  /// (see docs/share_links.md).
+  static const String shareLinkHost = 'myglo.app';
+
+  /// Longest comment. The database enforces the same.
+  static const int commentMaxLength = 500;
+
+  /// Comments fetched per page. The server caps it at 100.
+  static const int commentsPageSize = 30;
+
+  /// Longest review text, and longest reply to one. The database enforces
+  /// the same.
+  static const int reviewMaxLength = 1000;
+
+  /// Most photos on one review. The database enforces the same.
+  static const int reviewMaxPhotos = 4;
+
+  /// Reviews fetched per page. The server caps it at 50.
+  static const int reviewsPageSize = 20;
+
+  /// Reviews previewed on a profile or service before "See all".
+  static const int reviewsPreviewCount = 3;
+
+  /// How long a post's like/comment counts stay cached after it leaves the
+  /// screen, so going back to a feed shows the counts just seen.
+  static const Duration postEngagementCacheFor = Duration(minutes: 10);
 }
