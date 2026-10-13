@@ -8,8 +8,8 @@ import '../../controllers/discovery_feed_controller.dart';
 import 'bento_grid.dart';
 import 'discover_tab_body.dart';
 
-/// Providers' Discover: one page of looks posted near their business, as a
-/// bento grid.
+/// Providers' Discover: looks posted near their business, then looks from
+/// further away once those run out, as a bento grid.
 class NearbyBentoView extends StatelessWidget {
   const NearbyBentoView({super.key, required this.appBar, required this.appBarExtent, required this.onShareLook});
 
@@ -25,13 +25,88 @@ class NearbyBentoView extends StatelessWidget {
       appBarExtent: appBarExtent,
       loading: const SliverBentoSkeleton(),
       header: (state) => _NearbyNotice(fallback: state.nearbyFallback),
-      content: (state) => SliverBentoGrid(entries: state.entries, complete: !state.hasMore),
+      content: (state) => _NearbyContent(state: state),
       empty: (_) => DiscoverEmptyState(
         icon: Icons.auto_awesome_outlined,
         title: 'Nothing to discover yet',
         message: 'Looks shared by clients and salons around you will appear here.',
         actionLabel: 'Share a look',
         onAction: onShareLook,
+      ),
+    );
+  }
+}
+
+/// The nearby posts, then (once they've run out) the posts from beyond the
+/// radius under their own heading. Each section closes its own bento grid so
+/// the heading never splits a block.
+class _NearbyContent extends StatelessWidget {
+  const _NearbyContent({required this.state});
+
+  final DiscoveryFeedState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final split = state.beyondNearbyFrom;
+    // Still paging nearby posts, or nothing was nearby (the notice above says
+    // so) and every post is from further away.
+    if (split == null || split == 0) {
+      return SliverBentoGrid(entries: state.entries, complete: !state.hasMore);
+    }
+    final beyond = state.entries.sublist(split);
+    return SliverMainAxisGroup(
+      slivers: [
+        SliverBentoGrid(entries: state.entries.sublist(0, split), complete: true),
+        if (beyond.isNotEmpty) ...[
+          const SliverToBoxAdapter(child: _BeyondNearbyHeading()),
+          SliverBentoGrid(entries: beyond, complete: !state.hasMore),
+        ],
+      ],
+    );
+  }
+}
+
+/// Heading above the posts from beyond the nearby radius.
+class _BeyondNearbyHeading extends StatelessWidget {
+  const _BeyondNearbyHeading();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    final radiusKm = (AppConfig.nearbyRadiusMetres / 1000).round();
+
+    return Semantics(
+      header: true,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 28, 20, 8),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: scheme.primary.withValues(alpha: 0.10), shape: BoxShape.circle),
+              child: Icon(Icons.travel_explore_rounded, size: 18, color: scheme.secondary),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'More from across Myglo',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: scheme.onSurface),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Looks from further than $radiusKm km away',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 13, color: scheme.onSurface.withValues(alpha: 0.55)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -272,6 +272,33 @@ class PostRepository {
     }
   }
 
+  /// One page of the approved posts by other people that [getNearbyPage]
+  /// leaves out for the same [radiusMetres] (see the `posts_beyond_nearby`
+  /// RPC), newest first and keyset-paginated like [getFeedPage]. Together the
+  /// two cover every visible post exactly once.
+  Future<List<PostModel>> getBeyondNearbyPage({
+    required int limit,
+    required double radiusMetres,
+    DateTime? before,
+  }) async {
+    AppLogger.d('Fetching posts beyond nearby (limit: $limit, before: $before)', tag: 'PostRepository');
+    final sw = Stopwatch()..start();
+    try {
+      final response = await _client.rpc('posts_beyond_nearby', params: {
+        'p_radius_m': radiusMetres,
+        'p_before': before?.toUtc().toIso8601String(),
+        'p_limit': limit,
+      });
+      sw.stop();
+      final posts = (response as List).map((e) => PostModel.fromJson(e)).toList();
+      AppLogger.api('rpc.posts_beyond_nearby', count: posts.length, duration: sw.elapsed);
+      return posts;
+    } catch (e, st) {
+      AppLogger.e('Failed to fetch posts beyond nearby', tag: 'PostRepository', error: e, stackTrace: st);
+      rethrow;
+    }
+  }
+
   /// One post by id, or null when it doesn't exist or the viewer can't see
   /// it (row-level security hides other people's unapproved posts).
   Future<PostModel?> getPost(String postId) async {

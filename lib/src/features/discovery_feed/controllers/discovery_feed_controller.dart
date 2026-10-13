@@ -22,6 +22,19 @@ enum NearbyFallback {
   nothingNearby,
 }
 
+/// Where a page of the feed comes from.
+enum _FeedSource {
+  /// Every visible post, optionally filtered (For you, Favourites, and Nearby
+  /// for a provider without an address).
+  all,
+
+  /// Other people's posts near the provider's business address.
+  nearby,
+
+  /// Every other post: what [nearby] leaves out, shown once it runs out.
+  beyondNearby,
+}
+
 /// A post with its author's public profile. [author] is null when the
 /// account no longer exists or its profile couldn't be loaded.
 class FeedEntry {
@@ -37,6 +50,7 @@ class DiscoveryFeedState {
     required this.hasMore,
     this.noFavourites = false,
     this.nearbyFallback,
+    this.beyondNearbyFrom,
     this.isLoadingMore = false,
     this.loadMoreFailed = false,
   });
@@ -53,6 +67,12 @@ class DiscoveryFeedState {
   /// Nearby tab only: set when showing recent posts from everywhere instead.
   final NearbyFallback? nearbyFallback;
 
+  /// Nearby tab only: index in [entries] of the first post from beyond the
+  /// nearby radius, set once the nearby posts have run out (equal to the
+  /// length of [entries] until the first such post loads). Null while nearby
+  /// posts are still being paged, and when there's no address to be near.
+  final int? beyondNearbyFrom;
+
   final bool isLoadingMore;
 
   /// The last attempt to load the next page failed; scrolling won't retry
@@ -62,6 +82,7 @@ class DiscoveryFeedState {
   DiscoveryFeedState copyWith({
     List<FeedEntry>? entries,
     bool? hasMore,
+    int? beyondNearbyFrom,
     bool? isLoadingMore,
     bool? loadMoreFailed,
   }) =>
@@ -70,6 +91,7 @@ class DiscoveryFeedState {
         hasMore: hasMore ?? this.hasMore,
         noFavourites: noFavourites,
         nearbyFallback: nearbyFallback,
+        beyondNearbyFrom: beyondNearbyFrom ?? this.beyondNearbyFrom,
         isLoadingMore: isLoadingMore ?? this.isLoadingMore,
         loadMoreFailed: loadMoreFailed ?? this.loadMoreFailed,
       );
@@ -86,7 +108,9 @@ final discoveryFeedProvider =
 /// - [DiscoverTab.forYou]: every visible post.
 /// - [DiscoverTab.favourites]: posts by, or tagging, the client's favourites.
 /// - [DiscoverTab.nearby]: other people's posts near the provider's business
-///   address, falling back to recent posts everywhere (see [NearbyFallback]).
+///   address, then, once those run out, every other post (see
+///   [DiscoveryFeedState.beyondNearbyFrom]). Without an address it shows
+///   recent posts everywhere (see [NearbyFallback]).
 class DiscoveryFeedController extends AsyncNotifier<DiscoveryFeedState> {
   DiscoveryFeedController(this.tab);
 
@@ -95,7 +119,8 @@ class DiscoveryFeedController extends AsyncNotifier<DiscoveryFeedState> {
   /// Favourites tab: the providers whose posts are shown.
   List<String>? _providerIds;
 
-  /// Nearby tab: whether pages come from the nearby query.
+  /// Nearby tab: whether the provider has an address, so pages come from the
+  /// nearby query and then the beyond-nearby one.
   bool _nearby = false;
 
   /// Nearby tab: the viewer, whose own posts are left out.
@@ -123,23 +148,29 @@ class DiscoveryFeedController extends AsyncNotifier<DiscoveryFeedState> {
       case DiscoverTab.nearby:
         _excludeAuthorId = userId;
         final hasLocation = ref.watch(userProfileProvider.select((p) => p.value?.profile.coordinates != null));
-        if (hasLocation) {
-          _nearby = true;
-          final entries = await _fetchPage(before: null);
-          if (entries.isNotEmpty) {
-            return DiscoveryFeedState(entries: entries, hasMore: entries.length >= _pageSize);
-          }
-          _nearby = false;
+        if (!hasLocation) {
+          final entries = await _fetchPage(_FeedSource.all, before: null);
+          return DiscoveryFeedState(
+            entries: entries,
+            hasMore: entries.length >= _pageSize,
+            nearbyFallback: NearbyFallback.noLocation,
+          );
         }
-        final entries = await _fetchPage(before: null);
-        return DiscoveryFeedState(
-          entries: entries,
-          hasMore: entries.length >= _pageSize,
-          nearbyFallback: hasLocation ? NearbyFallback.nothingNearby : NearbyFallback.noLocation,
+        _nearby = true;
+        final nearby = await _fetchPage(_FeedSource.nearby, before: null);
+        final firstPage = DiscoveryFeedState(entries: nearby, hasMore: true);
+        if (nearby.length >= _pageSize) return firstPage;
+        // The nearby posts ran out on the first page: carry straight on with
+        // the rest so the page isn't left short.
+        return _continueBeyondNearby(
+          firstPage,
+          fallback: nearby.isEmpty ? NearbyFallback.nothingNearby : null,
+          // Nothing to show without them, so let the error state take over.
+          rethrowWhenEmpty: true,
         );
     }
 
-    final entries = await _fetchPage(before: null);
+    final entries = await _fetchPage(_FeedSource.all, before: null);
     return DiscoveryFeedState(entries: entries, hasMore: entries.length >= _pageSize);
   }
 
@@ -163,36 +194,90 @@ class DiscoveryFeedController extends AsyncNotifier<DiscoveryFeedState> {
 
   Future<void> _loadNext(DiscoveryFeedState current) async {
     state = AsyncData(current.copyWith(isLoadingMore: true, loadMoreFailed: false));
+    final source = _sourceFor(current);
     try {
-      final page = await _fetchPage(before: current.entries.isEmpty ? null : current.entries.last.post.createdAt);
+      final page = await _fetchPage(source, before: _cursorFor(current, source));
       if (!ref.mounted) return;
-      final seen = {for (final entry in current.entries) entry.post.id};
-      final fresh = page.where((entry) => seen.add(entry.post.id)).toList();
-      state = AsyncData(current.copyWith(
-        entries: [...current.entries, ...fresh],
+      var next = current.copyWith(
+        entries: _appendUnseen(current.entries, page),
         hasMore: page.length >= _pageSize,
         isLoadingMore: false,
-      ));
+      );
+      if (source == _FeedSource.nearby && page.length < _pageSize) {
+        next = await _continueBeyondNearby(next.copyWith(hasMore: true));
+        if (!ref.mounted) return;
+      }
+      state = AsyncData(next);
     } catch (_) {
       // Already reported by the repository.
       if (ref.mounted) state = AsyncData(current.copyWith(isLoadingMore: false, loadMoreFailed: true));
     }
   }
 
-  Future<List<FeedEntry>> _fetchPage({required DateTime? before}) async {
+  /// Marks where the posts from beyond the nearby radius start in [current]
+  /// and appends their first page. If that page fails the nearby posts stay
+  /// on screen with an inline retry (see [retryLoadMore]), unless there are
+  /// none and [rethrowWhenEmpty] is set.
+  Future<DiscoveryFeedState> _continueBeyondNearby(
+    DiscoveryFeedState current, {
+    NearbyFallback? fallback,
+    bool rethrowWhenEmpty = false,
+  }) async {
+    final marked = DiscoveryFeedState(
+      entries: current.entries,
+      hasMore: true,
+      nearbyFallback: fallback ?? current.nearbyFallback,
+      beyondNearbyFrom: current.entries.length,
+    );
+    try {
+      final page = await _fetchPage(_FeedSource.beyondNearby, before: null);
+      return marked.copyWith(entries: _appendUnseen(marked.entries, page), hasMore: page.length >= _pageSize);
+    } catch (_) {
+      // Already reported by the repository.
+      if (rethrowWhenEmpty && marked.entries.isEmpty) rethrow;
+      return marked.copyWith(loadMoreFailed: true);
+    }
+  }
+
+  _FeedSource _sourceFor(DiscoveryFeedState current) {
+    if (!_nearby) return _FeedSource.all;
+    return current.beyondNearbyFrom == null ? _FeedSource.nearby : _FeedSource.beyondNearby;
+  }
+
+  /// The oldest post already shown from [source]: each source is paged
+  /// independently, so the first beyond-nearby page starts from the top.
+  DateTime? _cursorFor(DiscoveryFeedState current, _FeedSource source) {
+    final from = source == _FeedSource.beyondNearby ? current.beyondNearbyFrom! : 0;
+    return current.entries.length > from ? current.entries.last.post.createdAt : null;
+  }
+
+  /// [entries] followed by the posts in [page] not already among them (a post
+  /// can reappear if it's edited, or its author moves, between pages).
+  static List<FeedEntry> _appendUnseen(List<FeedEntry> entries, List<FeedEntry> page) {
+    final seen = {for (final entry in entries) entry.post.id};
+    return [...entries, ...page.where((entry) => seen.add(entry.post.id))];
+  }
+
+  Future<List<FeedEntry>> _fetchPage(_FeedSource source, {required DateTime? before}) async {
     final repository = ref.read(postRepositoryProvider);
-    final posts = _nearby
-        ? await repository.getNearbyPage(
-            limit: _pageSize,
-            radiusMetres: AppConfig.nearbyRadiusMetres,
-            before: before,
-          )
-        : await repository.getFeedPage(
-            limit: _pageSize,
-            before: before,
-            providerIds: _providerIds,
-            excludeAuthorId: _excludeAuthorId,
-          );
+    final posts = switch (source) {
+      _FeedSource.nearby => await repository.getNearbyPage(
+          limit: _pageSize,
+          radiusMetres: AppConfig.nearbyRadiusMetres,
+          before: before,
+        ),
+      _FeedSource.beyondNearby => await repository.getBeyondNearbyPage(
+          limit: _pageSize,
+          radiusMetres: AppConfig.nearbyRadiusMetres,
+          before: before,
+        ),
+      _FeedSource.all => await repository.getFeedPage(
+          limit: _pageSize,
+          before: before,
+          providerIds: _providerIds,
+          excludeAuthorId: _excludeAuthorId,
+        ),
+    };
 
     Map<String, ProfileModel> authors;
     try {
