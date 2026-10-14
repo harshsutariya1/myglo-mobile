@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/routing/app_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_update_banner.dart';
 import '../../../../core/widgets/skeleton/skeletons.dart';
 import '../../../shared/authentication/controllers/user_profile_provider.dart';
 import '../../../shared/notifications/views/notification_bell.dart';
@@ -30,6 +31,7 @@ class HomeScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const AppUpdateBanner(margin: EdgeInsets.only(bottom: 16)),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [

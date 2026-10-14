@@ -64,15 +64,21 @@ class AppLogger {
     _logger.w('$prefix$message', error: error, stackTrace: stackTrace);
   }
 
-  /// Error messages with stack traces (reported to Sentry if in release/profile)
+  /// Error messages with stack traces, reported to Sentry when [error] is set.
+  ///
+  /// Pass `reportToSentry: false` where Sentry already captured the error
+  /// itself (the global Flutter / platform error handlers), to avoid
+  /// duplicate issues.
   static void e(
     dynamic message, {
     String? tag,
     Object? error,
     StackTrace? stackTrace,
+    bool reportToSentry = true,
   }) {
     final prefix = tag != null ? '[$tag] ' : '';
     _traceLogger.e('$prefix$message', error: error, stackTrace: stackTrace);
+    if (!reportToSentry) return;
 
     // Losing the connection is expected on mobile and is surfaced to the user by
     // the offline sheet, so keep it as context rather than paging Sentry with it.
@@ -109,9 +115,11 @@ class AppLogger {
     String? tag,
     Object? error,
     StackTrace? stackTrace,
+    bool reportToSentry = true,
   }) {
     final prefix = tag != null ? '[$tag] ' : '';
     _traceLogger.f('$prefix$message', error: error, stackTrace: stackTrace);
+    if (!reportToSentry) return;
 
     if (error != null) {
       Sentry.captureException(

@@ -1,9 +1,11 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../firebase_options.dart';
+import '../config/app_config.dart';
 import '../network/connectivity_aware_client.dart';
 import 'app_logger.dart';
 
@@ -52,6 +54,7 @@ Future<void> initializeApp({required void Function(SharedPreferences preferences
     );
     supabaseWatch.stop();
     AppLogger.i('✅ Supabase initialized in ${supabaseWatch.elapsedMilliseconds}ms', tag: 'Init');
+    _bindSentryUser(Supabase.instance.client);
 
     final preferences = await SharedPreferences.getInstance();
 
@@ -61,19 +64,49 @@ Future<void> initializeApp({required void Function(SharedPreferences preferences
     appRunner(preferences);
   }
 
-  // Map out Sentry securely underneath framework
   if (sentryDsn != null && sentryDsn.isNotEmpty) {
     AppLogger.d('Initializing Sentry error monitoring...', tag: 'Init');
     await SentryFlutter.init((options) {
-      options.enableFramesTracking = true;
-      options.replay.sessionSampleRate = 1.0;
-      options.replay.onErrorSampleRate = 1.0;
       options.dsn = sentryDsn;
-      options.tracesSampleRate = 1.0;
+      options.environment = _sentryEnvironment();
+      // Users are identified by their opaque Supabase id only (see
+      // _bindSentryUser); no IP addresses, emails or request bodies.
+      options.sendDefaultPii = false;
+      options.enableFramesTracking = true;
+      // Debug runs keep everything; release builds sample to protect quota.
+      options.tracesSampleRate = kReleaseMode ? AppConfig.sentryTracesSampleRate : 1.0;
+      options.replay.sessionSampleRate = kReleaseMode ? AppConfig.sentryReplaySessionSampleRate : 0.0;
+      options.replay.onErrorSampleRate = AppConfig.sentryReplayOnErrorSampleRate;
+      options.privacy.maskAllText = true;
+      options.privacy.maskAllImages = true;
     }, appRunner: initRest);
     AppLogger.i('✅ Sentry initialized successfully', tag: 'Init');
   } else {
     AppLogger.w('SENTRY_DSN not found. Running without Sentry.', tag: 'Init');
     await initRest();
   }
+}
+
+/// `SENTRY_ENVIRONMENT` from .env (e.g. `staging`), otherwise derived from the
+/// build mode so debug runs never mix with production issues.
+String _sentryEnvironment() {
+  final configured = dotenv.env['SENTRY_ENVIRONMENT']?.trim();
+  if (configured != null && configured.isNotEmpty) return configured;
+  if (kReleaseMode) return 'production';
+  if (kProfileMode) return 'profile';
+  return 'development';
+}
+
+/// Keeps the Sentry user in step with the signed-in Supabase user, by id only.
+void _bindSentryUser(SupabaseClient client) {
+  void apply(User? user) {
+    Sentry.configureScope((scope) => scope.setUser(user == null ? null : SentryUser(id: user.id)));
+  }
+
+  apply(client.auth.currentUser);
+  client.auth.onAuthStateChange.listen(
+    (data) => apply(data.session?.user),
+    onError: (Object e, StackTrace st) =>
+        AppLogger.w('Auth state stream error while tagging Sentry user', tag: 'Init', error: e, stackTrace: st),
+  );
 }

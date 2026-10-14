@@ -127,8 +127,13 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
 
+# Debug-symbol upload (`dart run sentry_dart_plugin`), run by
+# scripts/shorebird_build.sh after every release and patch. The auth token comes
+# from the SENTRY_AUTH_TOKEN environment variable (or an untracked
+# sentry.properties), never this file.
 sentry:
   upload_debug_symbols: true
-  upload_source_maps: true
+  upload_source_maps: false
+  upload_sources: false
   project: myglo-app
   org: nexotec-technologies

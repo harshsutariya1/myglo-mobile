@@ -19,6 +19,16 @@ val mapsApiKey: String = run {
     properties.getProperty("MAPS_API_KEY") ?: System.getenv("MAPS_API_KEY") ?: ""
 }
 
+// Upload-key signing for store builds: android/key.properties (untracked; see
+// docs/releases_and_updates.md) with storeFile, storePassword, keyAlias and
+// keyPassword. Never commit the keystore or its passwords.
+val keystoreProperties = Properties().apply {
+    val file = rootProject.file("key.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+val hasUploadKey = listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
+    .all { !keystoreProperties.getProperty(it).isNullOrBlank() }
+
 android {
     namespace = "app.myglo.myglo"
     compileSdk = flutter.compileSdkVersion
@@ -45,12 +55,34 @@ android {
         manifestPlaceholders["mapsApiKey"] = mapsApiKey
     }
 
+    signingConfigs {
+        if (hasUploadKey) {
+            create("release") {
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Without key.properties, local release runs (`flutter run --release`)
+            // fall back to the debug key; store bundles are refused below.
+            signingConfig = signingConfigs.getByName(if (hasUploadKey) "release" else "debug")
         }
+    }
+}
+
+// A Play Store bundle (what `shorebird release android` builds) must never be
+// debug-signed: fail early instead of registering an unusable release.
+gradle.taskGraph.whenReady {
+    if (!hasUploadKey && allTasks.any { it.name == "bundleRelease" }) {
+        throw GradleException(
+            "Release bundle needs the upload key: create android/key.properties " +
+                "(see docs/releases_and_updates.md).",
+        )
     }
 }
 

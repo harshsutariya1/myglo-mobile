@@ -1,6 +1,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 import '../../features/shared/authentication/models/auth_repository.dart';
 import '../../features/shared/authentication/views/screens/email_auth_screen.dart';
@@ -101,7 +102,8 @@ enum AppRoute {
 final routerProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
     initialLocation: AppRoute.splash.path,
-    observers: [AppRouteObserver()],
+    // Sentry's observer adds navigation breadcrumbs and screen-load traces.
+    observers: [AppRouteObserver(), SentryNavigatorObserver()],
     redirect: (context, state) => appRouterRedirect(context, state, ref),
     routes: [
       GoRoute(

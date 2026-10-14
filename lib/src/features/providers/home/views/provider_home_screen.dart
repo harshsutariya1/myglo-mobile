@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/routing/app_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/widgets/app_update_banner.dart';
 import '../../../../core/widgets/snackbar_utils.dart';
 import '../../../shared/bookings/controllers/booking_controllers.dart';
 import '../../../shared/bookings/models/booking.dart';
@@ -73,6 +74,12 @@ class _ProviderHomeScreenState extends ConsumerState<ProviderHomeScreen> {
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
+              // Takes no space unless an update is available, so the header
+              // keeps its usual spacing.
+              const SliverPadding(
+                padding: EdgeInsets.symmetric(horizontal: 24),
+                sliver: SliverToBoxAdapter(child: AppUpdateBanner(margin: EdgeInsets.only(top: 16))),
+              ),
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(24, 16, 12, 0),
                 sliver: SliverToBoxAdapter(

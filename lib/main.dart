@@ -11,12 +11,13 @@ import 'src/core/utils/app_logger.dart';
 import 'src/core/utils/app_provider_observer.dart';
 import 'src/core/widgets/init_error_app.dart';
 import 'src/core/widgets/offline_overlay.dart';
-import 'src/core/widgets/shorebird_update_listener.dart';
+import 'src/core/widgets/shorebird_update_watcher.dart';
 import 'src/features/shared/notifications/push/push_notification_host.dart';
 import 'src/features/shared/notifications/views/in_app_notification_host.dart';
 
 void main() async {
-  // Global Flutter framework error handling
+  // Global Flutter framework error handling. Sentry's own integration captures
+  // these and then calls this handler, so only log here.
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
     AppLogger.e(
@@ -24,41 +25,45 @@ void main() async {
       tag: 'FlutterError',
       error: details.exception,
       stackTrace: details.stack,
+      reportToSentry: false,
     );
-    Sentry.captureException(details.exception, stackTrace: details.stack);
   };
 
-  // Global platform / isolate error handling
+  // Global platform / isolate error handling. Sentry wraps this handler and
+  // captures the error itself.
   PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
     AppLogger.f(
       'Uncaught platform error',
       tag: 'PlatformDispatcher',
       error: error,
       stackTrace: stack,
+      reportToSentry: false,
     );
-    Sentry.captureException(error, stackTrace: stack);
     return true;
   };
 
   try {
     await initializeApp(
       appRunner: (preferences) => runApp(
-        ProviderScope(
-          observers: const [AppProviderObserver()],
-          overrides: [sharedPreferencesProvider.overrideWithValue(preferences)],
-          child: const MyApp(),
+        // Enables Sentry session replay masking and user-interaction breadcrumbs.
+        SentryWidget(
+          child: ProviderScope(
+            observers: const [AppProviderObserver()],
+            overrides: [sharedPreferencesProvider.overrideWithValue(preferences)],
+            child: const MyApp(),
+          ),
         ),
       ),
     );
     AppLogger.i('🚀 App started successfully.', tag: 'Main');
   } catch (error, stackTrace) {
+    // Reported to Sentry by the logger.
     AppLogger.f(
       'Fatal error during app initialization',
       tag: 'Main',
       error: error,
       stackTrace: stackTrace,
     );
-    await Sentry.captureException(error, stackTrace: stackTrace);
 
     // If initialization fails, show an error screen instead of a blank screen
     runApp(InitErrorApp(error: error));
@@ -72,7 +77,7 @@ class MyApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
 
-    return ShorebirdUpdateListener(
+    return ShorebirdUpdateWatcher(
       child: MaterialApp.router(
         title: 'MyGlo',
         theme: AppTheme.lightTheme,

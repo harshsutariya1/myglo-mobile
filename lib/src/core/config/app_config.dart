@@ -83,4 +83,27 @@ class AppConfig {
   /// How long a post's like/comment counts stay cached after it leaves the
   /// screen, so going back to a feed shows the counts just seen.
   static const Duration postEngagementCacheFor = Duration(minutes: 10);
+
+  /// Shorebird track the app takes patches from. Builds for internal testers
+  /// can pass `--dart-define=SHOREBIRD_TRACK=staging` (see
+  /// docs/releases_and_updates.md).
+  static const String shorebirdTrack = String.fromEnvironment('SHOREBIRD_TRACK', defaultValue: 'stable');
+
+  /// How often a running app looks for a new patch while it is in the
+  /// foreground. It also looks on launch and when brought back.
+  static const Duration appUpdateCheckInterval = Duration(minutes: 30);
+
+  /// Least time between two automatic patch checks, so quickly switching apps
+  /// doesn't hit the update server each time.
+  static const Duration appUpdateMinCheckGap = Duration(minutes: 5);
+
+  /// Share of production sessions sent to Sentry as performance traces.
+  static const double sentryTracesSampleRate = 0.2;
+
+  /// Share of production sessions recorded by Sentry Session Replay. Replays
+  /// mask all text and images.
+  static const double sentryReplaySessionSampleRate = 0.05;
+
+  /// Share of sessions with an error whose replay is kept.
+  static const double sentryReplayOnErrorSampleRate = 1.0;
 }

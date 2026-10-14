@@ -4,13 +4,13 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:restart_app/restart_app.dart';
 
 import '../../../../../core/config/app_config.dart';
 import '../../../../../core/routing/app_router.dart';
 import '../../../../../core/services/shorebird_update_service.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/utils/app_logger.dart';
+import '../../../../../core/widgets/app_update_banner.dart';
 import '../../../../../core/widgets/skeleton/skeletons.dart';
 import '../../../../../core/widgets/snackbar_utils.dart';
 import '../../../../customers/provider_profile/views/widgets/section_states.dart';
@@ -563,64 +563,67 @@ class _ContactVisibilityTileState extends ConsumerState<_ContactVisibilityTile> 
   }
 }
 
-/// Over-the-air patch status and manual update check.
+/// Over-the-air patch status and manual update check. Runs the same flow as
+/// the home screen's [AppUpdateBanner].
 class _AppUpdateTile extends ConsumerWidget {
   const _AppUpdateTile();
 
-  Future<void> _check(BuildContext context, WidgetRef ref) async {
+  Future<void> _onTap(BuildContext context, WidgetRef ref) async {
     final service = ref.read(shorebirdUpdateServiceProvider.notifier);
-    final bool isAvailable;
-    try {
-      isAvailable = await service.checkForUpdate();
-    } catch (e, st) {
-      AppLogger.e('Update check failed', tag: 'Settings', error: e, stackTrace: st);
-      if (context.mounted) context.showAppSnackBar("Couldn't check for updates. Please try again.", isError: true);
+    final phase = ref.read(shorebirdUpdateServiceProvider).phase;
+    if (phase == ShorebirdUpdatePhase.readyToRestart) {
+      await restartIntoUpdate(context, ref);
       return;
     }
-    if (!context.mounted) return;
-    if (!isAvailable) {
+    if (!service.isAvailable) {
       context.showAppSnackBar("You're on the latest version");
       return;
     }
-    final download = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Update available'),
-        content: const Text('A new update is ready. Download it now?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Later')),
-          FilledButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Download')),
-        ],
-      ),
-    );
-    if (download != true) return;
-    try {
+    // A check downloads any patch it finds; after a failed download, retry it.
+    final ShorebirdUpdateState result;
+    if (phase == ShorebirdUpdatePhase.available) {
       await service.downloadUpdate();
-      if (context.mounted) context.showAppSnackBar('Update downloaded. Tap "Restart to update" to finish.');
-    } catch (e, st) {
-      AppLogger.e('Update download failed', tag: 'Settings', error: e, stackTrace: st);
-      if (context.mounted) context.showAppSnackBar("Couldn't download the update. Please try again.", isError: true);
+      result = ref.read(shorebirdUpdateServiceProvider);
+    } else {
+      result = await service.checkForUpdate(force: true);
+    }
+    if (!context.mounted) return;
+    switch (result.phase) {
+      case ShorebirdUpdatePhase.readyToRestart:
+        context.showAppSnackBar('Update downloaded. Tap "Restart to update" to finish.');
+      case ShorebirdUpdatePhase.available:
+        context.showAppSnackBar("Couldn't download the update. Please try again.", isError: true);
+      case ShorebirdUpdatePhase.idle || ShorebirdUpdatePhase.downloading || ShorebirdUpdatePhase.restarting:
+        context.showAppSnackBar("You're on the latest version");
     }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(shorebirdUpdateServiceProvider);
-    final busy = state.isChecking || state.isDownloading;
-    final ready = state.isUpdateReadyToInstall;
-    final patch = state.currentPatchVersion;
+    final patch = state.currentPatch;
 
     return SettingsTile(
       icon: Icons.system_update_outlined,
-      title: ready ? 'Restart to update' : 'Check for updates',
-      subtitle: busy
-          ? (state.isDownloading ? 'Downloading…' : 'Checking…')
-          : patch == null
-              ? 'No patches installed'
-              : 'Current patch: $patch',
-      onTap: busy ? null : (ready ? Restart.restartApp : () => _check(context, ref)),
-      badge: ready ? const StatusPill(label: 'Ready', color: AppTheme.success) : null,
-      trailing: busy
+      title: switch (state.phase) {
+        ShorebirdUpdatePhase.readyToRestart || ShorebirdUpdatePhase.restarting => 'Restart to update',
+        ShorebirdUpdatePhase.available => 'Download update',
+        ShorebirdUpdatePhase.downloading => 'Downloading update',
+        ShorebirdUpdatePhase.idle => 'Check for updates',
+      },
+      subtitle: switch (state.phase) {
+        ShorebirdUpdatePhase.downloading => 'Downloading…',
+        ShorebirdUpdatePhase.restarting => 'Restarting…',
+        _ when state.isChecking => 'Checking…',
+        _ => patch == null ? 'No patches installed' : 'Current patch: $patch',
+      },
+      onTap: state.isBusy ? null : () => _onTap(context, ref),
+      badge: switch (state.phase) {
+        ShorebirdUpdatePhase.readyToRestart => const StatusPill(label: 'Ready', color: AppTheme.success),
+        ShorebirdUpdatePhase.available => const StatusPill(label: 'New', color: AppTheme.warning),
+        _ => null,
+      },
+      trailing: state.isBusy
           ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
           : null,
     );
@@ -673,7 +676,7 @@ class _FooterState extends ConsumerState<_Footer> {
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
     final muted = scheme.onSurface.withValues(alpha: 0.45);
-    final patch = ref.watch(shorebirdUpdateServiceProvider).currentPatchVersion;
+    final patch = ref.watch(shorebirdUpdateServiceProvider).currentPatch;
     final linkStyle = TextButton.styleFrom(
       foregroundColor: muted,
       textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),

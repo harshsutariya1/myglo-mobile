@@ -10,5 +10,9 @@ app_id: 9adc5a17-1d6c-4aa2-b517-eb99a85131ef
 # auto_update controls if Shorebird should automatically update in the background on launch.
 # If auto_update: false, you will need to use package:shorebird_code_push to trigger updates.
 # https://pub.dev/packages/shorebird_code_push
-# Uncomment the following line to disable automatic updates.
-# auto_update: false
+# Shorebird's launch-only auto update is off. The app checks itself on launch,
+# on resume and every 30 min, downloads patches silently, then shows a
+# "Restart" banner on the home screens
+# (lib/src/core/services/shorebird_update_service.dart). A downloaded patch is
+# also applied on the next cold start.
+auto_update: false
