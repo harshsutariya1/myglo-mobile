@@ -183,6 +183,35 @@ class BookingRepository {
     }
   }
 
+  /// A page of [providerId]'s bookings with one client, whatever their
+  /// outcome, latest appointment first. Pass the last booking already shown
+  /// as [after] for the next page.
+  Future<List<Booking>> listWithClient({
+    required String providerId,
+    required String clientId,
+    Booking? after,
+    int limit = 20,
+  }) async {
+    final sw = Stopwatch()..start();
+    try {
+      var query = _client.from(_view).select().eq('provider_id', providerId).eq('client_id', clientId);
+      if (after != null) {
+        // (starts_at, id) keeps the order total when start times repeat.
+        final startsAt = after.startsAt.toUtc().toIso8601String();
+        query = query.or('starts_at.lt."$startsAt",and(starts_at.eq."$startsAt",id.lt.${after.id})');
+      }
+      final List<dynamic> rows =
+          await query.order('starts_at', ascending: false).order('id', ascending: false).limit(limit);
+      sw.stop();
+      final bookings = rows.map((row) => Booking.fromJson(Map<String, dynamic>.from(row as Map))).toList();
+      AppLogger.api('$_view.select(client)', count: bookings.length, duration: sw.elapsed);
+      return bookings;
+    } catch (e, st) {
+      AppLogger.e("Failed to load a client's bookings", tag: _tag, error: e, stackTrace: st);
+      rethrow;
+    }
+  }
+
   /// [providerId]'s active bookings overlapping [start, end), e.g. to warn
   /// before blocking that time off.
   Future<List<Booking>> activeBookingsBetween({

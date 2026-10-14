@@ -80,6 +80,15 @@ class AppConfig {
   /// Reviews previewed on a profile or service before "See all".
   static const int reviewsPreviewCount = 3;
 
+  /// Provider contacts (clients) fetched per page. The server caps it at 100.
+  static const int contactsPageSize = 30;
+
+  /// One client's bookings fetched per page in their contact sheet.
+  static const int clientBookingsPageSize = 20;
+
+  /// Pause after the last keystroke before searching contacts.
+  static const Duration contactsSearchDebounce = Duration(milliseconds: 300);
+
   /// How long a post's like/comment counts stay cached after it leaves the
   /// screen, so going back to a feed shows the counts just seen.
   static const Duration postEngagementCacheFor = Duration(minutes: 10);

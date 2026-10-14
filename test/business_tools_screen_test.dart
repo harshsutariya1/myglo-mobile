@@ -10,8 +10,10 @@ import 'package:myglo/src/core/theme/app_theme.dart';
 import 'package:myglo/src/core/widgets/skeleton/skeletons.dart';
 import 'package:myglo/src/core/widgets/soon_badge.dart';
 import 'package:myglo/src/features/providers/business_tools/controllers/business_stats_controller.dart';
+import 'package:myglo/src/features/providers/business_tools/controllers/contacts_controllers.dart';
 import 'package:myglo/src/features/providers/business_tools/models/business_stats.dart';
 import 'package:myglo/src/features/providers/business_tools/models/business_stats_repository.dart';
+import 'package:myglo/src/features/providers/business_tools/models/contacts_repository.dart';
 import 'package:myglo/src/features/providers/business_tools/views/business_tools_screen.dart';
 import 'package:myglo/src/features/shared/authentication/controllers/user_profile_provider.dart';
 import 'package:myglo/src/features/shared/authentication/models/profile_model.dart';
@@ -83,6 +85,19 @@ class _FakeRepository implements BusinessStatsRepository {
   }
 }
 
+/// Serves a fixed client count.
+class _FakeContacts implements ContactsRepository {
+  _FakeContacts(this.total);
+
+  final int total;
+
+  @override
+  Future<int> count() async => total;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(invocation.memberName.toString());
+}
+
 final _october = BusinessStats.fromJson(const {
   'period_start': '2026-10-01',
   'time_zone': 'Australia/Brisbane',
@@ -101,6 +116,7 @@ List<Override> _overrides(BusinessStatsRepository repository, {Stream<int>? book
       notificationsProvider.overrideWith(_EmptyInbox.new),
       bookingChangesProvider.overrideWith((ref) => bookingChanges ?? const Stream.empty()),
       businessStatsRepositoryProvider.overrideWithValue(repository),
+      contactsRepositoryProvider.overrideWithValue(_FakeContacts(23)),
     ];
 
 /// Hosts the screen in a router with the routes it links to.
@@ -122,6 +138,11 @@ Future<GoRouter> _pump(WidgetTester tester, List<Override> overrides, {bool sett
         path: AppRoute.workingHours.path,
         name: AppRoute.workingHours.name,
         builder: (context, state) => const Text('Working hours'),
+      ),
+      GoRoute(
+        path: AppRoute.providerContacts.path,
+        name: AppRoute.providerContacts.name,
+        builder: (context, state) => const Text('Contacts screen'),
       ),
     ],
   );
@@ -220,20 +241,24 @@ void main() {
 
     testWidgets('shows skeletons while the numbers load', (tester) async {
       final pending = Completer<BusinessStats>();
+      final pendingCount = Completer<int>();
       await _pump(
         tester,
         [
           ..._overrides(_FakeRepository(_october)),
           businessStatsProvider.overrideWith((ref) => pending.future),
+          providerContactCountProvider.overrideWith((ref) => pendingCount.future),
         ],
         settle: false,
       );
 
-      expect(find.byType(SkeletonText), findsNWidgets(2));
+      // Two for this month's numbers, one for the client count.
+      expect(find.byType(SkeletonText), findsNWidgets(3));
       expect(find.text('Cash collected'), findsOneWidget);
       expect(find.text('October 2026'), findsNothing);
 
       pending.complete(_october);
+      pendingCount.complete(23);
       await tester.pumpAndSettle();
       expect(find.byType(SkeletonText), findsNothing);
       expect(find.text(r'$1,240.50'), findsOneWidget);
@@ -253,7 +278,7 @@ void main() {
       expect(find.text(r'$1,240.50'), findsOneWidget);
     });
 
-    testWidgets('rating and review count are live, and profile views are gone', (tester) async {
+    testWidgets('rating and review count share one live card, and profile views are gone', (tester) async {
       await _pump(tester, [
         ..._overrides(_FakeRepository(_october)),
         providerReviewSummaryProvider('prov-1').overrideWith(
@@ -265,9 +290,13 @@ void main() {
       expect(find.text('Profile views'), findsNothing);
       expect(find.byType(SoonBadge), findsOneWidget); // Only Financials.
       expect(find.text('4.8'), findsOneWidget);
-      expect(find.text('12'), findsOneWidget);
+      expect(find.text('(12)'), findsOneWidget);
+      // The two separate cards are gone.
+      expect(find.text('Rating'), findsNothing);
+      expect(find.text('Reviews'), findsNothing);
+      expect(find.bySemanticsLabel('Rating 4.8 from 12 reviews'), findsOneWidget);
 
-      await _tapVisible(tester, find.text('Rating'));
+      await _tapVisible(tester, find.text('Rating & reviews'));
       expect(find.text('Your reviews'), findsOneWidget);
       expect(find.text('Mia T.'), findsOneWidget);
       // Providers can answer from here.
@@ -281,7 +310,36 @@ void main() {
       ]);
 
       expect(find.text('New'), findsOneWidget);
-      expect(find.text('Reviews'), findsOneWidget);
+      expect(find.text('Rating & reviews'), findsOneWidget);
+    });
+
+    testWidgets('the contacts card counts clients and opens the contacts list', (tester) async {
+      await _pump(tester, _overrides(_FakeRepository(_october)));
+
+      expect(find.text('Contacts'), findsOneWidget);
+      expect(find.text('23'), findsOneWidget);
+      expect(find.bySemanticsLabel('Contacts: 23 clients'), findsOneWidget);
+
+      await _tapVisible(tester, find.text('Contacts'));
+      expect(find.text('Contacts screen'), findsOneWidget);
+    });
+
+    testWidgets('the client count refetches when a booking changes', (tester) async {
+      final changes = StreamController<int>();
+      addTearDown(changes.close);
+      var calls = 0;
+      await _pump(tester, [
+        ..._overrides(_FakeRepository(_october), bookingChanges: changes.stream),
+        providerContactCountProvider.overrideWith((ref) async {
+          ref.watch(bookingChangesProvider);
+          return ++calls;
+        }),
+      ]);
+      expect(find.text('1'), findsOneWidget);
+
+      changes.add(1);
+      await tester.pumpAndSettle();
+      expect(find.text('2'), findsOneWidget);
     });
   });
 

@@ -18,6 +18,7 @@ import '../../features/customers/home/views/home_screen.dart';
 import '../../features/providers/home/views/provider_home_screen.dart';
 import '../../features/customers/bookings/views/bookings_screen.dart';
 import '../../features/providers/business_tools/views/business_tools_screen.dart';
+import '../../features/providers/business_tools/views/contacts_screen.dart';
 import '../../features/customers/customer_profile/views/customer_profile_screen.dart';
 import '../../features/providers/provider_profiles/views/screens/profile_screen.dart';
 import '../../features/providers/provider_profiles/views/screens/settings_screen.dart';
@@ -93,7 +94,9 @@ enum AppRoute {
   // Provider business profile editors, full-screen for the same reason.
   editProviderProfile(path: '/business/profile'),
   coverPhotos(path: '/business/cover-photos'),
-  businessLocation(path: '/business/location');
+  businessLocation(path: '/business/location'),
+  // The provider's clients, full-screen over Business Tools.
+  providerContacts(path: '/business/contacts');
 
   final String path;
   const AppRoute({required this.path});
@@ -264,6 +267,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoute.businessLocation.path,
         name: AppRoute.businessLocation.name,
         builder: (context, state) => const BusinessLocationScreen(),
+      ),
+      GoRoute(
+        path: AppRoute.providerContacts.path,
+        name: AppRoute.providerContacts.name,
+        builder: (context, state) => const ContactsScreen(),
       ),
       GoRoute(
         path: AppRoute.providerSearch.path,

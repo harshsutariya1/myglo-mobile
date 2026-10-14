@@ -15,10 +15,12 @@ import '../../../shared/notifications/views/notification_bell.dart';
 import '../../../shared/reviews/controllers/reviews_controllers.dart';
 import '../../../shared/reviews/views/reviews_screen.dart';
 import '../controllers/business_stats_controller.dart';
+import '../controllers/contacts_controllers.dart';
 
 /// The provider's business overview: this month's real numbers (cash
-/// collected, completed bookings), their rating and reviews, and shortcuts to
-/// the tools that manage the business.
+/// collected, completed bookings), their rating and reviews, their contacts
+/// (every client who has booked) and shortcuts to the tools that manage the
+/// business.
 class BusinessToolsScreen extends ConsumerWidget {
   const BusinessToolsScreen({super.key});
 
@@ -28,6 +30,7 @@ class BusinessToolsScreen extends ConsumerWidget {
     ref.invalidate(businessStatsProvider);
     final providerId = ref.read(userProfileProvider).value?.rawUser.id;
     if (providerId != null) ref.invalidate(providerReviewSummaryProvider(providerId));
+    ref.invalidate(providerContactCountProvider);
     try {
       await ref.read(businessStatsProvider.future);
     } catch (_) {
@@ -90,7 +93,7 @@ class BusinessToolsScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               const _MonthStats(),
               const SizedBox(height: 16),
-              const _ReviewStats(),
+              const _ClientStats(),
               const SizedBox(height: 32),
               Text(
                 'Quick Actions',
@@ -133,12 +136,15 @@ class BusinessToolsScreen extends ConsumerWidget {
   }
 }
 
-/// The provider's average rating and review count (all time). Both open
-/// their reviews, where they can reply.
-class _ReviewStats extends ConsumerWidget {
-  const _ReviewStats();
+/// The provider's rating and review count (all time) in one card, which
+/// opens their reviews (where they can reply), beside their client count,
+/// which opens their contacts.
+class _ClientStats extends ConsumerWidget {
+  const _ClientStats();
 
-  void _open(BuildContext context, WidgetRef ref) {
+  static const _placeholder = Shimmer(child: SkeletonText(style: BusinessToolsScreen._valueStyle, widthFactor: 0.5));
+
+  void _openReviews(BuildContext context, WidgetRef ref) {
     final profile = ref.read(userProfileProvider).value;
     if (profile == null) return;
     Navigator.of(context, rootNavigator: true).push(
@@ -157,38 +163,101 @@ class _ReviewStats extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final providerId = ref.watch(userProfileProvider.select((p) => p.value?.rawUser.id));
     if (providerId == null) return const SizedBox.shrink();
-    final async = ref.watch(providerReviewSummaryProvider(providerId));
-    final summary = async.value;
+    final reviews = ref.watch(providerReviewSummaryProvider(providerId));
+    final contacts = ref.watch(providerContactCountProvider);
 
     final Widget rating;
-    final Widget count;
-    if (summary != null) {
-      rating = _StatValue(summary.isEmpty ? 'New' : Formatters.rating(summary.average!));
-      count = _StatValue(Formatters.compactCount(summary.count));
-    } else if (async.hasError) {
+    final String reviewsLabel;
+    if (reviews.value case final summary?) {
+      rating = summary.isEmpty
+          ? const _StatValue('New')
+          : _RatingValue(average: summary.average!, count: summary.count);
+      reviewsLabel = summary.isEmpty
+          ? 'Rating & reviews: no reviews yet'
+          : 'Rating ${Formatters.rating(summary.average!)} from ${Formatters.reviewCount(summary.count)}';
+    } else if (reviews.hasError) {
       // Already reported; tapping through retries.
       rating = const _StatValue('–');
-      count = const _StatValue('–');
+      reviewsLabel = "Rating & reviews: didn't load";
     } else {
-      rating = const Shimmer(child: SkeletonText(style: BusinessToolsScreen._valueStyle, widthFactor: 0.5));
-      count = rating;
+      rating = _placeholder;
+      reviewsLabel = 'Rating & reviews: loading';
+    }
+
+    final Widget clients;
+    if (contacts.value case final count?) {
+      clients = _StatValue(Formatters.compactCount(count));
+    } else if (contacts.hasError) {
+      // Already reported; the contacts screen shows the details and a retry.
+      clients = const _StatValue('–');
+    } else {
+      clients = _placeholder;
     }
 
     return Row(
       children: [
         Expanded(
-          child: _StatCard(title: 'Rating', icon: Icons.star_rounded, value: rating, onTap: () => _open(context, ref)),
+          child: _StatCard(
+            title: 'Rating & reviews',
+            icon: Icons.star_rounded,
+            value: rating,
+            semanticsLabel: reviewsLabel,
+            onTap: () => _openReviews(context, ref),
+          ),
         ),
         const SizedBox(width: 16),
         Expanded(
           child: _StatCard(
-            title: 'Reviews',
-            icon: Icons.rate_review_outlined,
-            value: count,
-            onTap: () => _open(context, ref),
+            title: 'Contacts',
+            icon: Icons.people_alt_outlined,
+            value: clients,
+            semanticsLabel: switch (contacts.value) {
+              final count? => 'Contacts: ${count == 1 ? '1 client' : '$count clients'}',
+              null => 'Contacts',
+            },
+            onTap: () => context.pushNamed(AppRoute.providerContacts.name),
           ),
         ),
       ],
+    );
+  }
+}
+
+/// `4.8 ★ (12)`: the average with the review count beside it.
+class _RatingValue extends StatelessWidget {
+  const _RatingValue({required this.average, required this.count});
+
+  final double average;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: AlignmentDirectional.centerStart,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            Formatters.rating(average),
+            maxLines: 1,
+            style: BusinessToolsScreen._valueStyle.copyWith(color: context.colorScheme.onSurface),
+          ),
+          const SizedBox(width: 3),
+          const Icon(Icons.star_rounded, size: 22, color: AppTheme.warning),
+          const SizedBox(width: 6),
+          Text(
+            '(${Formatters.compactCount(count)})',
+            maxLines: 1,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: context.colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -278,6 +347,7 @@ class _StatCard extends StatelessWidget {
     required this.value,
     this.highlight = false,
     this.onTap,
+    this.semanticsLabel,
   });
 
   final String title;
@@ -287,6 +357,9 @@ class _StatCard extends StatelessWidget {
   final Widget value;
   final bool highlight;
   final VoidCallback? onTap;
+
+  /// Read out instead of the card's contents (for tappable cards).
+  final String? semanticsLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -307,17 +380,30 @@ class _StatCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: highlight ? Colors.white.withValues(alpha: 0.2) : const Color(0xFFFFF5F5),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              icon,
-              color: highlight ? Colors.white : context.colorScheme.secondary,
-              size: 20,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: highlight ? Colors.white.withValues(alpha: 0.2) : const Color(0xFFFFF5F5),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  icon,
+                  color: highlight ? Colors.white : context.colorScheme.secondary,
+                  size: 20,
+                ),
+              ),
+              const Spacer(),
+              // Marks the cards that open something.
+              if (onTap != null)
+                Icon(
+                  Icons.arrow_outward_rounded,
+                  size: 18,
+                  color: highlight ? Colors.white.withValues(alpha: 0.8) : Colors.grey.shade400,
+                ),
+            ],
           ),
           const SizedBox(height: 16),
           // Same height whatever stands in for the figure, so cards in a row
@@ -341,7 +427,9 @@ class _StatCard extends StatelessWidget {
     );
 
     if (onTap == null) return card;
-    return InkWell(onTap: onTap, borderRadius: BorderRadius.circular(20), child: card);
+    final tappable = InkWell(onTap: onTap, borderRadius: BorderRadius.circular(20), child: card);
+    if (semanticsLabel == null) return tappable;
+    return Semantics(button: true, label: semanticsLabel, onTap: onTap, excludeSemantics: true, child: tappable);
   }
 }
 
