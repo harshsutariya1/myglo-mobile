@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyGlo — Buffering Animation Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --speed-multiplier: 1;
+            --bg-surface: #f4f4f6;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8f7f5;
+            user-select: none;
+            overflow-x: hidden;
+        }
+
+        .font-serif-brand {
+            font-family: 'Playfair Display', serif;
+        }
+
+        /* Subtle radial brushed surface matching the 3D render background */
+        .studio-surface {
+            background: radial-gradient(circle at 50% 50%, #ffffff 0%, #f1f0f5 58%, #e4e3ea 100%);
+            box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.03);
+            transition: background 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .studio-surface.dark-surface {
+            background: radial-gradient(circle at 50% 50%, #26232c 0%, #17151c 65%, #0e0d12 100%);
+            box-shadow: inset 0 0 90px rgba(0, 0, 0, 0.45);
+        }
+
+        /* Transform origins for every individual logo piece around center (500, 500) */
+        .ray-group {
+            transform-origin: 500px 500px;
+            will-change: transform, opacity, filter;
+        }
+
+        .center-star {
+            transform-origin: 500px 500px;
+            will-change: transform, filter;
+        }
+
+        /* ==========================================
+           MODE 1: RADIANT BLOOM (Default Signature)
+           ========================================== */
+        .mode-bloom .center-star {
+            animation: centerHeartbeat calc(2.4s / var(--speed-multiplier)) cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+        }
+
+        .mode-bloom .long-ray {
+            animation: longRayWave calc(2.4s / var(--speed-multiplier)) cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            animation-delay: calc(var(--idx) * (0.14s / var(--speed-multiplier)));
+        }
+
+        .mode-bloom .short-drop {
+            animation: shortDropWave calc(2.4s / var(--speed-multiplier)) cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+            animation-delay: calc((var(--idx) * (0.14s / var(--speed-multiplier))) + (0.18s / var(--speed-multiplier)));
+        }
+
+        @keyframes centerHeartbeat {
+            0%, 100% {
+                transform: scale(1) rotate(0deg);
+            }
+            35% {
+                transform: scale(1.13) rotate(6deg);
+            }
+            65% {
+                transform: scale(0.94) rotate(-3deg);
+            }
+        }
+
+        @keyframes longRayWave {
+            0%, 100% {
+                transform: rotate(var(--angle)) translateY(0px) scaleY(1) scaleX(1);
+                opacity: 1;
+            }
+            40% {
+                transform: rotate(var(--angle)) translateY(-22px) scaleY(1.07) scaleX(1.03);
+                opacity: 1;
+            }
+            75% {
+                transform: rotate(var(--angle)) translateY(8px) scaleY(0.93) scaleX(0.96);
+                opacity: 0.88;
+            }
+        }
+
+        @keyframes shortDropWave {
+            0%, 100% {
+                transform: rotate(var(--angle)) translateY(0px) scale(1);
+                opacity: 0.95;
+            }
+            45% {
+                transform: rotate(var(--angle)) translateY(-30px) scale(1.14);
+                opacity: 1;
+            }
+            80% {
+                transform: rotate(var(--angle)) translateY(10px) scale(0.86);
+                opacity: 0.72;
+            }
+        }
+
+        /* ==========================================
+           MODE 2: SILK VORTEX (Dual Counter-Orbit)
+           ========================================== */
+        .mode-vortex .center-star {
+            animation: vortexStar calc(3.6s / var(--speed-multiplier)) ease-in-out infinite;
+        }
+
+        .mode-vortex .long-rings-container {
+            transform-origin: 500px 500px;
+            animation: orbitCW calc(8s / var(--speed-multiplier)) cubic-bezier(0.65, 0, 0.35, 1) infinite;
+        }
+
+        .mode-vortex .short-rings-container {
+            transform-origin: 500px 500px;
+            animation: orbitCCW calc(8s / var(--speed-multiplier)) cubic-bezier(0.65, 0, 0.35, 1) infinite;
+        }
+
+        .mode-vortex .long-ray {
+            animation: vortexRayBreath calc(2s / var(--speed-multiplier)) ease-in-out infinite;
+            animation-delay: calc(var(--idx) * 0.1s);
+        }
+
+        .mode-vortex .short-drop {
+            animation: vortexDropBreath calc(2s / var(--speed-multiplier)) ease-in-out infinite;
+            animation-delay: calc(var(--idx) * 0.12s);
+        }
+
+        @keyframes vortexStar {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.16) rotate(90deg); }
+        }
+
+        @keyframes orbitCW {
+            0% { transform: rotate(0deg); }
+            50% { transform: rotate(180deg) scale(1.04); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes orbitCCW {
+            0% { transform: rotate(0deg); }
+            50% { transform: rotate(-90deg) scale(0.92); }
+            100% { transform: rotate(-180deg); }
+        }
+
+        @keyframes vortexRayBreath {
+            0%, 100% { transform: rotate(var(--angle)) translateY(0px) scale(1); }
+            50% { transform: rotate(var(--angle)) translateY(-14px) scale(1.04); }
+        }
+
+        @keyframes vortexDropBreath {
+            0%, 100% { transform: rotate(var(--angle)) translateY(0px) scale(1); }
+            50% { transform: rotate(var(--angle)) translateY(15px) scale(1.12); }
+        }
+
+        /* ==========================================
+           MODE 3: CHASE SPINNER (Sequential Buffer)
+           ========================================== */
+        .mode-chase .center-star {
+            animation: chaseStarPulse calc(1.6s / var(--speed-multiplier)) ease-in-out infinite;
+        }
+
+        .mode-chase .long-ray,
+        .mode-chase .short-drop {
+            animation: sequentialGlow calc(1.6s / var(--speed-multiplier)) cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            animation-delay: calc(var(--seq) * (0.1s / var(--speed-multiplier)));
+        }
+
+        @keyframes chaseStarPulse {
+            0%, 100% { transform: scale(0.96) rotate(0deg); }
+            50% { transform: scale(1.08) rotate(45deg); }
+        }
+
+        @keyframes sequentialGlow {
+            0%, 100% {
+                transform: rotate(var(--angle)) translateY(10px) scale(0.84);
+                opacity: 0.35;
+            }
+            25% {
+                transform: rotate(var(--angle)) translateY(-24px) scale(1.12);
+                opacity: 1;
+            }
+            55% {
+                transform: rotate(var(--angle)) translateY(0px) scale(0.96);
+                opacity: 0.7;
+            }
+        }
+
+        /* ==========================================
+           MODE 4: JELLY POP (Elastic 3D Bounce)
+           ========================================== */
+        .mode-jelly .center-star {
+            animation: jellyCenter calc(2.6s / var(--speed-multiplier)) cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+        }
+
+        .mode-jelly .long-ray {
+            animation: jellyRayPop calc(2.6s / var(--speed-multiplier)) cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+            animation-delay: calc(var(--idx) * (0.06s / var(--speed-multiplier)));
+        }
+
+        .mode-jelly .short-drop {
+            animation: jellyDropPop calc(2.6s / var(--speed-multiplier)) cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+            animation-delay: calc(0.28s + (var(--idx) * (0.06s / var(--speed-multiplier))));
+        }
+
+        @keyframes jellyCenter {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            20% { transform: scale(0.75) rotate(-12deg); }
+            45% { transform: scale(1.22) rotate(12deg); }
+            70% { transform: scale(0.95) rotate(-3deg); }
+        }
+
+        @keyframes jellyRayPop {
+            0%, 100% { transform: rotate(var(--angle)) translateY(0) scale(1); }
+            22% { transform: rotate(var(--angle)) translateY(32px) scaleY(0.76) scaleX(1.12); }
+            50% { transform: rotate(var(--angle)) translateY(-28px) scaleY(1.12) scaleX(0.94); }
+            75% { transform: rotate(var(--angle)) translateY(4px) scale(0.98); }
+        }
+
+        @keyframes jellyDropPop {
+            0%, 100% { transform: rotate(var(--angle)) translateY(0) scale(1); }
+            25% { transform: rotate(var(--angle)) translateY(25px) scale(0.68); }
+            55% { transform: rotate(var(--angle)) translateY(-34px) scale(1.22); }
+            80% { transform: rotate(var(--angle)) translateY(5px) scale(0.96); }
+        }
+
+        /* ==========================================
+           MODE 5: LOTUS CROWN (3D Perspective Unfurl)
+           ========================================== */
+        .mode-lotus {
+            perspective: 1200px;
+        }
+
+        .mode-lotus .center-star {
+            animation: lotusStarFloat calc(3.2s / var(--speed-multiplier)) cubic-bezier(0.45, 0, 0.55, 1) infinite;
+        }
+
+        .mode-lotus .long-ray {
+            animation: lotusPetalUnfurl calc(3.2s / var(--speed-multiplier)) cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+            animation-delay: calc(var(--idx) * (0.09s / var(--speed-multiplier)));
+        }
+
+        .mode-lotus .short-drop {
+            animation: lotusDewLevitate calc(3.2s / var(--speed-multiplier)) cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+            animation-delay: calc((var(--idx) * (0.09s / var(--speed-multiplier))) + (0.2s / var(--speed-multiplier)));
+        }
+
+        @keyframes lotusStarFloat {
+            0%, 100% { transform: scale(0.92) rotate(0deg); filter: brightness(0.98); }
+            50% { transform: scale(1.18) rotate(45deg); filter: brightness(1.08); }
+        }
+
+        @keyframes lotusPetalUnfurl {
+            0%, 100% {
+                transform: rotate(var(--angle)) translateY(28px) scaleY(0.74) scaleX(0.88);
+                opacity: 0.75;
+            }
+            50% {
+                transform: rotate(calc(var(--angle) + 8deg)) translateY(-24px) scaleY(1.09) scaleX(1.04);
+                opacity: 1;
+            }
+        }
+
+        @keyframes lotusDewLevitate {
+            0%, 100% {
+                transform: rotate(var(--angle)) translateY(-14px) scale(1.08);
+                opacity: 1;
+            }
+            50% {
+                transform: rotate(calc(var(--angle) - 10deg)) translateY(26px) scale(0.78);
+                opacity: 0.65;
+            }
+        }
+
+        /* ==========================================
+           MODE 6: PRISM CASCADE (Iridescent Shimmer Sweep)
+           ========================================== */
+        .mode-prism .center-star {
+            animation: prismStarGleam calc(2.8s / var(--speed-multiplier)) ease-in-out infinite;
+        }
+
+        .mode-prism .long-ray {
+            animation: prismRaySweep calc(2.8s / var(--speed-multiplier)) cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            animation-delay: calc(var(--seq) * (0.08s / var(--speed-multiplier)));
+        }
+
+        .mode-prism .short-drop {
+            animation: prismDropSweep calc(2.8s / var(--speed-multiplier)) cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            animation-delay: calc(var(--seq) * (0.08s / var(--speed-multiplier)));
+        }
+
+        @keyframes prismStarGleam {
+            0%, 100% { transform: scale(1) rotate(0deg); filter: hue-rotate(0deg) brightness(1); }
+            50% { transform: scale(1.12) rotate(180deg); filter: hue-rotate(25deg) brightness(1.1); }
+        }
+
+        @keyframes prismRaySweep {
+            0%, 100% {
+                transform: rotate(var(--angle)) translateY(0px) scale(1);
+                filter: hue-rotate(0deg) brightness(1);
+            }
+            35% {
+                transform: rotate(calc(var(--angle) + 6deg)) translateY(-26px) scaleY(1.1) scaleX(0.95);
+                filter: hue-rotate(30deg) brightness(1.12);
+            }
+            70% {
+                transform: rotate(calc(var(--angle) - 3deg)) translateY(6px) scale(0.95);
+                filter: hue-rotate(-15deg) brightness(0.96);
+            }
+        }
+
+        @keyframes prismDropSweep {
+            0%, 100% {
+                transform: rotate(var(--angle)) translateY(0px) scale(1);
+                filter: hue-rotate(0deg) saturate(1);
+            }
+            40% {
+                transform: rotate(calc(var(--angle) - 8deg)) translateY(-34px) scale(1.22);
+                filter: hue-rotate(45deg) saturate(1.3);
+            }
+            75% {
+                transform: rotate(var(--angle)) translateY(8px) scale(0.88);
+                filter: hue-rotate(0deg) saturate(0.95);
+            }
+        }
+
+        /* ==========================================
+           MODE 7: MAGNETIC FUSION (Zero-Gravity Pull & Release)
+           ========================================== */
+        .mode-magnetic .center-star {
+            animation: magneticCore calc(3.0s / var(--speed-multiplier)) cubic-bezier(0.68, -0.55, 0.26, 1.55) infinite;
+        }
+
+        .mode-magnetic .long-ray {
+            animation: magneticRaySnap calc(3.0s / var(--speed-multiplier)) cubic-bezier(0.68, -0.55, 0.26, 1.55) infinite;
+            animation-delay: calc((var(--idx) % 2) * (0.18s / var(--speed-multiplier)));
+        }
+
+        .mode-magnetic .short-drop {
+            animation: magneticDropOrbit calc(3.0s / var(--speed-multiplier)) cubic-bezier(0.68, -0.55, 0.26, 1.55) infinite;
+            animation-delay: calc(((var(--idx) + 1) % 2) * (0.18s / var(--speed-multiplier)));
+        }
+
+        @keyframes magneticCore {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            30% { transform: scale(1.32) rotate(-15deg); }
+            60% { transform: scale(0.82) rotate(90deg); }
+            85% { transform: scale(1.05) rotate(90deg); }
+        }
+
+        @keyframes magneticRaySnap {
+            0%, 100% { transform: rotate(var(--angle)) translateY(0px) scale(1); }
+            30% { transform: rotate(var(--angle)) translateY(38px) scaleY(0.78) scaleX(1.1); }
+            62% { transform: rotate(var(--angle)) translateY(-28px) scaleY(1.12) scaleX(0.92); }
+            85% { transform: rotate(var(--angle)) translateY(4px) scale(0.98); }
+        }
+
+        @keyframes magneticDropOrbit {
+            0%, 100% { transform: rotate(var(--angle)) translateY(0px) scale(1); }
+            30% { transform: rotate(calc(var(--angle) + 22.5deg)) translateY(-32px) scale(1.18); }
+            62% { transform: rotate(calc(var(--angle) + 45deg)) translateY(20px) scale(0.82); }
+            85% { transform: rotate(calc(var(--angle) + 45deg)) translateY(0px) scale(1); }
+        }
+
+        /* ==========================================
+           MODE 8: VELVET PENDULUM (Hypnotic Spa Wave)
+           ========================================== */
+        .mode-pendulum .center-star {
+            animation: pendulumStar calc(2.8s / var(--speed-multiplier)) ease-in-out infinite alternate;
+        }
+
+        .mode-pendulum .long-ray {
+            animation: pendulumRaySway calc(1.4s / var(--speed-multiplier)) ease-in-out infinite alternate;
+            animation-delay: calc(var(--idx) * (0.12s / var(--speed-multiplier)));
+        }
+
+        .mode-pendulum .short-drop {
+            animation: pendulumDropSway calc(1.4s / var(--speed-multiplier)) ease-in-out infinite alternate;
+            animation-delay: calc(var(--idx) * (0.12s / var(--speed-multiplier)));
+        }
+
+        @keyframes pendulumStar {
+            0% { transform: rotate(-25deg) scale(0.95); }
+            100% { transform: rotate(25deg) scale(1.1); }
+        }
+
+        @keyframes pendulumRaySway {
+            0% { transform: rotate(calc(var(--angle) - 9deg)) translateY(-18px) scaleY(1.06); }
+            100% { transform: rotate(calc(var(--angle) + 9deg)) translateY(10px) scaleY(0.92); }
+        }
+
+        @keyframes pendulumDropSway {
+            0% { transform: rotate(calc(var(--angle) + 12deg)) translateY(16px) scale(0.86); }
+            100% { transform: rotate(calc(var(--angle) - 12deg)) translateY(-24px) scale(1.15); }
+        }
+
+        /* */
+        /* ==========================================
+           MODE 9: WHISPER TRACE (Ultra-Minimal Petal Chase)
+           Zero bounce or scale distortion — pure, silky luminance & micro-levitation
+           ========================================== */
+        .mode-whisper .center-star {
+            animation: whisperStarBreath calc(2.0s / var(--speed-multiplier)) ease-in-out infinite;
+        }
+
+        .mode-whisper .long-ray,
+        .mode-whisper .short-drop {
+            animation: whisperSequentialTrace calc(1.8s / var(--speed-multiplier)) cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            animation-delay: calc(var(--seq) * (0.1125s / var(--speed-multiplier)));
+        }
+
+        @keyframes whisperStarBreath {
+            0%, 100% { transform: scale(0.98); opacity: 0.85; }
+            50% { transform: scale(1.03); opacity: 1; }
+        }
+
+        @keyframes whisperSequentialTrace {
+            0%, 100% {
+                transform: rotate(var(--angle)) translateY(0px) scale(0.96);
+                opacity: 0.16;
+                filter: saturate(0.4);
+            }
+            20% {
+                transform: rotate(var(--angle)) translateY(-8px) scale(1.02);
+                opacity: 1;
+                filter: saturate(1.15) brightness(1.05);
+            }
+            50% {
+                transform: rotate(var(--angle)) translateY(0px) scale(0.96);
+                opacity: 0.16;
+                filter: saturate(0.4);
+            }
+        }
+
+        /* ==========================================
+           MODE 10: GRAVITY CLICK (Minimalist Magnetic Tactile Tick)
+           Crisp, Apple-Watch-like magnetic micro-retraction and precision 45° lock
+           ========================================== */
+        .mode-gravity .center-star {
+            animation: gravityCoreTick calc(2.4s / var(--speed-multiplier)) cubic-bezier(0.22, 1, 0.36, 1) infinite;
+        }
+
+        .mode-gravity .long-ray {
+            animation: gravityRayContract calc(2.4s / var(--speed-multiplier)) cubic-bezier(0.22, 1, 0.36, 1) infinite;
+        }
+
+        .mode-gravity .short-drop {
+            animation: gravityDropStep calc(2.4s / var(--speed-multiplier)) cubic-bezier(0.34, 1.4, 0.64, 1) infinite;
+        }
+
+        @keyframes gravityCoreTick {
+            0%, 15% { transform: scale(1) rotate(0deg); }
+            35% { transform: scale(0.88) rotate(0deg); }
+            65%, 100% { transform: scale(1) rotate(90deg); }
+        }
+
+        @keyframes gravityRayContract {
+            0%, 15% { transform: rotate(var(--angle)) translateY(0px) scaleY(1); opacity: 0.95; }
+            35% { transform: rotate(var(--angle)) translateY(18px) scaleY(0.9); opacity: 0.65; }
+            65%, 100% { transform: rotate(var(--angle)) translateY(0px) scaleY(1); opacity: 0.95; }
+        }
+
+        @keyframes gravityDropStep {
+            0%, 20% { transform: rotate(var(--angle)) translateY(0px) scale(1); }
+            42% { transform: rotate(calc(var(--angle) + 22.5deg)) translateY(-10px) scale(0.92); }
+            70%, 100% { transform: rotate(calc(var(--angle) + 45deg)) translateY(0px) scale(1); }
+        }
+
+        /* ==========================================
+           MODE 11: COMPASS DIAL (Precision Horology Step)
+           Minimalist watch-escapement ticks with subtle opposing ring lock
+           ========================================== */
+        .mode-compass .center-star {
+            animation: compassStarTick calc(3.2s / var(--speed-multiplier)) cubic-bezier(0.76, 0, 0.24, 1) infinite;
+        }
+
+        .mode-compass .long-rings-container {
+            transform-origin: 500px 500px;
+            animation: compassOuterDial calc(3.2s / var(--speed-multiplier)) cubic-bezier(0.76, 0, 0.24, 1) infinite;
+        }
+
+        .mode-compass .short-rings-container {
+            transform-origin: 500px 500px;
+            animation: compassInnerDial calc(3.2s / var(--speed-multiplier)) cubic-bezier(0.76, 0, 0.24, 1) infinite;
+        }
+
+        .mode-compass .long-ray,
+        .mode-compass .short-drop {
+            transform: rotate(var(--angle));
+        }
+
+        @keyframes compassStarTick {
+            0%, 15% { transform: rotate(0deg) scale(1); }
+            25%, 40% { transform: rotate(-45deg) scale(0.95); }
+            50%, 65% { transform: rotate(-90deg) scale(1); }
+            75%, 90% { transform: rotate(-135deg) scale(0.95); }
+            100% { transform: rotate(-180deg) scale(1); }
+        }
+
+        @keyframes compassOuterDial {
+            0%, 15% { transform: rotate(0deg); }
+            25%, 40% { transform: rotate(22.5deg); }
+            50%, 65% { transform: rotate(45deg); }
+            75%, 90% { transform: rotate(67.5deg); }
+            100% { transform: rotate(90deg); }
+        }
+
+        @keyframes compassInnerDial {
+            0%, 15% { transform: rotate(0deg) scale(0.96); }
+            25%, 40% { transform: rotate(-22.5deg) scale(1.02); }
+            50%, 65% { transform: rotate(-45deg) scale(0.96); }
+            75%, 90% { transform: rotate(-67.5deg) scale(1.02); }
+            100% { transform: rotate(-90deg) scale(0.96); }
+        }
+
+        /* ==========================================
+           MODE 12: TWIN-POLARITY CHASE (Minimal Dual-Beam Scanner)
+           Two opposite rays illuminate simultaneously in a calm, balanced magnetic sweep
+           ========================================== */
+        .mode-polarity .center-star {
+            animation: polarityCenterBreath calc(1.6s / var(--speed-multiplier)) ease-in-out infinite;
+        }
+
+        .mode-polarity .long-ray {
+            animation: polarityBeam calc(1.6s / var(--speed-multiplier)) cubic-bezier(0.45, 0, 0.55, 1) infinite;
+            animation-delay: calc((var(--idx) % 4) * (0.2s / var(--speed-multiplier)));
+        }
+
+        .mode-polarity .short-drop {
+            animation: polarityDropBeam calc(1.6s / var(--speed-multiplier)) cubic-bezier(0.45, 0, 0.55, 1) infinite;
+            animation-delay: calc(((var(--idx) % 4) * (0.2s / var(--speed-multiplier))) + (0.1s / var(--speed-multiplier)));
+        }
+
+        @keyframes polarityCenterBreath {
+            0%, 100% { transform: scale(0.94); }
+            50% { transform: scale(1.04); }
+        }
+
+        @keyframes polarityBeam {
+            0%, 100% {
+                transform: rotate(var(--angle)) translateY(6px) scaleY(0.92);
+                opacity: 0.22;
+            }
+            50% {
+                transform: rotate(var(--angle)) translateY(-10px) scaleY(1.03);
+                opacity: 1;
+            }
+        }
+
+        @keyframes polarityDropBeam {
+            0%, 100% {
+                transform: rotate(var(--angle)) translateY(-4px) scale(0.86);
+                opacity: 0.2;
+            }
+            50% {
+                transform: rotate(var(--angle)) translateY(8px) scale(1.06);
+                opacity: 1;
+            }
+        }
+
+        /* Minimalist Decluttered Mode: Optional toggle to hide outer or inner ring */
+        .minimal-geometry-drops .long-rings-container {
+            opacity: 0 !important;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+        .minimal-geometry-rays .short-rings-container {
+            opacity: 0 !important;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+
+        /* Luxury Golden-Rose Aura Ring */
+        .aura-ring-spin {
+            transform-origin: 500px 500px;
+            animation: slowAuraSpin calc(14s / var(--speed-multiplier)) linear infinite;
+        }
+
+        .aura-ring-reverse {
+            transform-origin: 500px 500px;
+            animation: slowAuraSpinReverse calc(18s / var(--speed-multiplier)) linear infinite;
+        }
+
+        @keyframes slowAuraSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes slowAuraSpinReverse {
+            from { transform: rotate(360deg); }
+            to { transform: rotate(0deg); }
+        }
+
+        /* Ambient Shimmer Ring */
+        .ambient-glow {
+            animation: ambientBreath calc(3.2s / var(--speed-multiplier)) ease-in-out infinite;
+        }
+
+        @keyframes ambientBreath {
+            0%, 100% { opacity: 0.45; transform: scale(0.95); }
+            50% { opacity: 0.85; transform: scale(1.08); }
+        }
+
+        /* Text fade transitions */
+        .status-pill-text {
+            transition: opacity 0.35s ease, transform 0.35s ease;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between text-slate-800">
+
+    <!-- Top Bar -->
+    <header class="w-full max-w-6xl mx-auto px-4 sm:px-6 pt-5 pb-3 flex flex-wrap items-center justify-between gap-4 z-20">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#f59c7d] via-[#f9b89f] to-[#f472b6] p-0.5 shadow-md shadow-orange-200/60 flex items-center justify-center">
+                <div class="w-full h-full bg-white rounded-[14px] flex items-center justify-center">
+                    <span class="font-serif-brand font-bold text-lg bg-gradient-to-br from-[#ea7b57] to-[#d9468f] bg-clip-text text-transparent">M</span>
+                </div>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h1 class="font-bold text-lg tracking-tight text-slate-900">MyGlo</h1>
+                    <span class="text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">Salon Booking App</span>
+                </div>
+                <p class="text-xs text-slate-500">3D Ceramic Gloss Buffering System</p>
+            </div>
+        </div>
+
+        <!-- -->
+        <!-- View Mode & Theme Controls -->
+        <div class="flex flex-wrap items-center gap-2 bg-white/80 backdrop-blur-md p-1.5 rounded-2xl shadow-sm border border-slate-200/80">
+            <button id="btnViewStudio" onclick="setPreviewContext('studio')" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all bg-slate-900 text-white shadow-sm">
+                Studio View
+            </button>
+            <button id="btnViewMobile" onclick="setPreviewContext('mobile')" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all text-slate-600 hover:text-slate-900">
+                In-App Booking View
+            </button>
+            <div class="h-4 w-[1px] bg-slate-200 mx-0.5"></div>
+            <button id="btnMinimalGeo" onclick="cycleGeometryMode()" class="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200/80 transition-colors flex items-center gap-1" title="Cycle Full Logo / Minimal Teardrops / Minimal Rays">
+                <span>◎</span> <span id="geoLabel">Full Logo</span>
+            </button>
+            <button id="btnAuraToggle" onclick="toggleAuraRings()" class="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-200/70 hover:bg-orange-100 transition-colors flex items-center gap-1" title="Toggle Luxury Halo Rings">
+                <span>✧</span> Halo
+            </button>
+            <button id="btnSurfaceTheme" onclick="toggleSurfaceTheme()" class="p-1.5 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors" title="Toggle Light/Dark Surface">
+                <svg id="iconSun" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                </svg>
+                <svg id="iconMoon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Interactive Stage -->
+    <main class="flex-1 flex flex-col items-center justify-center px-4 py-4 relative">
+        
+        <!-- Studio Canvas Card / Mobile Frame Container -->
+        <div id="stageFrame" class="studio-surface relative w-full max-w-[540px] aspect-square rounded-[42px] shadow-2xl shadow-slate-300/60 border border-white/90 flex flex-col items-center justify-center overflow-hidden transition-all duration-500">
+            
+            <!-- Mobile Status Bar (Hidden in Studio View, Shown in Mobile View) -->
+            <div id="mobileHeader" class="hidden absolute top-0 inset-x-0 px-7 pt-4 pb-2 flex items-center justify-between text-xs font-semibold text-slate-700 z-20 transition-colors">
+                <span>9:41</span>
+                <div class="w-20 h-4 bg-black/10 rounded-full"></div>
+                <div class="flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21L15.6 16.2C14.6 15.45 13.35 15 12 15C10.65 15 9.4 15.45 8.4 16.2L12 21ZM12 3C7.95 3 4.21 4.34 1.2 6.6L3 9C5.5 7.12 8.62 6 12 6C15.38 6 18.5 7.12 21 9L22.8 6.6C19.79 4.34 16.05 3 12 3ZM12 9C9.3 9 6.81 9.89 4.8 11.4L6.6 13.8C8.1 12.67 9.97 12 12 12C14.03 12 15.9 12.67 17.4 13.8L19.2 11.4C17.19 9.89 14.7 9 12 9Z"/></svg>
+                    <div class="w-5 h-2.5 rounded-sm border border-current p-0.5 flex items-center">
+                        <div class="w-3 h-full bg-current rounded-[1px]"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ambient Backlight Aura behind the 3D Logo -->
+            <div class="ambient-glow absolute w-72 h-72 rounded-full bg-gradient-to-tr from-[#f7a889]/25 via-[#f472b6]/15 to-[#67c3f0]/20 blur-2xl pointer-events-none"></div>
+
+            <!-- ==============================================================
+                 3D GLOSSY MYGLO SVG BUFFERING ANIMATION
+                 Faithfully matches the exact geometry, colors, and specular
+                 reflections of the uploaded MyGlo 3D logo
+                 ============================================================== -->
+            <div id="logoContainer" class="relative w-[82%] h-[82%] flex items-center justify-center transition-all duration-500" style="transform: scale(0.45);">
+                <svg id="mygloSvg" viewBox="0 0 1000 1000" class="w-full h-full overflow-visible mode-whisper">
+                    <defs>
+                        <!-- Soft 3D Contact Shadow Filter (matches the studio floor shadows) -->
+                        <filter id="ceramicShadow" x="-30%" y="-30%" width="160%" height="160%">
+                            <feDropShadow dx="0" dy="14" stdDeviation="12" flood-color="#2d1e18" flood-opacity="0.22" />
+                            <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#1f1612" flood-opacity="0.12" />
+                        </filter>
+
+                        <!-- Center Star 3D Gradient (Warm Peach) -->
+                        <linearGradient id="peachStarGrad" x1="20%" y1="15%" x2="85%" y2="85%">
+                            <stop offset="0%" stop-color="#ffd1bd" />
+                            <stop offset="45%" stop-color="#f7aa8c" />
+                            <stop offset="85%" stop-color="#eb8e6b" />
+                            <stop offset="100%" stop-color="#d97957" />
+                        </linearGradient>
+
+                        <!-- Long Ray 3D Gradient (Signature Peach-Coral) -->
+                        <linearGradient id="peachRayGrad" x1="15%" y1="5%" x2="85%" y2="95%">
+                            <stop offset="0%" stop-color="#ffd4c2" />
+                            <stop offset="35%" stop-color="#f7aa8c" />
+                            <stop offset="80%" stop-color="#ec916e" />
+                            <stop offset="100%" stop-color="#dc7b58" />
+                        </linearGradient>
+
+                        <!-- Top Pink Droplets 3D Gradient -->
+                        <linearGradient id="pinkDropGrad" x1="15%" y1="10%" x2="85%" y2="95%">
+                            <stop offset="0%" stop-color="#ffaae0" />
+                            <stop offset="40%" stop-color="#f36cb8" />
+                            <stop offset="85%" stop-color="#dc4a9b" />
+                            <stop offset="100%" stop-color="#b8327b" />
+                        </linearGradient>
+
+                        <!-- Right Lime-Yellow Droplets 3D Gradient -->
+                        <linearGradient id="limeDropGrad" x1="15%" y1="10%" x2="85%" y2="95%">
+                            <stop offset="0%" stop-color="#f4ffad" />
+                            <stop offset="40%" stop-color="#d9eb67" />
+                            <stop offset="85%" stop-color="#bdd147" />
+                            <stop offset="100%" stop-color="#9cb02e" />
+                        </linearGradient>
+
+                        <!-- Bottom Orchid-Purple Droplets 3D Gradient -->
+                        <linearGradient id="purpleDropGrad" x1="15%" y1="10%" x2="85%" y2="95%">
+                            <stop offset="0%" stop-color="#f3b8ff" />
+                            <stop offset="40%" stop-color="#cf76e6" />
+                            <stop offset="85%" stop-color="#b253cc" />
+                            <stop offset="100%" stop-color="#8e37a8" />
+                        </linearGradient>
+
+                        <!-- Left Sky-Blue Droplets 3D Gradient -->
+                        <linearGradient id="blueDropGrad" x1="15%" y1="10%" x2="85%" y2="95%">
+                            <stop offset="0%" stop-color="#bceeff" />
+                            <stop offset="40%" stop-color="#76c5e8" />
+                            <stop offset="85%" stop-color="#53a8cf" />
+                            <stop offset="100%" stop-color="#3887ad" />
+                        </linearGradient>
+
+                        <!-- Glossy Specular Highlight Gradient -->
+                        <linearGradient id="glossSpecular" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.92" />
+                            <stop offset="55%" stop-color="#ffffff" stop-opacity="0.45" />
+                            <stop offset="100%" stop-color="#ffffff" stop-opacity="0.0" />
+                        </linearGradient>
+
+                        <!-- ==========================================
+                             REUSABLE 3D LONG PEACH RAY (Pointing UP at 0 deg)
+                             Outer bulb around y=82, inner tip around y=356
+                             ========================================== -->
+                        <g id="longPeachRayDef">
+                            <!-- Main 3D body with rounded bulb & tapered inner tip -->
+                            <path d="M 500,52
+                                     C 526,52 542,72 539,102
+                                     L 516,342
+                                     C 514,358 508,365 500,365
+                                     C 492,365 486,358 484,342
+                                     L 461,102
+                                     C 458,72 474,52 500,52 Z"
+                                  fill="url(#peachRayGrad)" />
+                            <!-- Inner 3D Bevel Rim (soft warm subsurface bounce) -->
+                            <path d="M 500,58
+                                     C 520,58 533,74 531,100
+                                     L 511,336
+                                     C 509,348 505,353 500,353
+                                     C 495,353 491,348 489,336
+                                     L 469,100
+                                     C 467,74 480,58 500,58 Z"
+                                  fill="none" stroke="#ffd9c9" stroke-width="2.5" stroke-opacity="0.55" />
+                            <!-- High-gloss right-edge studio reflection streak (matches original image) -->
+                            <path d="M 503,64
+                                     C 519,65 529,78 527,102
+                                     L 510,330
+                                     C 509,338 505,338 505,330
+                                     L 518,102
+                                     C 519,84 512,73 501,70 Z"
+                                  fill="url(#glossSpecular)" />
+                            <!-- Tiny secondary top-left glint -->
+                            <ellipse cx="482" cy="82" rx="4.5" ry="9" transform="rotate(-18 482 82)" fill="#ffffff" fill-opacity="0.45" />
+                        </g>
+
+                        <!-- ==========================================
+                             REUSABLE 3D SHORT TEARDROP SHAPE
+                             Outer bulb around y=148, inner sharp tip around y=312
+                             ========================================== -->
+                        <path id="shortDropBody"
+                              d="M 500,136
+                                 C 522,136 535,154 530,180
+                                 L 508,302
+                                 C 505,314 502,318 500,318
+                                 C 498,318 495,314 492,302
+                                 L 470,180
+                                 C 465,154 478,136 500,136 Z" />
+
+                        <path id="shortDropGloss"
+                              d="M 503,144
+                                 C 517,145 525,157 521,178
+                                 L 504,286
+                                 C 503,292 500,291 501,284
+                                 L 512,178
+                                 C 514,162 509,153 501,150 Z"
+                              fill="url(#glossSpecular)" />
+
+                        <!-- Iridescent Luxury Halo Gradient -->
+                        <linearGradient id="haloRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#f7aa8c" stop-opacity="0.55" />
+                            <stop offset="33%" stop-color="#f36cb8" stop-opacity="0.4" />
+                            <stop offset="66%" stop-color="#76c5e8" stop-opacity="0.4" />
+                            <stop offset="100%" stop-color="#d9eb67" stop-opacity="0.55" />
+                        </linearGradient>
+                    </defs>
+
+                    <!-- ==========================================
+                         GROUP 0: AESTHETIC LUXURY HALO RINGS & SPARKLES
+                         ========================================== -->
+                    <g id="luxuryHaloGroup" class="transition-opacity duration-500 opacity-100">
+                        <g class="aura-ring-spin">
+                            <circle cx="500" cy="500" r="342" fill="none" stroke="url(#haloRingGrad)" stroke-width="2" stroke-dasharray="14 26" stroke-linecap="round" />
+                            <circle cx="500" cy="158" r="5" fill="#f36cb8" fill-opacity="0.7" />
+                            <circle cx="842" cy="500" r="5" fill="#d9eb67" fill-opacity="0.8" />
+                            <circle cx="500" cy="842" r="5" fill="#cf76e6" fill-opacity="0.7" />
+                            <circle cx="158" cy="500" r="5" fill="#76c5e8" fill-opacity="0.7" />
+                        </g>
+                        <g class="aura-ring-reverse">
+                            <circle cx="500" cy="500" r="228" fill="none" stroke="url(#haloRingGrad)" stroke-width="1.5" stroke-dasharray="4 18" stroke-linecap="round" opacity="0.75" />
+                        </g>
+                    </g>
+
+                    <!-- ==========================================
+                         GROUP 1: 8 LONG PEACH RAYS (Every 45 degrees)
+                         ========================================== -->
+                    <g class="long-rings-container" filter="url(#ceramicShadow)">
+                        <!-- 0 deg (Top) -->
+                        <g class="ray-group long-ray" style="--angle: 0deg; --idx: 0; --seq: 0;">
+                            <use href="#longPeachRayDef" />
+                        </g>
+                        <!-- 45 deg (Top-Right) -->
+                        <g class="ray-group long-ray" style="--angle: 45deg; --idx: 1; --seq: 2;">
+                            <use href="#longPeachRayDef" />
+                        </g>
+                        <!-- 90 deg (Right) -->
+                        <g class="ray-group long-ray" style="--angle: 90deg; --idx: 2; --seq: 4;">
+                            <use href="#longPeachRayDef" />
+                        </g>
+                        <!-- 135 deg (Bottom-Right) -->
+                        <g class="ray-group long-ray" style="--angle: 135deg; --idx: 3; --seq: 6;">
+                            <use href="#longPeachRayDef" />
+                        </g>
+                        <!-- 180 deg (Bottom) -->
+                        <g class="ray-group long-ray" style="--angle: 180deg; --idx: 4; --seq: 8;">
+                            <use href="#longPeachRayDef" />
+                        </g>
+                        <!-- 225 deg (Bottom-Left) -->
+                        <g class="ray-group long-ray" style="--angle: 225deg; --idx: 5; --seq: 10;">
+                            <use href="#longPeachRayDef" />
+                        </g>
+                        <!-- 270 deg (Left) -->
+                        <g class="ray-group long-ray" style="--angle: 270deg; --idx: 6; --seq: 12;">
+                            <use href="#longPeachRayDef" />
+                        </g>
+                        <!-- 315 deg (Top-Left) -->
+                        <g class="ray-group long-ray" style="--angle: 315deg; --idx: 7; --seq: 14;">
+                            <use href="#longPeachRayDef" />
+                        </g>
+                    </g>
+
+                    <!-- ==========================================
+                         GROUP 2: 8 COLORFUL SHORT TEARDROPS (At 22.5 deg offsets)
+                         2 Pink (Top), 2 Lime (Right), 2 Purple (Bottom), 2 Blue (Left)
+                         ========================================== -->
+                    <g class="short-rings-container" filter="url(#ceramicShadow)">
+                        <!-- 22.5 deg: Top-Right Pink Drop -->
+                        <g class="ray-group short-drop" style="--angle: 22.5deg; --idx: 0; --seq: 1;">
+                            <use href="#shortDropBody" fill="url(#pinkDropGrad)" />
+                            <use href="#shortDropGloss" />
+                        </g>
+
+                        <!-- 67.5 deg: Right-Top Lime Drop -->
+                        <g class="ray-group short-drop" style="--angle: 67.5deg; --idx: 1; --seq: 3;">
+                            <use href="#shortDropBody" fill="url(#limeDropGrad)" />
+                            <use href="#shortDropGloss" />
+                        </g>
+
+                        <!-- 112.5 deg: Right-Bottom Lime Drop -->
+                        <g class="ray-group short-drop" style="--angle: 112.5deg; --idx: 2; --seq: 5;">
+                            <use href="#shortDropBody" fill="url(#limeDropGrad)" />
+                            <use href="#shortDropGloss" />
+                        </g>
+
+                        <!-- 157.5 deg: Bottom-Right Purple Drop -->
+                        <g class="ray-group short-drop" style="--angle: 157.5deg; --idx: 3; --seq: 7;">
+                            <use href="#shortDropBody" fill="url(#purpleDropGrad)" />
+                            <use href="#shortDropGloss" />
+                        </g>
+
+                        <!-- 202.5 deg: Bottom-Left Purple Drop -->
+                        <g class="ray-group short-drop" style="--angle: 202.5deg; --idx: 4; --seq: 9;">
+                            <use href="#shortDropBody" fill="url(#purpleDropGrad)" />
+                            <use href="#shortDropGloss" />
+                        </g>
+
+                        <!-- 247.5 deg: Left-Bottom Sky Blue Drop -->
+                        <g class="ray-group short-drop" style="--angle: 247.5deg; --idx: 5; --seq: 11;">
+                            <use href="#shortDropBody" fill="url(#blueDropGrad)" />
+                            <use href="#shortDropGloss" />
+                        </g>
+
+                        <!-- 292.5 deg: Left-Top Sky Blue Drop -->
+                        <g class="ray-group short-drop" style="--angle: 292.5deg; --idx: 6; --seq: 13;">
+                            <use href="#shortDropBody" fill="url(#blueDropGrad)" />
+                            <use href="#shortDropGloss" />
+                        </g>
+
+                        <!-- 337.5 deg: Top-Left Pink Drop -->
+                        <g class="ray-group short-drop" style="--angle: 337.5deg; --idx: 7; --seq: 15;">
+                            <use href="#shortDropBody" fill="url(#pinkDropGrad)" />
+                            <use href="#shortDropGloss" />
+                        </g>
+                    </g>
+
+                    <!-- ==========================================
+                         GROUP 3: CENTER 4-POINTED PILLOW DIAMOND STAR
+                         ========================================== -->
+                    <g class="center-star" filter="url(#ceramicShadow)">
+                        <!-- Soft 3D Cushion Star Body -->
+                        <path d="M 500,396
+                                 C 511,396 525,442 544,458
+                                 C 562,475 604,489 604,500
+                                 C 604,511 562,525 544,542
+                                 C 525,558 511,604 500,604
+                                 C 489,604 475,558 456,542
+                                 C 438,525 396,511 396,500
+                                 C 396,489 438,475 456,458
+                                 C 475,442 489,396 500,396 Z"
+                              fill="url(#peachStarGrad)" />
+
+                        <!-- Glossy Top-Right Specular Curved Highlight (matches the photo's star gleam) -->
+                        <path d="M 503,410
+                                 C 511,414 524,447 540,462
+                                 C 555,477 586,489 590,496
+                                 C 582,494 551,483 534,468
+                                 C 518,453 506,424 503,410 Z"
+                              fill="url(#glossSpecular)" />
+
+                        <!-- Subtle Bottom-Left Rim Bounce Light -->
+                        <path d="M 412,504
+                                 C 436,514 452,526 465,540
+                                 C 478,554 490,575 496,590"
+                              fill="none" stroke="#ffcab5" stroke-width="3.5" stroke-linecap="round" stroke-opacity="0.45" />
+                    </g>
+                </svg>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Bottom Control Dock -->
+    <footer class="w-full max-w-xl mx-auto px-4 pb-6 pt-2 z-20">
+        <div class="bg-white/90 backdrop-blur-xl rounded-3xl p-3.5 shadow-xl shadow-slate-200/70 border border-slate-200/80 flex items-center justify-center">
+            <div class="grid grid-cols-3 gap-2.5 w-full">
+                <button onclick="setAnimationMode('mode-whisper', this)" class="mode-btn active-mode px-3.5 py-2.5 rounded-2xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all bg-gradient-to-r from-[#f7aa8c] to-[#f36cb8] text-white shadow-md shadow-orange-200">
+                    <span>◌</span> Whisper Trace
+                </button>
+                <button onclick="setAnimationMode('mode-chase', this)" class="mode-btn px-3.5 py-2.5 rounded-2xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all bg-slate-100 text-slate-700 hover:bg-slate-200/80">
+                    <span>💫</span> Petal Chase
+                </button>
+                <button onclick="setAnimationMode('mode-magnetic', this)" class="mode-btn px-3.5 py-2.5 rounded-2xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all bg-slate-100 text-slate-700 hover:bg-slate-200/80">
+                    <span>🧲</span> Magnetic Pulse
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        let isDarkSurface = false;
+        let showHaloRings = false;
+        let geometryState = 0; // 0 = Full Logo, 1 = Minimal Teardrops + Star, 2 = Minimal Peach Rays + Star
+
+        const allModes = [
+            'mode-whisper',
+            'mode-chase',
+            'mode-magnetic'
+        ];
+
+        // Initialize with Whisper Trace, 1x speed, and Small size (scale 0.45)
+        window.addEventListener('DOMContentLoaded', () => {
+            document.documentElement.style.setProperty('--speed-multiplier', '1');
+            const svg = document.getElementById('mygloSvg');
+            svg.classList.remove(...allModes);
+            svg.classList.add('mode-whisper');
+
+            const haloGroup = document.getElementById('luxuryHaloGroup');
+            const btn = document.getElementById('btnAuraToggle');
+            if (haloGroup && btn) {
+                haloGroup.classList.replace('opacity-100', 'opacity-0');
+                btn.className = "px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-500 border border-transparent hover:bg-slate-200 transition-colors flex items-center gap-1";
+            }
+        });
+
+        // Switch between the 3 selected buffering animations
+        function setAnimationMode(modeClass, btnEl) {
+            const svg = document.getElementById('mygloSvg');
+            svg.classList.remove(...allModes);
+            void svg.offsetWidth;
+            svg.classList.add(modeClass);
+
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.className = "mode-btn px-3.5 py-2.5 rounded-2xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all bg-slate-100 text-slate-700 hover:bg-slate-200/80";
+            });
+
+            if (btnEl) {
+                btnEl.className = "mode-btn active-mode px-3.5 py-2.5 rounded-2xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all bg-gradient-to-r from-[#f7aa8c] to-[#f36cb8] text-white shadow-md shadow-orange-200";
+            }
+        }
+
+        // Cycle between Full Logo, Minimal Teardrops + Center Star, or Minimal Rays + Center Star
+        function cycleGeometryMode() {
+            geometryState = (geometryState + 1) % 3;
+            const svg = document.getElementById('mygloSvg');
+            const geoLabel = document.getElementById('geoLabel');
+            const btnGeo = document.getElementById('btnMinimalGeo');
+
+            svg.classList.remove('minimal-geometry-drops', 'minimal-geometry-rays');
+
+            if (geometryState === 0) {
+                geoLabel.textContent = "Full Logo";
+                btnGeo.className = "px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200/80 transition-colors flex items-center gap-1";
+            } else if (geometryState === 1) {
+                svg.classList.add('minimal-geometry-drops');
+                geoLabel.textContent = "Drops Only";
+                btnGeo.className = "px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors flex items-center gap-1";
+            } else {
+                svg.classList.add('minimal-geometry-rays');
+                geoLabel.textContent = "Rays Only";
+                btnGeo.className = "px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 transition-colors flex items-center gap-1";
+            }
+        }
+
+        // Toggle the decorative orbital halo rings around the logo
+        function toggleAuraRings() {
+            showHaloRings = !showHaloRings;
+            const haloGroup = document.getElementById('luxuryHaloGroup');
+            const btn = document.getElementById('btnAuraToggle');
+            if (showHaloRings) {
+                haloGroup.classList.replace('opacity-0', 'opacity-100');
+                btn.className = "px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-200/70 hover:bg-orange-100 transition-colors flex items-center gap-1";
+            } else {
+                haloGroup.classList.replace('opacity-100', 'opacity-0');
+                btn.className = "px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-500 border border-transparent hover:bg-slate-200 transition-colors flex items-center gap-1";
+            }
+        }
+
+        // Keyboard shortcuts (1-3) for quick previewing
+        window.addEventListener('keydown', (e) => {
+            const num = parseInt(e.key, 10);
+            if (num >= 1 && num <= 3) {
+                const buttons = document.querySelectorAll('.mode-btn');
+                if (buttons[num - 1]) {
+                    buttons[num - 1].click();
+                }
+            }
+        });
+
+        // Toggle between Studio Full Frame & Mobile Phone Screen Mockup (keeping Small scale 0.45)
+        function setPreviewContext(context) {
+            const stageFrame = document.getElementById('stageFrame');
+            const mobileHeader = document.getElementById('mobileHeader');
+            const btnStudio = document.getElementById('btnViewStudio');
+            const btnMobile = document.getElementById('btnViewMobile');
+            const logoContainer = document.getElementById('logoContainer');
+
+            logoContainer.style.transform = 'scale(0.45)';
+
+            if (context === 'mobile') {
+                stageFrame.classList.remove('max-w-[540px]', 'aspect-square', 'rounded-[42px]');
+                stageFrame.classList.add('max-w-[340px]', 'h-[600px]', 'rounded-[48px]', 'border-[8px]', 'border-slate-900');
+                mobileHeader.classList.remove('hidden');
+
+                btnMobile.className = "px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all bg-slate-900 text-white shadow-sm";
+                btnStudio.className = "px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all text-slate-600 hover:text-slate-900";
+            } else {
+                stageFrame.classList.add('max-w-[540px]', 'aspect-square', 'rounded-[42px]');
+                stageFrame.classList.remove('max-w-[340px]', 'h-[600px]', 'rounded-[48px]', 'border-[8px]', 'border-slate-900');
+                mobileHeader.classList.add('hidden');
+
+                btnStudio.className = "px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all bg-slate-900 text-white shadow-sm";
+                btnMobile.className = "px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all text-slate-600 hover:text-slate-900";
+            }
+        }
+
+        // Toggle between light studio ceramic background and dark mode salon theme
+        function toggleSurfaceTheme() {
+            isDarkSurface = !isDarkSurface;
+            const stageFrame = document.getElementById('stageFrame');
+            const iconSun = document.getElementById('iconSun');
+            const iconMoon = document.getElementById('iconMoon');
+            const mobileHeader = document.getElementById('mobileHeader');
+
+            if (isDarkSurface) {
+                stageFrame.classList.add('dark-surface');
+                iconSun.classList.remove('hidden');
+                iconMoon.classList.add('hidden');
+                mobileHeader.classList.replace('text-slate-700', 'text-slate-200');
+            } else {
+                stageFrame.classList.remove('dark-surface');
+                iconSun.classList.add('hidden');
+                iconMoon.classList.remove('hidden');
+                mobileHeader.classList.replace('text-slate-200', 'text-slate-700');
+            }
+        }
+    </script>
+</body>
+</html>

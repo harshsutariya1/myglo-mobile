@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../core/widgets/myglo_loading_logo.dart';
+
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
 
@@ -13,9 +15,14 @@ class SplashScreen extends StatelessWidget {
           duration: const Duration(milliseconds: 1200),
           curve: Curves.easeOutCubic,
           builder: (context, value, child) {
-            return Opacity(
-              opacity: value.clamp(0.0, 1.0),
-              child: SizedBox(
+            return Opacity(opacity: value.clamp(0.0, 1.0), child: child);
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const MygloLoadingLogo(),
+              const SizedBox(height: 28),
+              SizedBox(
                 width: 180,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
@@ -28,8 +35,8 @@ class SplashScreen extends StatelessWidget {
                   ),
                 ),
               ),
-            );
-          },
+            ],
+          ),
         ),
       ),
     );
