@@ -20,13 +20,16 @@ typedef ReachabilityProbe = Future<bool?> Function();
 ///
 /// A state change is only committed after several consecutive probes agree and
 /// is then held for [holdDuration], so a flapping link cannot make the offline
-/// popup flash or repeatedly mount/unmount.
+/// popup flash or repeatedly mount/unmount. Going offline additionally waits
+/// [offlineGracePeriod], so the popup does not flash while the radio wakes up
+/// after the screen is turned back on.
 class NetworkTimings {
   const NetworkTimings({
     this.onlineInterval = const Duration(seconds: 10),
     this.offlineInterval = const Duration(seconds: 3),
     this.verifyInterval = const Duration(seconds: 1),
     this.holdDuration = const Duration(seconds: 2),
+    this.offlineGracePeriod = const Duration(seconds: 2),
     this.failuresToGoOffline = 2,
     this.successesToGoOnline = 2,
   });
@@ -42,6 +45,11 @@ class NetworkTimings {
 
   /// Minimum time a committed state is kept before it may flip again.
   final Duration holdDuration;
+
+  /// How long the backend must stay unreachable, after [failuresToGoOffline]
+  /// probes have failed, before the offline state is committed. Probing
+  /// continues meanwhile and any successful probe cancels it.
+  final Duration offlineGracePeriod;
 
   final int failuresToGoOffline;
   final int successesToGoOnline;
@@ -120,6 +128,7 @@ class NetworkStatusNotifier extends Notifier<NetworkStatus> {
   Timer? _probeTimer;
   Timer? _holdTimer;
   Timer? _nudgeTimer;
+  Timer? _graceTimer;
   Future<bool?>? _inFlight;
   int _failures = 0;
   int _successes = 0;
@@ -134,6 +143,7 @@ class NetworkStatusNotifier extends Notifier<NetworkStatus> {
       _probeTimer?.cancel();
       _holdTimer?.cancel();
       _nudgeTimer?.cancel();
+      _graceTimer?.cancel();
     });
     final nudges = ref.watch(networkNudgesProvider).listen((_) => _nudge());
     ref.onDispose(nudges.cancel);
@@ -225,17 +235,41 @@ class NetworkStatusNotifier extends Notifier<NetworkStatus> {
   }
 
   void _evaluate() {
+    if (state == NetworkStatus.online &&
+        _failures == 0 &&
+        _graceTimer != null) {
+      // The backend answered during the grace period: the outage was a blip
+      // (e.g. the radio waking up after the screen was turned on).
+      _graceTimer!.cancel();
+      _graceTimer = null;
+      _retryFailedQueries();
+      return;
+    }
     if (_holdTimer != null) return;
     if (state == NetworkStatus.online &&
         _failures >= _timings.failuresToGoOffline) {
-      _commit(NetworkStatus.offline);
+      _startGracePeriod();
     } else if (state == NetworkStatus.offline &&
         _successes >= _timings.successesToGoOnline) {
       _commit(NetworkStatus.online);
     }
   }
 
+  void _startGracePeriod() {
+    if (_graceTimer != null) return;
+    _graceTimer = Timer(_timings.offlineGracePeriod, () {
+      _graceTimer = null;
+      if (_disposed || state != NetworkStatus.online) return;
+      // Every probe since the grace period began has failed.
+      if (_failures >= _timings.failuresToGoOffline) {
+        _commit(NetworkStatus.offline);
+      }
+    });
+  }
+
   void _commit(NetworkStatus next) {
+    _graceTimer?.cancel();
+    _graceTimer = null;
     _failures = 0;
     _successes = 0;
     state = next;

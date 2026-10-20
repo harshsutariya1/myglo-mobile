@@ -109,7 +109,7 @@ void main() {
     harnessTest('a committed state is held so the popup cannot flash', (tester, h) async {
       await _elapse(tester, const Duration(seconds: 1));
       h.reachable = false;
-      await _elapse(tester, const Duration(seconds: 11));
+      await _elapse(tester, const Duration(seconds: 13));
       expect(h.status, NetworkStatus.offline);
 
       // Connection returns immediately after the popup appears; the hold window
@@ -117,6 +117,46 @@ void main() {
       h.reachable = true;
       await _elapse(tester, const Duration(milliseconds: 1500));
       expect(h.status, NetworkStatus.offline);
+    });
+
+    harnessTest('waits 2s after detecting no connection before going offline', (tester, h) async {
+      await _elapse(tester, const Duration(seconds: 1));
+
+      h.reachable = false;
+      await h.notifier.recheck(); // e.g. app resumed with the radio still off
+      await _elapse(tester, const Duration(milliseconds: 1100)); // 2nd failure
+      expect(h.status, NetworkStatus.online, reason: 'still in the grace period');
+
+      await _elapse(tester, const Duration(milliseconds: 1500));
+      expect(h.status, NetworkStatus.online, reason: 'grace period not over yet');
+
+      await _elapse(tester, const Duration(milliseconds: 700));
+      expect(h.status, NetworkStatus.offline);
+      expect(h.history, [NetworkStatus.offline]);
+    });
+
+    harnessTest('screen-on blip that recovers within the grace period never shows offline', (tester, h) async {
+      var builds = 0;
+      final failingQuery = FutureProvider<int>((ref) async {
+        builds++;
+        if (!h.reachable) throw const SocketException('Failed host lookup');
+        return builds;
+      }, retry: (_, _) => null);
+      await _elapse(tester, const Duration(seconds: 1));
+
+      // Screen turned back on: the first probes and a query fail while the
+      // radio wakes up, then the connection comes back.
+      h.reachable = false;
+      final sub = h.container.listen(failingQuery, (_, _) {});
+      addTearDown(sub.close);
+      await h.notifier.recheck();
+      await _elapse(tester, const Duration(milliseconds: 1100));
+      h.reachable = true;
+      await _elapse(tester, const Duration(seconds: 15));
+
+      expect(h.status, NetworkStatus.online);
+      expect(h.history, isEmpty, reason: 'popup must never have mounted');
+      expect(builds, 2, reason: 'the failed query is re-run once recovered');
     });
 
     harnessTest('manual recheck restores online immediately when reachable', (tester, h) async {
