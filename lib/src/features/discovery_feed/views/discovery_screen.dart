@@ -253,8 +253,8 @@ class _FeedSwitcher extends StatelessWidget {
           overlayColor: const WidgetStatePropertyAll(Colors.transparent),
           labelColor: scheme.onSurface,
           unselectedLabelColor: scheme.onSurface.withValues(alpha: 0.5),
-          labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, fontFamily: 'Muli'),
-          unselectedLabelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, fontFamily: 'Muli'),
+          labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, fontFamily: AppTheme.fontFamily),
+          unselectedLabelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, fontFamily: AppTheme.fontFamily),
           tabs: const [
             Tab(text: 'For you'),
             Tab(text: 'Favourites'),

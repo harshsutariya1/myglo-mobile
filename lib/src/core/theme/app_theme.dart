@@ -15,6 +15,9 @@ class AppTheme {
   static const Color warning = Color(0xFFF59E0B);
   static const Color success = Color(0xFF22C55E);
 
+  /// Bundled font family declared in pubspec.yaml (assets/fonts/mulish).
+  static const String fontFamily = 'Mulish';
+
   static final ColorScheme lightColorScheme = ColorScheme(
     brightness: Brightness.light,
     primary: primaryPink,
@@ -36,7 +39,7 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: lightColorScheme,
       scaffoldBackgroundColor: lightColorScheme.surface,
-      fontFamily: 'Muli',
+      fontFamily: fontFamily,
       appBarTheme: AppBarTheme(
         backgroundColor: lightColorScheme.surface,
         elevation: 0,
@@ -45,7 +48,7 @@ class AppTheme {
           color: lightColorScheme.onSurface,
           fontSize: 20,
           fontWeight: FontWeight.bold,
-          fontFamily: 'Muli',
+          fontFamily: fontFamily,
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(

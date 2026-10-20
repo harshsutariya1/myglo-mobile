@@ -97,6 +97,31 @@ flutter:
     - assets/images/
     - shorebird.yaml
 
+  # Mulish (formerly "Muli"), static weights from
+  # https://github.com/googlefonts/mulish, SIL Open Font License 1.1
+  # (assets/fonts/mulish/OFL.txt). Bundled so iOS and Android render the same
+  # typeface instead of falling back to SF Pro / Roboto.
+  fonts:
+    - family: Mulish
+      fonts:
+        - asset: assets/fonts/mulish/Mulish-Light.ttf
+          weight: 300
+        - asset: assets/fonts/mulish/Mulish-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/mulish/Mulish-Italic.ttf
+          weight: 400
+          style: italic
+        - asset: assets/fonts/mulish/Mulish-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/mulish/Mulish-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/mulish/Mulish-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/mulish/Mulish-ExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/mulish/Mulish-Black.ttf
+          weight: 900
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg
