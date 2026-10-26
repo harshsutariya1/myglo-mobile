@@ -40,6 +40,19 @@ List<TextSpan> highlightMatches(String text, Iterable<String> words, {required T
   return spans;
 }
 
+/// Icon for one of the service categories (see `ServiceCatalog`).
+IconData serviceCategoryIcon(String category) => switch (category.toLowerCase()) {
+      'hair' => Icons.content_cut_rounded,
+      'colour' => Icons.palette_outlined,
+      'nails' => Icons.back_hand_outlined,
+      'lashes & brows' => Icons.visibility_outlined,
+      'makeup' => Icons.brush_outlined,
+      'skin & facials' => Icons.face_retouching_natural_outlined,
+      'waxing' => Icons.spa_outlined,
+      'massage' => Icons.self_improvement_rounded,
+      _ => Icons.auto_awesome_outlined,
+    };
+
 /// Square-ish photo for a provider: their cover or profile photo, or their
 /// initials on the brand gradient.
 class ListingImage extends StatelessWidget {

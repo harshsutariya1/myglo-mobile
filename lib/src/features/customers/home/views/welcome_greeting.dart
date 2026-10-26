@@ -1,7 +1,8 @@
-/// Returns the first whitespace-separated token of [name], or `null` when the
-/// name is missing or blank.
-String? firstNameFrom(String? name) {
-  final trimmed = name?.trim() ?? '';
-  if (trimmed.isEmpty) return null;
-  return trimmed.split(RegExp(r'\s+')).first;
+/// `Good morning` / `Good afternoon` / `Good evening` for the device's wall
+/// clock at [now].
+String timeOfDayGreeting(DateTime now) {
+  final hour = now.hour;
+  if (hour >= 5 && hour < 12) return 'Good morning';
+  if (hour >= 12 && hour < 17) return 'Good afternoon';
+  return 'Good evening';
 }

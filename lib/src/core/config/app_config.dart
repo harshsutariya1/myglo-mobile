@@ -44,6 +44,13 @@ class AppConfig {
   /// Most providers the map loads for one area. The server caps it at 300.
   static const int mapProvidersLimit = 200;
 
+  /// How far around the client's current location the home feed looks for
+  /// providers. A chosen city uses its own radius instead.
+  static const double homeProvidersRadiusMetres = 30000;
+
+  /// Most providers listed on the client home screen; the map shows the rest.
+  static const int homeProvidersLimit = 40;
+
   /// Most cover photos on a provider profile. The database enforces the same.
   static const int coverPhotosMax = 5;
 

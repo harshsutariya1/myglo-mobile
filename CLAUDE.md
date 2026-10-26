@@ -1,7 +1,7 @@
 # Myglo — Project Context
 
 ## What This Is
-Myglo is a Flutter mobile app for salon service booking, launching in Gold Coast, Australia. 
+Myglo is a Flutter mobile app for salon service booking, launching on the Gold Coast, Australia. 
 Development is based in India. The app serves three distinct user types:
 - **Clients** — browse and book salon services
 - **Providers** — salons/individuals offering services, managing their availability and bookings

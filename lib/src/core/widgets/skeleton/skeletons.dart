@@ -10,60 +10,6 @@ export 'shimmer.dart';
 /// of the widget it stands in for, so nothing jumps when data arrives. None of
 /// them animate by themselves: place them under a [Shimmer].
 
-/// Mirrors `ProviderItemWithImage`: an 80×80 thumbnail beside three lines.
-class ProviderItemSkeleton extends StatelessWidget {
-  const ProviderItemSkeleton({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Row(
-      children: [
-        SkeletonBox(width: 80, height: 80, borderRadius: 20),
-        SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SkeletonText(
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1.2),
-                widthFactor: 0.3,
-              ),
-              SizedBox(height: 4),
-              SkeletonText(
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                widthFactor: 0.6,
-              ),
-              SizedBox(height: 4),
-              SkeletonText(style: TextStyle(fontSize: 14), widthFactor: 0.8),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// A vertical list of [ProviderItemSkeleton]s with the Home list spacing.
-class ProviderListSkeleton extends StatelessWidget {
-  const ProviderListSkeleton({super.key, this.itemCount = 4});
-
-  final int itemCount;
-
-  @override
-  Widget build(BuildContext context) {
-    return Shimmer(
-      child: Column(
-        children: [
-          for (var i = 0; i < itemCount; i++) ...[
-            if (i > 0) const SizedBox(height: 16),
-            const ProviderItemSkeleton(),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
 /// Mirrors the category heading used above grouped services.
 class ServiceCategorySkeleton extends StatelessWidget {
   const ServiceCategorySkeleton({super.key});

@@ -1,23 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:myglo/src/core/utils/formatters.dart';
 import 'package:myglo/src/core/utils/geo.dart';
-import 'package:myglo/src/features/customers/home/views/welcome_greeting.dart';
 
 void main() {
-  group('firstNameFrom', () {
-    test('returns the first whitespace-separated token', () {
-      expect(firstNameFrom('Priya'), 'Priya');
-      expect(firstNameFrom('Mary Jane'), 'Mary');
-      expect(firstNameFrom('  Ana \t Lucia  '), 'Ana');
-    });
-
-    test('returns null for missing or blank names', () {
-      expect(firstNameFrom(null), isNull);
-      expect(firstNameFrom(''), isNull);
-      expect(firstNameFrom('   \n\t '), isNull);
-    });
-  });
-
   group('Formatters.aud', () {
     test('drops cents on whole dollars', () {
       expect(Formatters.aud(45), r'$45');

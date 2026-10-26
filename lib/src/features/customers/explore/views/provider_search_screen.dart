@@ -245,18 +245,6 @@ class _Suggestions extends ConsumerWidget {
   final void Function(String query, {bool remember}) onSearch;
   final VoidCallback onOpenMap;
 
-  static IconData _categoryIcon(String category) => switch (category.toLowerCase()) {
-        'hair' => Icons.content_cut_rounded,
-        'colour' => Icons.palette_outlined,
-        'nails' => Icons.back_hand_outlined,
-        'lashes & brows' => Icons.visibility_outlined,
-        'makeup' => Icons.brush_outlined,
-        'skin & facials' => Icons.face_retouching_natural_outlined,
-        'waxing' => Icons.spa_outlined,
-        'massage' => Icons.self_improvement_rounded,
-        _ => Icons.auto_awesome_outlined,
-      };
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
@@ -322,7 +310,7 @@ class _Suggestions extends ConsumerWidget {
           children: [
             for (final category in ServiceCatalog.categorySuggestions)
               ActionChip(
-                avatar: Icon(_categoryIcon(category), size: 18, color: scheme.secondary),
+                avatar: Icon(serviceCategoryIcon(category), size: 18, color: scheme.secondary),
                 label: Text(category),
                 onPressed: () => onSearch(category),
                 labelStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: scheme.onSurface),

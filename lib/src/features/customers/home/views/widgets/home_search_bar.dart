@@ -38,31 +38,36 @@ class HomeSearchBar extends StatelessWidget {
         const SizedBox(width: 10),
         Tooltip(
           message: 'Map',
-          child: Material(
-            color: scheme.primary,
-            shape: const CircleBorder(),
-            elevation: 0,
-            child: InkWell(
-              customBorder: const CircleBorder(),
-              onTap: () {
-                HapticFeedback.selectionClick();
-                context.pushNamed(AppRoute.providersMap.name);
-              },
+          // The glow sits outside the Material: painted on its ink layer it
+          // gets cropped to a square.
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(color: scheme.primary.withValues(alpha: 0.35), blurRadius: 14, offset: const Offset(0, 6)),
+              ],
+            ),
+            child: Material(
+              type: MaterialType.transparency,
+              shape: const CircleBorder(),
+              clipBehavior: Clip.antiAlias,
               child: Ink(
                 width: 52,
                 height: 52,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [AppTheme.primaryPink, AppTheme.burntOrange],
                   ),
-                  boxShadow: [
-                    BoxShadow(color: scheme.primary.withValues(alpha: 0.35), blurRadius: 14, offset: const Offset(0, 6)),
-                  ],
                 ),
-                child: const Icon(Icons.map_rounded, color: Colors.white, semanticLabel: 'Open map'),
+                child: InkWell(
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    context.pushNamed(AppRoute.providersMap.name);
+                  },
+                  child: const Icon(Icons.map_rounded, color: Colors.white, semanticLabel: 'Open map'),
+                ),
               ),
             ),
           ),
