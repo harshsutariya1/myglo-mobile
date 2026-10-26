@@ -102,6 +102,12 @@ App Store Connect as usual.
 A store release is needed whenever native code, plugins, `pubspec.yaml`
 dependencies or assets change. Patches can only change Dart code.
 
+For example, iOS push notifications (2026-10-26) need a new iOS store
+release: the Push Notifications entitlement, the `remote-notification`
+background mode and the Dart code that turns iOS push on ship together.
+Patching just the Dart change onto an older iOS build would leave the app
+waiting for an APNs token that a build without the entitlement never gets.
+
 ## Patch (OTA fix)
 
 ```bash

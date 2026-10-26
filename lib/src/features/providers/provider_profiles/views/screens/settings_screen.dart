@@ -248,8 +248,8 @@ class _SettingsSkeleton extends StatelessWidget {
   }
 }
 
-/// Push notifications on/off for this phone. Android only for now; iOS
-/// shows it as coming soon until APNs is configured.
+/// Push notifications on/off for this phone (Android and iOS). Elsewhere
+/// the switch stays off and disabled.
 class _PushNotificationsTile extends ConsumerStatefulWidget {
   const _PushNotificationsTile();
 
@@ -262,19 +262,10 @@ class _PushNotificationsTileState extends ConsumerState<_PushNotificationsTile> 
   Widget build(BuildContext context) {
     final status = ref.watch(pushNotificationsProvider).value;
     final model = PushToggleModel.of(status);
-    if (status == PushStatus.unsupported) {
-      return SettingsTile(
-        icon: Icons.notifications_none_rounded,
-        title: 'Push notifications',
-        subtitle: model.subtitle,
-        soon: true,
-        onTap: () => context.showComingSoon('Push notifications on this device'),
-      );
-    }
     final busy = pendingPushValue != null;
     final value = pendingPushValue ?? model.value;
     return SettingsTile(
-      icon: Icons.notifications_active_outlined,
+      icon: status == PushStatus.unsupported ? Icons.notifications_off_outlined : Icons.notifications_active_outlined,
       title: 'Push notifications',
       subtitle: model.subtitle,
       iconColor: status == PushStatus.blocked ? AppTheme.warning : null,

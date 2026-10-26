@@ -23,12 +23,13 @@ class _MockAuthRepository extends Mock implements AuthRepository {}
 
 class _FakeTokens implements PushTokenRepository {
   final registered = <String>[];
+  final platforms = <String>[];
   final unregistered = <String>[];
 
   @override
   Future<void> register(String token, {required String platform}) async {
-    expect(platform, 'android');
     registered.add(token);
+    platforms.add(platform);
   }
 
   @override
@@ -128,7 +129,71 @@ void main() {
 
       expect(await _status(container), PushStatus.on);
       expect(tokens.registered, [push.currentToken]);
+      expect(tokens.platforms, ['android']);
       expect(push.permissionRequests, 0);
+    });
+
+    test('registers an iPhone as ios', () async {
+      final push = FakePushMessaging(platform: PushPlatform.ios, currentPermission: PushPermission.granted);
+      final tokens = _FakeTokens();
+      final container = await _container(push: push, tokens: tokens);
+
+      expect(await _status(container), PushStatus.on);
+      expect(tokens.registered, [push.currentToken]);
+      expect(tokens.platforms, ['ios']);
+    });
+
+    test('iOS: first time asks, then registers', () async {
+      final push = FakePushMessaging(platform: PushPlatform.ios);
+      final tokens = _FakeTokens();
+      final container = await _container(push: push, tokens: tokens);
+      expect(await _status(container), PushStatus.off);
+
+      await container.read(pushNotificationsProvider.notifier).enable();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(push.permissionRequests, 1);
+      expect(container.read(pushNotificationsProvider).value, PushStatus.on);
+      expect(tokens.platforms, ['ios']);
+    });
+
+    test('iOS: a refusal is blocked and turning on opens the system settings', () async {
+      final push = FakePushMessaging(platform: PushPlatform.ios, answer: PushPermission.blocked);
+      final system = _FakeSystem();
+      final tokens = _FakeTokens();
+      final container = await _container(push: push, system: system, tokens: tokens);
+      await _status(container);
+
+      await container.read(pushNotificationsProvider.notifier).enable();
+      expect(container.read(pushNotificationsProvider).value, PushStatus.blocked);
+      expect(tokens.registered, isEmpty);
+
+      // iOS never prompts again: the next tap goes to Settings.
+      await container.read(pushNotificationsProvider.notifier).enable();
+      expect(system.settingsOpened, 1);
+      expect(push.permissionRequests, 1);
+
+      // Allowed in Settings, then back in the app.
+      push.currentPermission = PushPermission.granted;
+      await container.read(pushNotificationsProvider.notifier).refresh();
+      await Future<void>.delayed(Duration.zero);
+      expect(container.read(pushNotificationsProvider).value, PushStatus.on);
+      expect(tokens.platforms, ['ios']);
+    });
+
+    test('no token yet (e.g. APNs not ready): stays on and registers on the next refresh', () async {
+      final push = FakePushMessaging(platform: PushPlatform.ios, currentPermission: PushPermission.granted)
+        ..currentToken = null;
+      final tokens = _FakeTokens();
+      final container = await _container(push: push, tokens: tokens);
+
+      expect(await _status(container), PushStatus.on);
+      expect(tokens.registered, isEmpty);
+
+      push.currentToken = 'apns-backed-token-0123456789abcdefghijklmnopqrstuvwxyz';
+      await container.read(pushNotificationsProvider.notifier).refresh();
+      await Future<void>.delayed(Duration.zero);
+      expect(tokens.registered, ['apns-backed-token-0123456789abcdefghijklmnopqrstuvwxyz']);
     });
 
     test('not allowed yet: off until turned on, then asks and registers', () async {
@@ -217,7 +282,7 @@ void main() {
     });
 
     test('unsupported platforms do nothing', () async {
-      final push = FakePushMessaging(isSupported: false, currentPermission: PushPermission.granted);
+      final push = FakePushMessaging(platform: null, currentPermission: PushPermission.granted);
       final tokens = _FakeTokens();
       final container = await _container(push: push, tokens: tokens);
 
@@ -238,6 +303,21 @@ void main() {
         // The device must already be unlinked while the session is valid.
         expect(tokens.unregistered, [token]);
       });
+      final container = await _container(push: push, tokens: tokens, auth: auth);
+      await _status(container);
+
+      await container.read(sessionActionsProvider).signOut();
+
+      verify(() => auth.signOut()).called(1);
+      expect(push.tokenDeletions, 1);
+    });
+
+    test('on iOS too', () async {
+      final push = FakePushMessaging(platform: PushPlatform.ios, currentPermission: PushPermission.granted);
+      final tokens = _FakeTokens();
+      final auth = _MockAuthRepository();
+      final token = push.currentToken;
+      when(() => auth.signOut()).thenAnswer((_) async => expect(tokens.unregistered, [token]));
       final container = await _container(push: push, tokens: tokens, auth: auth);
       await _status(container);
 

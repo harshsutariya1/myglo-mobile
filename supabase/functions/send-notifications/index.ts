@@ -10,8 +10,9 @@
 // Work is claimed atomically in the database (FOR UPDATE SKIP LOCKED), so two
 // invocations never pick up the same delivery. Every email carries a Resend
 // Idempotency-Key so a retried delivery can't produce a second email; every
-// push is tagged with its notification id, so a repeat replaces the first one
-// on the device instead of stacking.
+// push is tagged with its notification id (Android `tag`, APNs
+// `apns-collapse-id`), so a repeat replaces the first one on the device
+// instead of stacking.
 //
 // The request body is just `{ "delivery_ids": [...] }` (or `{}` to process
 // everything due). Content, recipients and state all come from the database,
@@ -37,8 +38,9 @@ const SEND_TIMEOUT_MS = 10_000;
 const STALE_AFTER_MS = 12 * 60 * 60 * 1000;
 /** A push about something hours old is noise; the in-app inbox still has it. */
 const PUSH_STALE_AFTER_MS = 2 * 60 * 60 * 1000;
-/** How long FCM keeps trying an offline device. */
-const PUSH_TTL = '14400s';
+/** How long FCM (and APNs) keep trying an offline device. */
+const PUSH_TTL_SECONDS = 4 * 60 * 60;
+const PUSH_TTL = `${PUSH_TTL_SECONDS}s`;
 /** Android channel created by the app (MainActivity.kt). */
 const ANDROID_CHANNEL_ID = 'bookings';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -314,7 +316,15 @@ async function sendToToken(
             },
           },
           apns: {
-            headers: { 'apns-priority': '10' },
+            headers: {
+              'apns-push-type': 'alert',
+              // Deliver now (an alert, not a background push).
+              'apns-priority': '10',
+              'apns-expiration': String(Math.floor(Date.now() / 1000) + PUSH_TTL_SECONDS),
+              // At most 64 bytes; a notification id is a 36-character UUID.
+              'apns-collapse-id': delivery.notification_id,
+            },
+            // Groups a booking's pushes together in Notification Centre.
             payload: { aps: { sound: 'default', 'thread-id': delivery.booking_id ?? delivery.kind } },
           },
         },
@@ -324,17 +334,26 @@ async function sendToToken(
     const payload = await response.json().catch(() => ({}));
     if (response.ok) return { result: 'sent', messageId: payload?.name };
 
-    if (response.status === 401) accessToken = null;
     const status: string = payload?.error?.status ?? '';
     const message: string = payload?.error?.message ?? '';
     const code: string = (payload?.error?.details ?? [])
       .map((d: { errorCode?: string }) => d?.errorCode)
       .find(Boolean) ?? '';
+    // A 401 about the APNs key says nothing about our Google token.
+    if (response.status === 401 && code !== 'THIRD_PARTY_AUTH_ERROR') accessToken = null;
     const detail = `fcm ${response.status} ${code || status}: ${message}`.trim();
 
+    // Dead tokens look the same for both platforms: FCM reports APNs's
+    // Unregistered / BadDeviceToken as UNREGISTERED or an invalid token.
     if (code === 'UNREGISTERED' || code === 'SENDER_ID_MISMATCH' || status === 'NOT_FOUND'
       || (status === 'INVALID_ARGUMENT' && /registration token/i.test(message))) {
       return { result: 'unregistered', error: detail };
+    }
+    // APNs rejected Firebase's APNs key (missing, revoked or wrong team).
+    // That's setup, not this device: keep the token and retry, so pushes
+    // resume once the key in Firebase is fixed.
+    if (code === 'THIRD_PARTY_AUTH_ERROR') {
+      return { result: 'transient', error: `${detail} (check the APNs key in Firebase)` };
     }
     if (response.status === 401 || response.status === 429 || response.status >= 500) {
       return { result: 'transient', error: detail };

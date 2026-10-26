@@ -5,14 +5,17 @@ import 'package:myglo/src/features/shared/notifications/push/push_messaging.dart
 /// In-memory [PushMessaging] for tests: no Firebase, scripted permission.
 class FakePushMessaging implements PushMessaging {
   FakePushMessaging({
-    this.isSupported = true,
+    this.platform = PushPlatform.android,
     this.currentPermission = PushPermission.canAsk,
     this.answer = PushPermission.granted,
     this.currentToken = 'fake-fcm-token-0123456789abcdefghijklmnopqrstuvwxyz',
   });
 
   @override
-  final bool isSupported;
+  final PushPlatform? platform;
+
+  @override
+  bool get isSupported => platform != null;
   PushPermission currentPermission;
 
   /// What the system prompt answers when [requestPermission] is called.

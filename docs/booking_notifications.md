@@ -140,7 +140,8 @@ rejected it permanently. Function logs are under Edge Functions →
 
 Every in-app notification is also pushed to the recipient's phone through
 Firebase Cloud Messaging, except ones about something they did themselves.
-Push is live on **Android**; iOS follows once APNs is set up (see below).
+Push works on **Android** and **iOS** (iOS from the first store build that
+includes it; see "iOS" below). Web and desktop builds don't register.
 
 ```
 private.notify ──► public.notifications                      (in-app, as before)
@@ -159,15 +160,20 @@ private.notify ──► public.notifications                      (in-app, as b
 - **Asking for permission.** Never on launch. Providers see a "Never miss a
   booking request" card on their home screen; clients see one on the booking
   confirmation. Both settings screens have a Push notifications switch;
-  when Android has blocked notifications it opens the system settings.
+  when the phone has blocked notifications it opens the system settings.
+  iOS only ever asks once, so after any refusal there the switch goes
+  straight to Settings.
 - **What a push looks like.** Title and body are the notification's own.
   Android posts it to the "Bookings" channel (high importance) with the
-  Myglo icon. A repeat delivery replaces the earlier one instead of stacking.
-  Pushes older than 2 hours are skipped (the inbox still has them).
+  Myglo icon. On iOS it plays the default sound and a booking's pushes are
+  grouped into one thread in Notification Centre. A repeat delivery replaces
+  the earlier one instead of stacking (Android `tag`, APNs
+  `apns-collapse-id`). Pushes older than 2 hours are skipped (the inbox
+  still has them); an offline phone gets them for up to 4 hours.
 - **Tapping one** opens the booking (`/booking/:id` for clients,
   `/appointments/:id` for providers), including when it launched the app.
   With the app open, nothing is shown by the system: the in-app banner
-  covers it.
+  covers it (on iOS the app turns foreground presentation off explicitly).
 
 ### Sending setup (done 2026-10-12)
 
@@ -213,14 +219,52 @@ practical option.
 
 Check deliveries with the query above (`channel = 'push'`).
 
-### To do: iOS
+### iOS (done 2026-10-26)
 
-1. Apple Developer → Keys → create an **APNs** key (`.p8`) and upload it in
-   Firebase → Project settings → Cloud Messaging → Apple app configuration.
-2. In Xcode, add the **Push Notifications** capability and **Background
-   Modes → Remote notifications** to the Runner target (needs a provisioning
-   profile with push enabled).
-3. Enable iOS in the app: `FirebasePushMessaging.isSupported` (in
-   `lib/src/features/shared/notifications/push/push_messaging.dart`) and the
-   `'android'` platform passed to `register_push_token` in
-   `push_notifications_controller.dart`.
+- The APNs authentication key (`.p8`) is uploaded in Firebase → Project
+  settings → Cloud Messaging → Apple app configuration. One key covers both
+  the sandbox (Xcode builds) and production (TestFlight / App Store) APNs
+  environments; FCM picks the right one for each token.
+- The Runner target has the **Push Notifications** capability and
+  **Background Modes → Remote notifications**. Before an iOS release, check
+  that `ios/Runner/Runner.entitlements` (with `aps-environment`) is
+  committed, `CODE_SIGN_ENTITLEMENTS` points at it for Debug, Release and
+  Profile, and `Info.plist` lists `remote-notification` under
+  `UIBackgroundModes`. Without the entitlement iOS never issues an APNs
+  token and Sentry reports "No APNs token after retrying".
+- `GoogleService-Info.plist` is for bundle ID `app.myglo.myglo`.
+- In the app, `FirebasePushMessaging` waits for the APNs token (about 8 s of
+  back-off) before asking FCM for its token, since FCM can't issue one
+  first (`apns-token-not-set`). Tokens are registered with platform `ios`.
+- These are native changes: they reach users through a new iOS store build
+  (`scripts/shorebird_build.sh release ios`), not a Shorebird patch.
+
+#### Testing on a real iPhone
+
+- **Use a real device.** The Simulator can receive APNs pushes only on an
+  Apple silicon Mac (Xcode 14+, iOS 16+ simulator), and it isn't a reliable
+  check of signing or entitlements. Shorebird builds don't run on the
+  Simulator at all.
+- **Sandbox vs production.** A build run from Xcode (or `flutter run`) uses
+  the sandbox APNs environment; TestFlight and App Store builds use
+  production. Their tokens differ, so after switching between the two the
+  app registers a new token and the old one is pruned the first time a push
+  to it fails.
+- **Check the token.** After signing in and allowing notifications:
+
+  ```sql
+  select platform, updated_at from private.push_tokens
+  order by updated_at desc limit 5;
+  ```
+
+  A recent `ios` row means registration worked.
+- **Check delivery** with the deliveries query above (`channel = 'push'`).
+  `THIRD_PARTY_AUTH_ERROR` in `last_error` means APNs rejected Firebase's
+  key: re-check the `.p8`, its Key ID and the Team ID in Firebase.
+- **Foreground, background and closed.** With the app open only the in-app
+  banner appears. In the background, and after swiping the app away, the
+  system shows the push; tapping it opens the booking (from a closed app,
+  once the splash screen is done).
+- **Denied permission.** After "Don't Allow", the switch shows "Blocked in
+  your phone settings" and opens Settings → Myglo → Notifications.
+  Allowing there and coming back registers the phone.

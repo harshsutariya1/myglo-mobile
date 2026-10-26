@@ -76,9 +76,13 @@ const _profile = ProfileModel(
 /// Records push token registrations instead of calling Supabase.
 class _FakePushTokens implements PushTokenRepository {
   final registered = <String>[];
+  final platforms = <String>[];
 
   @override
-  Future<void> register(String token, {required String platform}) async => registered.add(token);
+  Future<void> register(String token, {required String platform}) async {
+    registered.add(token);
+    platforms.add(platform);
+  }
 
   @override
   Future<void> unregister(String token) async => registered.remove(token);
@@ -352,12 +356,36 @@ void main() {
     expect(tokens.registered, [push.currentToken]);
   });
 
-  testWidgets('push notifications show as coming soon where unsupported', (tester) async {
-    await _pump(tester, push: FakePushMessaging(isSupported: false));
+  testWidgets('turning push notifications on works on iPhone and registers it as iOS', (tester) async {
+    final push = FakePushMessaging(platform: PushPlatform.ios);
+    final tokens = _FakePushTokens();
+    await _pump(tester, push: push, pushTokens: tokens);
 
     await _tapRow(tester, 'Push notifications');
 
-    expect(find.text('Push notifications on this device is coming soon'), findsOneWidget);
+    expect(push.permissionRequests, 1);
+    expect(find.text('Booking requests, confirmations, changes and reminders'), findsOneWidget);
+    expect(tokens.registered, [push.currentToken]);
+    expect(tokens.platforms, ['ios']);
+  });
+
+  testWidgets('a refusal on iPhone offers the system settings', (tester) async {
+    await _pump(tester, push: FakePushMessaging(platform: PushPlatform.ios, currentPermission: PushPermission.blocked));
+
+    await tester.scrollUntilVisible(find.text('Push notifications'), 300);
+
+    expect(find.text('Blocked in your phone settings. Tap to open them'), findsOneWidget);
+  });
+
+  testWidgets('push notifications are disabled, not "soon", where unsupported', (tester) async {
+    final push = FakePushMessaging(platform: null);
+    await _pump(tester, push: push);
+
+    await _tapRow(tester, 'Push notifications');
+
+    expect(find.text('Not available on this device. Booking updates still arrive in the app and by email'), findsOneWidget);
+    expect(find.textContaining('coming soon'), findsNothing);
+    expect(push.permissionRequests, 0);
   });
 
   testWidgets('log out asks for confirmation first', (tester) async {

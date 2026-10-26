@@ -12,7 +12,7 @@ import 'push_token_repository.dart';
 
 /// Where push notifications stand on this device for the signed-in user.
 enum PushStatus {
-  /// This platform doesn't receive pushes yet (iOS until APNs is set up).
+  /// This platform can't receive pushes (web, desktop).
   unsupported,
 
   /// Allowed, and this device is registered for booking updates.
@@ -39,6 +39,7 @@ class PushNotificationsController extends AsyncNotifier<PushStatus> {
 
   /// Set when asking showed no prompt (Android 12 and older with
   /// notifications switched off): only the system settings can help then.
+  /// iOS reports a refusal as blocked directly.
   static const _promptUnavailableKey = 'push_prompt_unavailable';
 
   /// A permission answer this quick means no prompt was shown.
@@ -142,13 +143,14 @@ class PushNotificationsController extends AsyncNotifier<PushStatus> {
 
   Future<void> _register({String? token}) async {
     final userId = _userId;
-    if (userId == null) return;
+    final platform = _messaging.platform;
+    if (userId == null || platform == null) return;
     final key = _optOutKey;
     if (key != null && (_prefs.getBool(key) ?? false)) return;
     final value = token ?? await _messaging.token();
     if (value == null || (value == _registeredToken && userId == _registeredFor)) return;
     try {
-      await ref.read(pushTokenRepositoryProvider).register(value, platform: 'android');
+      await ref.read(pushTokenRepositoryProvider).register(value, platform: platform.name);
       _registeredToken = value;
       _registeredFor = userId;
     } catch (_) {

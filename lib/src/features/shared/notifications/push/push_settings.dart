@@ -40,7 +40,7 @@ class PushToggleModel {
         PushStatus.unsupported => const PushToggleModel(
             value: false,
             enabled: false,
-            subtitle: 'Coming soon on this device. Booking updates still arrive in the app and by email',
+            subtitle: 'Not available on this device. Booking updates still arrive in the app and by email',
           ),
       };
 }
