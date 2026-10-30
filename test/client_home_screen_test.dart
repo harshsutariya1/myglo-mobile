@@ -19,6 +19,7 @@ import 'package:myglo/src/features/customers/home/models/service_cities_reposito
 import 'package:myglo/src/features/customers/home/models/service_city.dart';
 import 'package:myglo/src/features/customers/home/views/home_screen.dart';
 import 'package:myglo/src/features/customers/home/views/welcome_greeting.dart';
+import 'package:myglo/src/features/customers/home/views/widgets/home_header.dart';
 import 'package:myglo/src/features/customers/home/views/widgets/home_location_picker.dart';
 import 'package:myglo/src/features/customers/home/views/widgets/home_no_salons.dart';
 import 'package:myglo/src/features/customers/home/views/widgets/home_provider_cards.dart';
@@ -31,6 +32,7 @@ import 'package:myglo/src/features/shared/bookings/models/booking.dart';
 import 'package:myglo/src/features/shared/bookings/models/booking_enums.dart';
 import 'package:myglo/src/features/shared/notifications/controllers/notifications_controller.dart';
 import 'package:myglo/src/features/shared/notifications/models/app_notification.dart';
+import 'package:myglo/src/features/shared/notifications/views/notification_bell.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -288,6 +290,66 @@ void main() {
       await _pumpHome(tester, await _overrides(inbox: [_notification('a', read: true)], feedNeverLoads: true));
       expect(find.byTooltip('Notifications'), findsOneWidget);
     });
+
+    testWidgets('the location selector sits left of the bell', (tester) async {
+      await _pumpHome(tester, await _overrides());
+      final selector = tester.getCenter(find.byType(HomeLocationButton));
+      final bell = tester.getCenter(find.byType(NotificationBell));
+      expect(selector.dx, lessThan(bell.dx));
+      expect(selector.dy, closeTo(bell.dy, 1));
+      expect(find.byTooltip('Location: Gold Coast. Change location'), findsOneWidget);
+    });
+
+    testWidgets('on a narrow screen the greeting shrinks instead of overflowing', (tester) async {
+      Future<double> greetingSize(double width) async {
+        tester.view.physicalSize = Size(width * 3, 2400);
+        tester.view.devicePixelRatio = 3;
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.lightTheme,
+            home: Scaffold(
+              body: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: ProviderScope(
+                  overrides: await _overrides(feedNeverLoads: true),
+                  retry: (_, _) => null,
+                  // Afternoon has the longest greeting.
+                  child: HomeHeader(now: DateTime(2026, 10, 30, 14)),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        expect(tester.takeException(), isNull, reason: 'at ${width}dp');
+        return tester.widget<Text>(find.text('Good afternoon')).style!.fontSize!;
+      }
+
+      addTearDown(tester.view.reset);
+      // Test glyphs are a full em wide, so "wide" has to be wider than any phone.
+      final wide = await greetingSize(800);
+      final narrow = await greetingSize(320);
+      expect(narrow, lessThan(wide));
+      expect(narrow, greaterThanOrEqualTo(HomeHeader.minGreetingFontSize));
+      expect(wide, lessThanOrEqualTo(HomeHeader.maxGreetingFontSize));
+    });
+
+    test('fits the greeting to the space it has', () {
+      const style = TextStyle(fontSize: 30, fontWeight: FontWeight.w900);
+      double fit(double width) => fittingFontSize(
+            'Good afternoon',
+            style: style,
+            maxWidth: width,
+            textScaler: TextScaler.noScaling,
+            min: 22,
+            max: 30,
+          );
+      expect(fit(double.infinity), 30);
+      expect(fit(10000), 30);
+      expect(fit(10), 22);
+      expect(fit(300), inInclusiveRange(22, 30));
+      expect(fit(250), lessThanOrEqualTo(fit(300)));
+    });
   });
 
   group('choice storage', () {
@@ -357,7 +419,7 @@ void main() {
       );
 
       expect(find.text('Near you'), findsOneWidget);
-      expect(find.text('Current location'), findsOneWidget);
+      expect(find.byTooltip('Location: Current location. Change location'), findsOneWidget);
       expect(find.byType(NearbyProviderTile), findsNWidgets(3));
       expect(find.text('1.2 km'), findsOneWidget);
       // The position is coarsened before it leaves the device.
@@ -369,7 +431,7 @@ void main() {
       await _pumpHome(tester, await _overrides(explore: explore));
 
       expect(find.text('Salons on the Gold Coast'), findsOneWidget);
-      expect(find.text('Gold Coast'), findsOneWidget);
+      expect(find.byTooltip('Location: Gold Coast. Change location'), findsOneWidget);
       expect(explore.requests.single, (centre: _goldCoast.centre, radius: _goldCoast.radiusMetres));
       expect(find.text('1.2 km'), findsNothing);
     });
@@ -387,6 +449,25 @@ void main() {
 
       expect(find.text('Salons on the Gold Coast'), findsOneWidget);
       expect(explore.requests.single.centre, _goldCoast.centre);
+    });
+
+    test('the home area is the chosen city, else around the device, coarsened', () async {
+      Future<HomeArea> areaFor(List<Override> overrides) async {
+        final container = ProviderContainer(overrides: overrides, retry: (_, _) => null);
+        addTearDown(container.dispose);
+        container.listen(homeAreaProvider, (_, _) {});
+        return container.read(homeAreaProvider.future);
+      }
+
+      final city = await areaFor(await _overrides(prefs: {_choiceKey: 'city:gc'}));
+      expect(city.place, const CityPlace(_goldCoast));
+      expect(city.origin, isNull);
+
+      final near = await areaFor(
+        await _overrides(device: _FakeDevice(access_: LocationAccess.granted, position: _surfers)),
+      );
+      expect(near.place, const NearDevicePlace());
+      expect(near.origin, const GeoPoint(latitude: -28.002, longitude: 153.415));
     });
 
     testWidgets('shows ratings once reviewed, and no prices or "New" tags', (tester) async {

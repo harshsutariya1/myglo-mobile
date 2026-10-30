@@ -29,8 +29,9 @@ String salonCountLabel(int count) => '$count ${count == 1 ? 'salon' : 'salons'}'
   };
 }
 
-/// The pill under the greeting: where the home screen is looking, and a way
-/// to change it.
+/// The location selector in the home app bar: shows whether home is looking
+/// around the client or at a city, names it in the tooltip, and opens the
+/// picker.
 class HomeLocationButton extends ConsumerWidget {
   const HomeLocationButton({super.key});
 
@@ -45,61 +46,21 @@ class HomeLocationButton extends ConsumerWidget {
         if (city.id == active.cityId) city.name,
     ].firstOrNull ??
         (feedPlace is CityPlace && feedPlace.city.id == active.cityId ? feedPlace.city.name : null);
-    final label = active.current ? 'Current location' : cityName ?? 'Choose location';
+    final label = active.current ? 'Current location' : cityName;
 
-    return Semantics(
-      button: true,
-      label: 'Location: $label. Change location',
-      excludeSemantics: true,
-      child: Material(
-        color: scheme.surface,
-        shape: StadiumBorder(side: BorderSide(color: scheme.onSurface.withValues(alpha: 0.09))),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: () {
-            HapticFeedback.selectionClick();
-            showHomeLocationPicker(context);
-          },
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(5, 5, 12, 5),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [AppTheme.primaryPink, AppTheme.burntOrange],
-                    ),
-                  ),
-                  child: Icon(
-                    active.current ? Icons.near_me_rounded : Icons.location_on_rounded,
-                    size: 15,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(width: 9),
-                Flexible(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    child: Text(
-                      label,
-                      key: ValueKey(label),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800, color: scheme.onSurface),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Icon(Icons.keyboard_arrow_down_rounded, size: 20, color: scheme.onSurface.withValues(alpha: 0.6)),
-              ],
-            ),
-          ),
+    return IconButton(
+      tooltip: label == null ? 'Choose location' : 'Location: $label. Change location',
+      onPressed: () {
+        HapticFeedback.selectionClick();
+        showHomeLocationPicker(context);
+      },
+      icon: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 200),
+        child: Icon(
+          active.current ? Icons.near_me_rounded : Icons.location_on_rounded,
+          key: ValueKey(active.current),
+          size: 24,
+          color: scheme.primary,
         ),
       ),
     );

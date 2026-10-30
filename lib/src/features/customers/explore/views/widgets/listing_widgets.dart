@@ -123,12 +123,18 @@ class ListingPill extends StatelessWidget {
             Icon(icon, size: 12.5, color: filled ? Colors.white : tint),
             const SizedBox(width: 4),
           ],
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-              color: filled ? Colors.white : Color.lerp(tint, Colors.black, 0.2),
+          // Loose, so the pill keeps its natural width when there's room and
+          // ellipsises when a parent gives it less.
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                color: filled ? Colors.white : Color.lerp(tint, Colors.black, 0.2),
+              ),
             ),
           ),
         ],

@@ -111,24 +111,34 @@ class MapProviderCard extends StatelessWidget {
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          if (listing.minPrice case final price?)
-                            ListingPill(label: 'From ${Formatters.aud(price)}', color: scheme.onSurface),
-                          if (!listing.acceptsBookings) ...[
-                            const SizedBox(width: 6),
-                            const Flexible(
-                              child: ListingPill(label: 'Paused', icon: Icons.pause_rounded, color: AppTheme.warning),
+                          // The pills share whatever the arrow leaves and
+                          // shorten their labels rather than overflow.
+                          Expanded(
+                            child: Row(
+                              children: [
+                                if (listing.minPrice case final price?)
+                                  Flexible(
+                                    child: ListingPill(label: 'From ${Formatters.aud(price)}', color: scheme.onSurface),
+                                  ),
+                                if (!listing.acceptsBookings) ...[
+                                  if (listing.minPrice != null) const SizedBox(width: 6),
+                                  const Flexible(
+                                    child: ListingPill(label: 'Paused', icon: Icons.pause_rounded, color: AppTheme.warning),
+                                  ),
+                                ] else if (listing.offersMobile) ...[
+                                  if (listing.minPrice != null) const SizedBox(width: 6),
+                                  Flexible(
+                                    child: ListingPill(
+                                      label: listing.mobileOnly ? 'Mobile' : 'Also mobile',
+                                      icon: Icons.directions_car_rounded,
+                                      color: scheme.secondary,
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
-                          ] else if (listing.offersMobile) ...[
-                            const SizedBox(width: 6),
-                            Flexible(
-                              child: ListingPill(
-                                label: listing.mobileOnly ? 'Mobile' : 'Also mobile',
-                                icon: Icons.directions_car_rounded,
-                                color: scheme.secondary,
-                              ),
-                            ),
-                          ],
-                          const Spacer(),
+                          ),
+                          const SizedBox(width: 6),
                           Icon(Icons.arrow_forward_rounded, size: 18, color: scheme.onSurface.withValues(alpha: 0.4)),
                         ],
                       ),

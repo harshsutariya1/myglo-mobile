@@ -1,9 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
@@ -14,47 +12,60 @@ import 'app_map.dart';
 enum PinTone {
   standard,
 
-  /// The pin whose card is showing: bigger, with the brand gradient ring.
+  /// The pin whose card is showing: bigger, with the brand gradient.
   selected,
 
   /// Not taking bookings right now: greyed out.
   muted,
 }
 
-/// What goes into a provider pin. Equal specs give the same picture.
+/// What goes into a provider pin. Pins carry no per-provider content (no
+/// photo, no initials), so every provider with the same look shares one
+/// picture and the map uploads a handful of bitmaps instead of one each.
 @immutable
 class ProviderPinSpec {
-  const ProviderPinSpec({
-    required this.id,
-    required this.initials,
-    this.imageUrl,
-    this.tone = PinTone.standard,
-    this.approximate = false,
-  });
+  const ProviderPinSpec({this.tone = PinTone.standard, this.approximate = false});
 
-  final String id;
-  final String initials;
-  final String? imageUrl;
   final PinTone tone;
 
   /// Mobile-only provider shown at an approximate spot: adds a car badge.
   final bool approximate;
 
-  String get key => 'pin|$id|${imageUrl ?? ''}|$initials|${tone.name}|$approximate';
+  /// Every pin the map can show, for drawing them all up front.
+  static final List<ProviderPinSpec> all = [
+    for (final tone in PinTone.values)
+      for (final approximate in const [false, true]) ProviderPinSpec(tone: tone, approximate: approximate),
+  ];
+
+  String get key => 'pin|${tone.name}|$approximate';
+
+  @override
+  bool operator ==(Object other) => other is ProviderPinSpec && other.tone == tone && other.approximate == approximate;
+
+  @override
+  int get hashCode => Object.hash(tone, approximate);
 }
 
-/// Draws map markers (provider avatar pins, cluster bubbles, a place pin) as
-/// PNGs at the screen's pixel ratio, caching each picture.
+/// Draws map markers (provider pins, cluster bubbles, a place pin) as PNGs at
+/// the screen's pixel ratio, caching each picture.
+///
+/// One factory is shared per pixel ratio for the whole app, so pictures drawn
+/// for one map are ready the next time any map opens.
 ///
 /// Pure Flutter drawing, so no map SDK or extra package is involved and the
 /// same pins work with any map provider.
 class MarkerIconFactory {
-  MarkerIconFactory({required this.pixelRatio});
+  factory MarkerIconFactory({required double pixelRatio}) =>
+      _shared.putIfAbsent(pixelRatio, () => MarkerIconFactory._(pixelRatio));
+
+  MarkerIconFactory._(this.pixelRatio);
+
+  static final Map<double, MarkerIconFactory> _shared = {};
 
   final double pixelRatio;
 
-  static const int _cacheSize = 400;
-  static const Duration _imageTimeout = Duration(seconds: 8);
+  /// Fixed pins plus one bubble per cluster label (1–99 and "99+").
+  static const int _cacheSize = 128;
 
   final LinkedHashMap<String, MarkerImage> _cache = LinkedHashMap();
   final Map<String, Future<MarkerImage>> _inFlight = {};
@@ -68,10 +79,20 @@ class MarkerIconFactory {
 
   Future<MarkerImage> providerPin(ProviderPinSpec spec) => _memo(spec.key, () => _drawProviderPin(spec));
 
-  Future<MarkerImage> cluster(int count) => _memo('cluster|${_clusterBucket(count)}', () => _drawCluster(count));
+  Future<MarkerImage> cluster(int count) => _memo(_clusterKey(count), () => _drawCluster(count));
 
   /// A plain branded pin for showing one place (e.g. a studio preview).
   Future<MarkerImage> placePin() => _memo('place', _drawPlacePin);
+
+  /// Draws every provider pin ahead of time, so the first pins appear as soon
+  /// as providers load instead of waiting on drawing.
+  Future<void> warmUp() async {
+    try {
+      await Future.wait([for (final spec in ProviderPinSpec.all) providerPin(spec)]);
+    } catch (e, st) {
+      AppLogger.e('Pre-drawing map pins failed', tag: 'MarkerIcons', error: e, stackTrace: st);
+    }
+  }
 
   Future<MarkerImage> _memo(String key, Future<MarkerImage> Function() draw) {
     final hit = cached(key);
@@ -82,88 +103,61 @@ class MarkerIconFactory {
         _cache.remove(_cache.keys.first);
       }
       return image;
-    }).whenComplete(() => _inFlight.remove(key));
+    }).whenComplete(() {
+      // Block body on purpose: returning the removed future (this very one)
+      // would make whenComplete wait on itself and never finish.
+      _inFlight.remove(key);
+    });
   }
 
-  /// Counts above 9 share a bubble per label, so "12" and "14" redraw.
-  static String _clusterBucket(int count) => count > 99 ? '99+' : '$count';
+  static String _clusterLabel(int count) => count > 99 ? '99+' : '$count';
+
+  static String _clusterKey(int count) => 'cluster|${_clusterLabel(count)}';
 
   // ---------------------------------------------------------------------------
   // Drawing
   // ---------------------------------------------------------------------------
 
-  Future<MarkerImage> _drawProviderPin(ProviderPinSpec spec) async {
+  Future<MarkerImage> _drawProviderPin(ProviderPinSpec spec) {
     final selected = spec.tone == PinTone.selected;
     final muted = spec.tone == PinTone.muted;
-    final diameter = selected ? 58.0 : 46.0;
-    const pointer = 9.0;
-    const pad = 6.0;
+    final diameter = selected ? 40.0 : 30.0;
+    final pointer = selected ? 10.0 : 8.0;
+    const pad = 4.0;
     final width = diameter + pad * 2;
     final height = diameter + pointer + pad * 2;
     final center = Offset(width / 2, pad + diameter / 2);
     final radius = diameter / 2;
     final tip = Offset(width / 2, pad + diameter + pointer);
 
-    final avatar = spec.imageUrl == null ? null : await _loadImage(spec.imageUrl!);
-    try {
-      return await _render(width, height, Offset(0.5, tip.dy / height), spec.key, (canvas) {
-        final body = Path()
-          ..addOval(Rect.fromCircle(center: center, radius: radius))
-          ..moveTo(center.dx - 8, center.dy + radius - 5)
-          ..quadraticBezierTo(center.dx - 2, center.dy + radius + 2, tip.dx, tip.dy)
-          ..quadraticBezierTo(center.dx + 2, center.dy + radius + 2, center.dx + 8, center.dy + radius - 5)
-          ..close();
-        canvas.drawShadow(body, Colors.black, selected ? 6 : 4, false);
+    return _render(width, height, Offset(0.5, tip.dy / height), spec.key, (canvas) {
+      final body = _teardrop(center, radius, tip);
+      canvas.drawShadow(body, Colors.black, selected ? 5 : 3, false);
+      canvas.drawPath(body, Paint()..color = Colors.white);
 
-        final ringPaint = Paint()..isAntiAlias = true;
-        if (muted) {
-          ringPaint.color = const Color(0xFFB9AEAE);
-        } else if (selected) {
-          ringPaint.shader = ui.Gradient.linear(
-            Offset(0, pad),
-            Offset(width, height),
-            const [AppTheme.primaryPink, AppTheme.burntOrange],
-          );
-        } else {
-          ringPaint.color = AppTheme.primaryPink;
-        }
-        canvas.drawPath(body, ringPaint);
-        canvas.drawCircle(center, radius - 2.5, Paint()..color = Colors.white);
+      final fill = Paint()..isAntiAlias = true;
+      if (muted) {
+        fill.color = const Color(0xFFB9AEAE);
+      } else if (selected) {
+        fill.shader = ui.Gradient.linear(
+          center - Offset(radius, radius),
+          center + Offset(radius, radius),
+          const [AppTheme.primaryPink, AppTheme.burntOrange],
+        );
+      } else {
+        fill.color = AppTheme.primaryPink;
+      }
+      canvas.drawPath(_teardrop(center, radius - 2, Offset(tip.dx, tip.dy - 2.5)), fill);
+      canvas.drawCircle(center, radius * 0.36, Paint()..color = Colors.white);
 
-        final inner = Rect.fromCircle(center: center, radius: radius - 5);
-        canvas.save();
-        canvas.clipPath(Path()..addOval(inner));
-        if (avatar != null) {
-          final paint = Paint()..filterQuality = FilterQuality.high;
-          if (muted) paint.colorFilter = const ColorFilter.matrix(_greyscale);
-          canvas.drawImageRect(avatar, _coverSource(avatar, inner.size), inner, paint);
-        } else {
-          canvas.drawRect(
-            inner,
-            Paint()
-              ..shader = ui.Gradient.linear(
-                inner.topLeft,
-                inner.bottomRight,
-                muted
-                    ? const [Color(0xFFCFC6C6), Color(0xFFA99D9D)]
-                    : const [AppTheme.primaryPink, AppTheme.burntOrange],
-              ),
-          );
-          _drawText(canvas, spec.initials, inner.center, fontSize: selected ? 19 : 15.5, color: Colors.white);
-        }
-        canvas.restore();
-
-        if (spec.approximate) {
-          final badgeCenter = Offset(center.dx + radius * 0.68, center.dy + radius * 0.62);
-          const badgeRadius = 9.5;
-          canvas.drawCircle(badgeCenter, badgeRadius + 1.5, Paint()..color = Colors.white);
-          canvas.drawCircle(badgeCenter, badgeRadius, Paint()..color = AppTheme.darkRed);
-          _drawIcon(canvas, Icons.directions_car_rounded, badgeCenter, size: 11.5, color: Colors.white);
-        }
-      });
-    } finally {
-      avatar?.dispose();
-    }
+      if (spec.approximate) {
+        final badgeCenter = Offset(center.dx + radius * 0.72, center.dy - radius * 0.62);
+        final badgeRadius = selected ? 8.5 : 7.0;
+        canvas.drawCircle(badgeCenter, badgeRadius + 1.5, Paint()..color = Colors.white);
+        canvas.drawCircle(badgeCenter, badgeRadius, Paint()..color = AppTheme.darkRed);
+        _drawIcon(canvas, Icons.directions_car_rounded, badgeCenter, size: badgeRadius * 1.2, color: Colors.white);
+      }
+    });
   }
 
   Future<MarkerImage> _drawCluster(int count) {
@@ -171,7 +165,7 @@ class MarkerIconFactory {
     const halo = 7.0;
     final size = diameter + halo * 2;
     final center = Offset(size / 2, size / 2);
-    return _render(size, size, const Offset(0.5, 0.5), 'cluster|${_clusterBucket(count)}', (canvas) {
+    return _render(size, size, const Offset(0.5, 0.5), _clusterKey(count), (canvas) {
       canvas.drawCircle(center, size / 2, Paint()..color = AppTheme.primaryPink.withValues(alpha: 0.22));
       final disc = Path()..addOval(Rect.fromCircle(center: center, radius: diameter / 2));
       canvas.drawShadow(disc, Colors.black, 3, false);
@@ -186,7 +180,7 @@ class MarkerIconFactory {
             const [AppTheme.primaryPink, AppTheme.burntOrange],
           ),
       );
-      _drawText(canvas, _clusterBucket(count), center, fontSize: count < 100 ? 16 : 13.5, color: Colors.white);
+      _drawText(canvas, _clusterLabel(count), center, fontSize: count < 100 ? 16 : 13.5, color: Colors.white);
     });
   }
 
@@ -199,12 +193,7 @@ class MarkerIconFactory {
     const center = Offset(width / 2, pad + diameter / 2);
     const tip = Offset(width / 2, pad + diameter + pointer);
     return _render(width, height, const Offset(0.5, (pad + diameter + pointer) / height), 'place', (canvas) {
-      final body = Path()
-        ..addOval(Rect.fromCircle(center: center, radius: diameter / 2))
-        ..moveTo(center.dx - 8, center.dy + diameter / 2 - 5)
-        ..quadraticBezierTo(center.dx - 2, center.dy + diameter / 2 + 3, tip.dx, tip.dy)
-        ..quadraticBezierTo(center.dx + 2, center.dy + diameter / 2 + 3, center.dx + 8, center.dy + diameter / 2 - 5)
-        ..close();
+      final body = _teardrop(center, diameter / 2, tip);
       canvas.drawShadow(body, Colors.black, 4, false);
       canvas.drawPath(body, Paint()..color = Colors.white);
       canvas.drawCircle(
@@ -220,6 +209,14 @@ class MarkerIconFactory {
       _drawIcon(canvas, Icons.spa_rounded, center, size: 19, color: Colors.white);
     });
   }
+
+  /// A round head of [radius] around [center] narrowing to a point at [tip].
+  static Path _teardrop(Offset center, double radius, Offset tip) => Path()
+    ..addOval(Rect.fromCircle(center: center, radius: radius))
+    ..moveTo(center.dx - radius * 0.55, center.dy + radius * 0.8)
+    ..quadraticBezierTo(center.dx - radius * 0.1, center.dy + radius * 1.1, tip.dx, tip.dy)
+    ..quadraticBezierTo(center.dx + radius * 0.1, center.dy + radius * 1.1, center.dx + radius * 0.55, center.dy + radius * 0.8)
+    ..close();
 
   Future<MarkerImage> _render(
     double width,
@@ -237,25 +234,15 @@ class MarkerIconFactory {
     try {
       final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
       if (bytes == null) throw StateError('Could not encode a map marker');
-      final png = bytes.buffer.asUint8List();
       return MarkerImage(
         key: '$key@$pixelRatio',
-        png: png,
+        png: bytes.buffer.asUint8List(),
         pixelRatio: pixelRatio,
         anchor: anchor,
       );
     } finally {
       image.dispose();
     }
-  }
-
-  /// The centred part of [image] that fills [target] without distortion.
-  static Rect _coverSource(ui.Image image, Size target) {
-    final imageSize = Size(image.width.toDouble(), image.height.toDouble());
-    final scale = math.max(target.width / imageSize.width, target.height / imageSize.height);
-    final width = target.width / scale;
-    final height = target.height / scale;
-    return Rect.fromLTWH((imageSize.width - width) / 2, (imageSize.height - height) / 2, width, height);
   }
 
   static void _drawText(Canvas canvas, String text, Offset center, {required double fontSize, required Color color}) {
@@ -282,41 +269,9 @@ class MarkerIconFactory {
     painter.paint(canvas, center - Offset(painter.width / 2, painter.height / 2));
     painter.dispose();
   }
-
-  /// Decodes a provider photo through the shared image cache. Null when it
-  /// can't be fetched in time; the pin then shows initials.
-  Future<ui.Image?> _loadImage(String url) async {
-    final completer = Completer<ui.Image?>();
-    final stream = CachedNetworkImageProvider(url, maxWidth: 192, maxHeight: 192)
-        .resolve(ImageConfiguration(devicePixelRatio: pixelRatio));
-    late final ImageStreamListener listener;
-    listener = ImageStreamListener(
-      (info, _) {
-        if (!completer.isCompleted) completer.complete(info.image.clone());
-        info.dispose();
-      },
-      onError: (error, stackTrace) {
-        AppLogger.d('Marker photo failed to load: $error', tag: 'MarkerIcons');
-        if (!completer.isCompleted) completer.complete(null);
-      },
-    );
-    stream.addListener(listener);
-    try {
-      return await completer.future.timeout(_imageTimeout, onTimeout: () => null);
-    } finally {
-      stream.removeListener(listener);
-    }
-  }
-
-  static const List<double> _greyscale = [
-    0.2126, 0.7152, 0.0722, 0, 0, //
-    0.2126, 0.7152, 0.0722, 0, 0, //
-    0.2126, 0.7152, 0.0722, 0, 0, //
-    0, 0, 0, 0.75, 0,
-  ];
 }
 
-/// Up to two initials for a name, for pins without a photo.
+/// Up to two initials for a name, for avatars without a photo.
 String markerInitials(String name) {
   final parts = name.trim().split(RegExp(r'\s+')).where((part) => part.isNotEmpty).toList();
   if (parts.isEmpty) return 'M';

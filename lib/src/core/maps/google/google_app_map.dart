@@ -53,6 +53,16 @@ class _GoogleAppMapState extends State<GoogleAppMap> implements AppMapController
   /// the same descriptor and the SDK doesn't redraw it.
   final Map<String, BitmapDescriptor> _icons = {};
 
+  /// The SDK markers for [GoogleAppMap.markers], rebuilt only when that list
+  /// changes, so unrelated rebuilds of the screen don't re-diff every pin.
+  late Set<Marker> _markerSet = _markers();
+
+  @override
+  void didUpdateWidget(GoogleAppMap oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.markers, widget.markers)) _markerSet = _markers();
+  }
+
   @override
   void dispose() {
     _controller?.dispose();
@@ -145,7 +155,7 @@ class _GoogleAppMapState extends State<GoogleAppMap> implements AppMapController
     final map = GoogleMap(
       initialCameraPosition: CameraPosition(target: _latLng(widget.initialCamera.target), zoom: widget.initialCamera.zoom),
       style: widget.style,
-      markers: _markers(),
+      markers: _markerSet,
       padding: widget.padding,
       myLocationEnabled: widget.showMyLocation,
       myLocationButtonEnabled: false,

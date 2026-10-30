@@ -14,7 +14,6 @@ import '../controllers/home_controller.dart';
 import '../controllers/home_location_controller.dart';
 import 'widgets/home_categories.dart';
 import 'widgets/home_header.dart';
-import 'widgets/home_location_picker.dart';
 import 'widgets/home_no_salons.dart';
 import 'widgets/home_provider_cards.dart';
 import 'widgets/home_search_bar.dart';
@@ -67,8 +66,6 @@ class HomeScreen extends ConsumerWidget {
                     children: [
                       const AppUpdateBanner(margin: EdgeInsets.only(bottom: 16)),
                       HomeHeader(now: now),
-                      const SizedBox(height: 12),
-                      const Align(alignment: Alignment.centerLeft, child: HomeLocationButton()),
                       const SizedBox(height: 18),
                       const HomeSearchBar(),
                       HomeNextAppointment(now: now, padding: const EdgeInsets.only(top: 22)),

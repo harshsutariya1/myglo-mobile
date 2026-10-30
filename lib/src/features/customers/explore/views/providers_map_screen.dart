@@ -10,20 +10,25 @@ import '../../../../core/location/device_location.dart';
 import '../../../../core/location/geo_point.dart';
 import '../../../../core/maps/app_map.dart';
 import '../../../../core/maps/map_clustering.dart';
+import '../../../../core/maps/map_zoom.dart';
 import '../../../../core/maps/marker_icons.dart';
 import '../../../../core/routing/app_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/app_logger.dart';
 import '../../../../core/utils/network_error.dart';
 import '../../../../core/widgets/snackbar_utils.dart';
+import '../../home/controllers/home_controller.dart';
 import '../controllers/map_providers_controller.dart';
 import '../models/provider_listing.dart';
 import 'provider_search_screen.dart' show SearchPill;
 import 'widgets/map_provider_card.dart';
 
-/// Providers on a map for clients: avatar pins (grouped into bubbles where
+/// Providers on a map for clients: simple brand pins (grouped into bubbles where
 /// they crowd together), a swipeable card for each along the bottom, and a
 /// "near me" button. Moving the map loads whatever is in view.
+///
+/// Opens on the area the client picked on the home screen: the whole of a
+/// chosen city, or around them when they chose their current location.
 class ProvidersMapScreen extends ConsumerStatefulWidget {
   const ProvidersMapScreen({super.key});
 
@@ -34,9 +39,21 @@ class ProvidersMapScreen extends ConsumerStatefulWidget {
 class _ProvidersMapScreenState extends ConsumerState<ProvidersMapScreen> {
   static const double _carouselHeight = MapProviderCard.height + 12;
 
+  /// Height of the back button and search bar over the top of the map.
+  static const double _topBarHeight = 64;
+
+  /// How long to wait for the home screen's area before opening on the
+  /// default view instead.
+  static const Duration _startAreaTimeout = Duration(seconds: 4);
+
   AppMapController? _map;
   MarkerIconFactory? _icons;
   MapCamera _camera = const MapCamera(target: AppConfig.mapDefaultCenter, zoom: AppConfig.mapDefaultZoom);
+
+  /// Keeps the home area alive (and waits for it) until the map has opened.
+  ProviderSubscription<AsyncValue<HomeArea>>? _homeArea;
+  Timer? _startTimeout;
+  bool _started = false;
 
   /// Where the client is, once they've allowed location. Only used here.
   GeoPoint? _userPoint;
@@ -61,20 +78,26 @@ class _ProvidersMapScreenState extends ConsumerState<ProvidersMapScreen> {
   @override
   void initState() {
     super.initState();
-    // Also loads when the map itself can't be shown, so the cards still work.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      ref.read(mapProvidersProvider.notifier).loadAround(_camera.target, 15000);
-      _initLocation();
+    // Home is normally underneath and already knows its area (picked up in
+    // didChangeDependencies); otherwise wait for it, but not for long.
+    _homeArea = ref.listenManual(homeAreaProvider, (_, next) {
+      if (!next.isLoading) _start(next.value, rebuild: true);
     });
+    _startTimeout = Timer(_startAreaTimeout, () => _start(null, rebuild: true));
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (!_started) {
+      final area = ref.read(homeAreaProvider);
+      if (!area.isLoading) _start(area.value, rebuild: false);
+    }
     final ratio = MediaQuery.devicePixelRatioOf(context);
     if (_icons?.pixelRatio != ratio) {
-      _icons = MarkerIconFactory(pixelRatio: ratio);
+      final icons = _icons = MarkerIconFactory(pixelRatio: ratio);
+      // Draw the pins while the first providers load.
+      unawaited(icons.warmUp());
       _clusteredAtZoom = -1;
       unawaited(_rebuildMarkers());
     }
@@ -82,23 +105,90 @@ class _ProvidersMapScreenState extends ConsumerState<ProvidersMapScreen> {
 
   @override
   void dispose() {
+    _startTimeout?.cancel();
+    _homeArea?.close();
     _pages.dispose();
     super.dispose();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Start
+  // ---------------------------------------------------------------------------
+
+  /// Opens the map on the home screen's [area] (null: the default view),
+  /// then loads its providers and sets up location. Runs once.
+  ///
+  /// [rebuild] is false when called before the first build, where the new
+  /// camera is picked up anyway.
+  void _start(HomeArea? area, {required bool rebuild}) {
+    if (_started || !mounted) return;
+    _started = true;
+    _startTimeout?.cancel();
+    _homeArea?.close();
+    _homeArea = null;
+
+    final city = area?.city;
+    final origin = area?.origin;
+    final camera = switch ((city, origin)) {
+      (final city?, _) => MapCamera(
+          target: city.centre,
+          zoom: zoomToFitRadius(
+            centre: city.centre,
+            radiusMetres: city.radiusMetres,
+            viewport: _visibleMapSize(),
+            maxZoom: AppConfig.mapNearbyZoom,
+          ),
+        ),
+      (_, final origin?) when origin.isInAustralia => MapCamera(target: origin, zoom: AppConfig.mapNearbyZoom),
+      _ => null,
+    };
+    // A chosen city, rather than around the client (including a city shown
+    // only because their location wasn't available).
+    final browsingCity = city != null && !(area?.locationUnavailable ?? false);
+
+    if (camera != null && !_userMovedMap) {
+      _camera = camera;
+      unawaited(_map?.animateTo(camera.target, zoom: camera.zoom));
+    }
+    if (rebuild) setState(() {});
+
+    // Providers can't change mid-build, so load after this frame. Also loads
+    // when the map itself can't be shown, so the cards still work.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(ref
+          .read(mapProvidersProvider.notifier)
+          .loadAround(city?.centre ?? _camera.target, city?.radiusMetres ?? 15000));
+      unawaited(_initLocation(aroundClient: !browsingCity));
+    });
+  }
+
+  /// The part of the map not covered by the search bar and cards.
+  Size _visibleMapSize() {
+    final size = MediaQuery.sizeOf(context);
+    final padding = MediaQuery.paddingOf(context);
+    return Size(
+      size.width,
+      size.height - padding.top - _topBarHeight - padding.bottom - 16 - _carouselHeight,
+    );
   }
 
   // ---------------------------------------------------------------------------
   // Location
   // ---------------------------------------------------------------------------
 
-  /// Uses the client's location if they allow it: asks once when the map
-  /// opens (they came here to see what's near them), and otherwise stays on
-  /// the Gold Coast.
-  Future<void> _initLocation() async {
+  /// Uses the client's location if they allow it. Looking around themselves
+  /// ([aroundClient]), the map asks once when it opens (they came here to see
+  /// what's near them) and centres on them. Looking at a chosen city it never
+  /// asks or moves, and only shows the "you are here" dot if access was
+  /// already allowed; "near me" is still a tap away.
+  Future<void> _initLocation({required bool aroundClient}) async {
     final location = ref.read(deviceLocationProvider);
     var access = await location.access();
-    if (access == LocationAccess.denied) access = await location.requestAccess();
+    if (aroundClient && access == LocationAccess.denied) access = await location.requestAccess();
     if (!mounted || access != LocationAccess.granted) return;
     setState(() => _locationGranted = true);
+    if (!aroundClient) return;
 
     final last = await location.lastKnown();
     if (!mounted) return;
@@ -196,21 +286,13 @@ class _ProvidersMapScreenState extends ConsumerState<ProvidersMapScreen> {
     final clusters = clusterByScreenDistance(others, (listing) => listing.point!, zoom: zoom);
 
     try {
-      final markers = <AppMapMarker>[];
-      for (final cluster in clusters) {
-        if (cluster.isSingle) {
-          markers.add(await _pin(icons, cluster.items.single, selected: false));
-        } else {
-          markers.add(AppMapMarker(
-            id: 'cluster:${cluster.items.map((listing) => listing.id).join(',')}',
-            point: cluster.center,
-            image: await icons.cluster(cluster.items.length),
-            zIndex: 1,
-            onTap: () => _openCluster(cluster),
-          ));
-        }
-      }
-      if (selected != null) markers.add(await _pin(icons, selected, selected: true));
+      // All at once: pins share a few cached pictures, so this is normally
+      // instant, and anything not drawn yet is drawn once, in parallel.
+      final markers = await Future.wait([
+        for (final cluster in clusters)
+          cluster.isSingle ? _pin(icons, cluster.items.single, selected: false) : _clusterMarker(icons, cluster),
+        if (selected != null) _pin(icons, selected, selected: true),
+      ]);
       if (!mounted || sequence != _markerSequence) return;
       setState(() {
         _markers = markers;
@@ -223,9 +305,6 @@ class _ProvidersMapScreenState extends ConsumerState<ProvidersMapScreen> {
 
   Future<AppMapMarker> _pin(MarkerIconFactory icons, ProviderListing listing, {required bool selected}) async {
     final image = await icons.providerPin(ProviderPinSpec(
-      id: listing.id,
-      initials: markerInitials(listing.name),
-      imageUrl: listing.profilePic,
       tone: selected ? PinTone.selected : (listing.acceptsBookings ? PinTone.standard : PinTone.muted),
       approximate: listing.approximateLocation,
     ));
@@ -236,6 +315,16 @@ class _ProvidersMapScreenState extends ConsumerState<ProvidersMapScreen> {
       zIndex: selected ? 10 : 2,
       semanticLabel: listing.name,
       onTap: () => _select(listing, moveCamera: false),
+    );
+  }
+
+  Future<AppMapMarker> _clusterMarker(MarkerIconFactory icons, MapCluster<ProviderListing> cluster) async {
+    return AppMapMarker(
+      id: 'cluster:${cluster.items.map((listing) => listing.id).join(',')}',
+      point: cluster.center,
+      image: await icons.cluster(cluster.items.length),
+      zIndex: 1,
+      onTap: () => _openCluster(cluster),
     );
   }
 
@@ -312,7 +401,7 @@ class _ProvidersMapScreenState extends ConsumerState<ProvidersMapScreen> {
                 initialCamera: _camera,
                 markers: _markers,
                 showMyLocation: _locationGranted,
-                padding: EdgeInsets.only(top: padding.top + 64, bottom: bottomInset),
+                padding: EdgeInsets.only(top: padding.top + _topBarHeight, bottom: bottomInset),
                 onCreated: (controller) {
                   _map = controller;
                   final user = _userPoint;

@@ -1,8 +1,10 @@
+import 'package:flutter/painting.dart' show Size;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:myglo/src/core/location/address_geocoder.dart';
 import 'package:myglo/src/core/location/geo_point.dart';
 import 'package:myglo/src/core/maps/app_map.dart';
 import 'package:myglo/src/core/maps/map_clustering.dart';
+import 'package:myglo/src/core/maps/map_zoom.dart';
 import 'package:myglo/src/core/maps/marker_icons.dart';
 import 'package:myglo/src/features/shared/authentication/models/profile_model.dart';
 import 'package:myglo/src/features/shared/authentication/models/user_role.dart';
@@ -141,6 +143,27 @@ void main() {
     });
   });
 
+  group('zoomToFitRadius', () {
+    const phone = Size(363, 520);
+
+    test('fits a whole city on a phone at a regional zoom', () {
+      final zoom = zoomToFitRadius(centre: _surfers, radiusMetres: 30000, viewport: phone);
+      expect(zoom, closeTo(9.7, 0.2));
+    });
+
+    test('a smaller area zooms further in', () {
+      final city = zoomToFitRadius(centre: _surfers, radiusMetres: 30000, viewport: phone);
+      final suburb = zoomToFitRadius(centre: _surfers, radiusMetres: 3000, viewport: phone);
+      expect(suburb - city, closeTo(3.32, 0.01)); // log2(10)
+    });
+
+    test('stays within its limits, including for empty viewports', () {
+      expect(zoomToFitRadius(centre: _surfers, radiusMetres: 10, viewport: phone, maxZoom: 13.5), 13.5);
+      expect(zoomToFitRadius(centre: _surfers, radiusMetres: 1e9, viewport: phone, minZoom: 3), 3);
+      expect(zoomToFitRadius(centre: _surfers, radiusMetres: 30000, viewport: const Size(363, -10), maxZoom: 12), 12);
+    });
+  });
+
   group('markers', () {
     test('initials come from the first two words', () {
       expect(markerInitials('Glow Studio'), 'GS');
@@ -149,11 +172,39 @@ void main() {
     });
 
     test('pin specs that look the same share a picture key', () {
-      const a = ProviderPinSpec(id: '1', initials: 'GS', imageUrl: 'u', tone: PinTone.selected);
-      const b = ProviderPinSpec(id: '1', initials: 'GS', imageUrl: 'u', tone: PinTone.selected);
-      const c = ProviderPinSpec(id: '1', initials: 'GS', imageUrl: 'u');
+      const a = ProviderPinSpec(tone: PinTone.selected);
+      const b = ProviderPinSpec(tone: PinTone.selected);
+      const c = ProviderPinSpec();
+      const d = ProviderPinSpec(approximate: true);
+      expect(a, b);
       expect(a.key, b.key);
       expect(a.key, isNot(c.key));
+      expect(c.key, isNot(d.key));
+    });
+
+    test('there is a small fixed set of provider pins', () {
+      expect(ProviderPinSpec.all, hasLength(PinTone.values.length * 2));
+      expect(ProviderPinSpec.all.map((spec) => spec.key).toSet(), hasLength(ProviderPinSpec.all.length));
+    });
+
+    test('one icon factory is shared per pixel ratio', () {
+      expect(identical(MarkerIconFactory(pixelRatio: 3), MarkerIconFactory(pixelRatio: 3)), isTrue);
+      expect(identical(MarkerIconFactory(pixelRatio: 3), MarkerIconFactory(pixelRatio: 2)), isFalse);
+    });
+
+    testWidgets('warming up draws every pin once and reuses it', (tester) async {
+      final icons = MarkerIconFactory(pixelRatio: 2.5);
+      await tester.runAsync(icons.warmUp);
+
+      for (final spec in ProviderPinSpec.all) {
+        final image = icons.cached(spec.key);
+        expect(image, isNotNull, reason: spec.key);
+        expect(image!.png, isNotEmpty);
+        expect(image.anchor.dy, inInclusiveRange(0.9, 1.0));
+      }
+      final first = icons.cached(const ProviderPinSpec().key);
+      final again = await tester.runAsync(() => icons.providerPin(const ProviderPinSpec()));
+      expect(identical(first, again), isTrue);
     });
   });
 }

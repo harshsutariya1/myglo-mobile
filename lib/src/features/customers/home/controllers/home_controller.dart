@@ -68,30 +68,45 @@ ServiceCity? defaultServiceCity(List<ServiceCity> cities) {
   return cities.isEmpty ? null : cities.first;
 }
 
-/// The providers for the client's chosen city, or around them when they
-/// chose (or, by default, allowed) their current location. Never prompts for
-/// location: a position is used only if access was already granted.
-final homeFeedProvider = FutureProvider.autoDispose<HomeFeed>((ref) async {
+/// Where the home screen is looking, before any providers are fetched: the
+/// client's chosen city, or around them when they chose (or, by default,
+/// allowed) their current location. The providers map opens on the same
+/// area.
+@immutable
+class HomeArea {
+  const HomeArea({required this.place, this.origin, this.locationUnavailable = false});
+
+  /// Null only when there are no cities to fall back to.
+  final HomePlace? place;
+
+  /// The device's coarsened position when [place] is [NearDevicePlace].
+  /// Kept in memory only.
+  final GeoPoint? origin;
+
+  /// The client chose their current location but the device didn't give one
+  /// (permission withdrawn, location services off), so [place] is a city.
+  final bool locationUnavailable;
+
+  /// The city being shown, if [place] is one.
+  ServiceCity? get city => switch (place) {
+        CityPlace(:final city) => city,
+        _ => null,
+      };
+}
+
+/// Resolves [HomeArea] from the saved choice, the curated cities and (only if
+/// access was already granted) the device's position. Never prompts for
+/// location.
+final homeAreaProvider = FutureProvider.autoDispose<HomeArea>((ref) async {
   // The saved choice is per account: wait for it, so a cold start doesn't
   // load (and flash) the default place first.
   await ref.watch(userProfileProvider.selectAsync((profile) => profile?.rawUser.id));
   final choice = ref.watch(homeLocationChoiceProvider);
-  final repository = ref.watch(exploreRepositoryProvider);
-
-  Future<HomeFeed> inCity(ServiceCity city, {bool locationUnavailable = false}) async => HomeFeed(
-        providers: await repository.providersAround(
-          city.centre,
-          radiusMetres: city.radiusMetres,
-          limit: AppConfig.homeProvidersLimit,
-        ),
-        place: CityPlace(city),
-        locationUnavailable: locationUnavailable,
-      );
 
   if (choice case CityChoice(:final cityId)) {
     final cities = await ref.watch(serviceCitiesProvider.future);
     for (final city in cities) {
-      if (city.id == cityId) return inCity(city);
+      if (city.id == cityId) return HomeArea(place: CityPlace(city));
     }
     // The city was removed or switched off: fall back like a first visit.
   }
@@ -106,18 +121,30 @@ final homeFeedProvider = FutureProvider.autoDispose<HomeFeed>((ref) async {
     // No position in time: use a city instead.
   }
 
-  if (position != null) {
-    return HomeFeed(
-      providers: await repository.providersAround(
-        position.coarse(),
-        radiusMetres: AppConfig.homeProvidersRadiusMetres,
-        limit: AppConfig.homeProvidersLimit,
-      ),
-      place: const NearDevicePlace(),
-    );
-  }
+  if (position != null) return HomeArea(place: const NearDevicePlace(), origin: position.coarse());
 
   final city = defaultServiceCity(await ref.watch(serviceCitiesProvider.future));
-  if (city == null) return const HomeFeed(providers: [], place: null);
-  return inCity(city, locationUnavailable: choice is CurrentLocationChoice);
+  return HomeArea(
+    place: city == null ? null : CityPlace(city),
+    locationUnavailable: city != null && choice is CurrentLocationChoice,
+  );
+});
+
+/// The providers in the client's [HomeArea], nearest first.
+final homeFeedProvider = FutureProvider.autoDispose<HomeFeed>((ref) async {
+  final area = await ref.watch(homeAreaProvider.future);
+  final repository = ref.watch(exploreRepositoryProvider);
+
+  final (centre, radius) = switch (area) {
+    HomeArea(:final city?) => (city.centre, city.radiusMetres),
+    HomeArea(:final origin?) => (origin, AppConfig.homeProvidersRadiusMetres),
+    _ => (null, null),
+  };
+  if (centre == null || radius == null) return HomeFeed(providers: const [], place: area.place);
+
+  return HomeFeed(
+    providers: await repository.providersAround(centre, radiusMetres: radius, limit: AppConfig.homeProvidersLimit),
+    place: area.place,
+    locationUnavailable: area.locationUnavailable,
+  );
 });
