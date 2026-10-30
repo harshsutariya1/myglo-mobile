@@ -122,4 +122,19 @@ class AppConfig {
 
   /// Share of sessions with an error whose replay is kept.
   static const double sentryReplayOnErrorSampleRate = 1.0;
+
+  /// Digits in an authenticator (TOTP) code.
+  static const int totpCodeLength = 6;
+
+  /// The admin area locks after this long without a touch (or in the
+  /// background) and asks for an authenticator code again. The server's own
+  /// limits (12 h sessions, 5 min for sensitive changes) apply regardless.
+  static const Duration adminIdleLock = Duration(minutes: 15);
+
+  /// Debounce for admin search fields.
+  static const Duration adminSearchDebounce = Duration(milliseconds: 350);
+
+  /// Width from which admin screens show a list and its detail side by side
+  /// and use a navigation rail instead of a bottom bar.
+  static const double adminWideLayoutWidth = 840;
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../features/shared/authentication/models/auth_repository.dart';
 import '../../features/shared/authentication/controllers/user_profile_provider.dart';
@@ -44,6 +45,26 @@ bool isProviderOnlyPath(String path) => [
       AppRoute.settings.path,
       ...providerOnlyPrefixes,
     ].any(path.startsWith);
+
+/// Whether only admin accounts may open [path]: two-factor and the admin area.
+bool isAdminOnlyPath(String path) =>
+    path == AppRoute.adminVerify.path ||
+    path == AppRoute.adminHome.path ||
+    path.startsWith('${AppRoute.adminHome.path}/');
+
+/// Whether [user] is an admin account. Read from `app_metadata`, which only
+/// the server can write; it decides routing only. Every admin RPC checks
+/// admin membership and two-factor for itself.
+bool isAdminAccount(User user) => user.appMetadata['myglo_admin'] == true;
+
+/// Where an admin account may be: two-factor until the session has passed
+/// it, then the admin area and nothing else (admin accounts have no client
+/// or provider profile).
+String? adminRedirect(String path, {required bool twoFactorPassed}) {
+  if (!twoFactorPassed) return path == AppRoute.adminVerify.path ? null : AppRoute.adminVerify.path;
+  if (path == AppRoute.adminVerify.path || !isAdminOnlyPath(path)) return AppRoute.adminHome.path;
+  return null;
+}
 
 /// A shared link (see [ShareLinks]) that opened the app before it could be
 /// shown: while signing in, loading the profile or finishing onboarding. It's
@@ -122,6 +143,16 @@ String? appRouterRedirect(BuildContext context, GoRouterState state, Ref ref) {
     return null;
   }
 
+  // Admin accounts never onboard as a client or provider: two-factor, then
+  // the admin area.
+  if (isAdminAccount(session.user)) {
+    final level = ref.read(supabaseClientProvider).auth.mfa.getAuthenticatorAssuranceLevel();
+    return adminRedirect(
+      state.uri.path,
+      twoFactorPassed: level.currentLevel == AuthenticatorAssuranceLevels.aal2,
+    );
+  }
+
   // If user is authenticated, check their onboarding status
   if (userProfileState.isLoading && !userProfileState.hasValue) {
     pendingLink.remember(state.uri);
@@ -172,6 +203,12 @@ String? appRouterRedirect(BuildContext context, GoRouterState state, Ref ref) {
 
   // 3. Role-based route guarding
   final currentPath = state.uri.path;
+
+  if (isAdminOnlyPath(currentPath)) {
+    final home = isProvider ? AppRoute.providerHome.path : AppRoute.customerHome.path;
+    AppLogger.d('Non-admin attempted admin route ($currentPath). Rerouting to $home', tag: 'RouterGuard');
+    return home;
+  }
 
   if (isCustomer && isProviderOnlyPath(currentPath)) {
     AppLogger.d(

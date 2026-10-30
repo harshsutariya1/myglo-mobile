@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -44,6 +45,20 @@ import '../../features/providers/schedule/views/working_hours_screen.dart';
 import '../../features/shared/bookings/models/booking.dart';
 import '../../features/shared/notifications/views/notifications_screen.dart';
 
+import '../../features/admin/controllers/admin_controllers.dart' show AuditFilter;
+import '../../features/admin/models/admin_models.dart';
+import '../../features/admin/views/admin_home_screen.dart';
+import '../../features/admin/views/admin_people_screen.dart';
+import '../../features/admin/views/admin_section_placeholder.dart';
+import '../../features/admin/views/admin_security_screen.dart';
+import '../../features/admin/views/admin_settings_screen.dart';
+import '../../features/admin/views/admin_shell.dart';
+import '../../features/admin/views/admin_user_detail_screen.dart';
+import '../../features/admin/views/admin_verify_screen.dart';
+import '../../features/admin/views/audit_log_screen.dart';
+import '../../features/admin/views/platform_settings_screen.dart';
+import '../../features/admin/views/service_cities_screen.dart';
+import '../../features/admin/views/service_city_editor_screen.dart';
 import '../../features/shared/authentication/controllers/user_profile_provider.dart';
 import '../widgets/main_scaffold.dart';
 import 'app_route_observer.dart';
@@ -96,7 +111,21 @@ enum AppRoute {
   coverPhotos(path: '/business/cover-photos'),
   businessLocation(path: '/business/location'),
   // The provider's clients, full-screen over Business Tools.
-  providerContacts(path: '/business/contacts');
+  providerContacts(path: '/business/contacts'),
+  // Admin accounts only (see isAdminOnlyPath). Two-factor comes first; the
+  // rest lives in the admin shell.
+  adminVerify(path: '/admin-verify'),
+  adminHome(path: '/admin'),
+  adminPeople(path: '/admin/people'),
+  adminUser(path: ':userId'),
+  adminPayments(path: '/admin/payments'),
+  adminModeration(path: '/admin/moderation'),
+  adminSettings(path: '/admin/settings'),
+  adminPlatformSettings(path: 'platform'),
+  adminCities(path: 'cities'),
+  adminCityEditor(path: 'edit'),
+  adminAuditLog(path: 'audit'),
+  adminSecurity(path: 'security');
 
   final String path;
   const AppRoute({required this.path});
@@ -282,6 +311,90 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoute.providersMap.path,
         name: AppRoute.providersMap.name,
         builder: (context, state) => const ProvidersMapScreen(),
+      ),
+      GoRoute(
+        path: AppRoute.adminVerify.path,
+        name: AppRoute.adminVerify.name,
+        builder: (context, state) => const AdminVerifyScreen(),
+      ),
+      ShellRoute(
+        builder: (context, state, child) => AdminShell(location: state.uri.path, child: child),
+        routes: [
+          GoRoute(
+            path: AppRoute.adminHome.path,
+            name: AppRoute.adminHome.name,
+            builder: (context, state) => const AdminHomeScreen(),
+          ),
+          GoRoute(
+            path: AppRoute.adminPeople.path,
+            name: AppRoute.adminPeople.name,
+            builder: (context, state) => AdminPeopleScreen(initialRole: state.uri.queryParameters['role']),
+            routes: [
+              GoRoute(
+                path: AppRoute.adminUser.path,
+                name: AppRoute.adminUser.name,
+                builder: (context, state) => AdminUserDetailScreen(userId: state.pathParameters['userId']!),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: AppRoute.adminPayments.path,
+            name: AppRoute.adminPayments.name,
+            builder: (context, state) => const AdminSectionPlaceholder(
+              title: 'Payments',
+              icon: Icons.payments_outlined,
+              message: 'Card payments, refunds, payouts and disputes appear here once card payments are switched on.',
+            ),
+          ),
+          GoRoute(
+            path: AppRoute.adminModeration.path,
+            name: AppRoute.adminModeration.name,
+            builder: (context, state) => const AdminSectionPlaceholder(
+              title: 'Moderation',
+              icon: Icons.shield_outlined,
+              message: 'Reports from clients, hidden reviews, comments and posts, and account suspensions appear here.',
+            ),
+          ),
+          GoRoute(
+            path: AppRoute.adminSettings.path,
+            name: AppRoute.adminSettings.name,
+            builder: (context, state) => const AdminSettingsScreen(),
+            routes: [
+              GoRoute(
+                path: AppRoute.adminPlatformSettings.path,
+                name: AppRoute.adminPlatformSettings.name,
+                builder: (context, state) => const PlatformSettingsScreen(),
+              ),
+              GoRoute(
+                path: AppRoute.adminCities.path,
+                name: AppRoute.adminCities.name,
+                builder: (context, state) => const ServiceCitiesScreen(),
+                routes: [
+                  GoRoute(
+                    path: AppRoute.adminCityEditor.path,
+                    name: AppRoute.adminCityEditor.name,
+                    builder: (context, state) => ServiceCityEditorScreen(city: state.extra as AdminServiceCity?),
+                  ),
+                ],
+              ),
+              GoRoute(
+                path: AppRoute.adminAuditLog.path,
+                name: AppRoute.adminAuditLog.name,
+                builder: (context, state) => AuditLogScreen(
+                  filter: AuditFilter(
+                    targetType: state.uri.queryParameters['target_type'],
+                    targetId: state.uri.queryParameters['target_id'],
+                  ),
+                ),
+              ),
+              GoRoute(
+                path: AppRoute.adminSecurity.path,
+                name: AppRoute.adminSecurity.name,
+                builder: (context, state) => const AdminSecurityScreen(),
+              ),
+            ],
+          ),
+        ],
       ),
       ShellRoute(
         builder: (context, state, child) {
