@@ -60,6 +60,13 @@ class AdminRepository {
     return AdminUserDetail.fromJson(Map<String, dynamic>.from(row as Map));
   }
 
+  /// A provider's Stripe payout account as Myglo last saw it, or null if they
+  /// haven't started setting one up.
+  Future<Map<String, dynamic>?> getPayoutAccount(String userId) async {
+    final row = await _rpc('admin_get_payout_account', params: {'p_user_id': userId}, detail: userId);
+    return row == null ? null : Map<String, dynamic>.from(row as Map);
+  }
+
   /// Newest first; pass the last entry's id as [beforeId] for the next page.
   Future<List<AuditEntry>> listAuditLog({int? beforeId, int limit = 50, String? targetType, String? targetId}) async {
     final rows = await _rpc('admin_list_audit_log', params: {

@@ -15,11 +15,16 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ProviderBookingSettings {
 
-@JsonKey(name: 'provider_id') String get providerId;@JsonKey(name: 'time_zone') String get timeZone;@JsonKey(name: 'accepts_bookings') bool get acceptsBookings;/// Requests wait for the provider to accept instead of confirming
-/// instantly.
+@JsonKey(name: 'provider_id') String get providerId;@JsonKey(name: 'time_zone') String get timeZone;@JsonKey(name: 'accepts_bookings') bool get acceptsBookings;/// Bookings paid in the app wait for the provider to accept instead of
+/// confirming instantly. Cash bookings are always requests, whatever this
+/// says (see BookingTerms).
 @JsonKey(name: 'requires_approval') bool get requiresApproval;@JsonKey(name: 'slot_interval_minutes') int get slotIntervalMinutes;@JsonKey(name: 'buffer_minutes') int get bufferMinutes;@JsonKey(name: 'min_notice_minutes') int get minNoticeMinutes;@JsonKey(name: 'max_advance_days') int get maxAdvanceDays;@JsonKey(name: 'cancellation_window_hours') int get cancellationWindowHours;@JsonKey(name: 'cancellation_fee_percent') int get cancellationFeePercent;@JsonKey(name: 'offers_studio') bool get offersStudio;@JsonKey(name: 'offers_mobile') bool get offersMobile;/// How far a mobile provider travels; null means no limit.
 @JsonKey(name: 'travel_radius_km') double? get travelRadiusKm;/// Moves whenever availability may have changed (see the migration).
-@JsonKey(name: 'availability_version') int get availabilityVersion;
+@JsonKey(name: 'availability_version') int get availabilityVersion;/// The provider's choice to take cash. Ignored while card payments aren't
+/// ready: cash is then always accepted (see [takesCash]).
+@JsonKey(name: 'accepts_cash') bool get acceptsCash;/// The provider's choice to take payment in the app.
+@JsonKey(name: 'accepts_card') bool get acceptsCard;/// Set by the server once the provider's Stripe account can receive payouts.
+@JsonKey(name: 'card_ready') bool get cardReady;
 /// Create a copy of ProviderBookingSettings
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -32,16 +37,16 @@ $ProviderBookingSettingsCopyWith<ProviderBookingSettings> get copyWith => _$Prov
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProviderBookingSettings&&(identical(other.providerId, providerId) || other.providerId == providerId)&&(identical(other.timeZone, timeZone) || other.timeZone == timeZone)&&(identical(other.acceptsBookings, acceptsBookings) || other.acceptsBookings == acceptsBookings)&&(identical(other.requiresApproval, requiresApproval) || other.requiresApproval == requiresApproval)&&(identical(other.slotIntervalMinutes, slotIntervalMinutes) || other.slotIntervalMinutes == slotIntervalMinutes)&&(identical(other.bufferMinutes, bufferMinutes) || other.bufferMinutes == bufferMinutes)&&(identical(other.minNoticeMinutes, minNoticeMinutes) || other.minNoticeMinutes == minNoticeMinutes)&&(identical(other.maxAdvanceDays, maxAdvanceDays) || other.maxAdvanceDays == maxAdvanceDays)&&(identical(other.cancellationWindowHours, cancellationWindowHours) || other.cancellationWindowHours == cancellationWindowHours)&&(identical(other.cancellationFeePercent, cancellationFeePercent) || other.cancellationFeePercent == cancellationFeePercent)&&(identical(other.offersStudio, offersStudio) || other.offersStudio == offersStudio)&&(identical(other.offersMobile, offersMobile) || other.offersMobile == offersMobile)&&(identical(other.travelRadiusKm, travelRadiusKm) || other.travelRadiusKm == travelRadiusKm)&&(identical(other.availabilityVersion, availabilityVersion) || other.availabilityVersion == availabilityVersion));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProviderBookingSettings&&(identical(other.providerId, providerId) || other.providerId == providerId)&&(identical(other.timeZone, timeZone) || other.timeZone == timeZone)&&(identical(other.acceptsBookings, acceptsBookings) || other.acceptsBookings == acceptsBookings)&&(identical(other.requiresApproval, requiresApproval) || other.requiresApproval == requiresApproval)&&(identical(other.slotIntervalMinutes, slotIntervalMinutes) || other.slotIntervalMinutes == slotIntervalMinutes)&&(identical(other.bufferMinutes, bufferMinutes) || other.bufferMinutes == bufferMinutes)&&(identical(other.minNoticeMinutes, minNoticeMinutes) || other.minNoticeMinutes == minNoticeMinutes)&&(identical(other.maxAdvanceDays, maxAdvanceDays) || other.maxAdvanceDays == maxAdvanceDays)&&(identical(other.cancellationWindowHours, cancellationWindowHours) || other.cancellationWindowHours == cancellationWindowHours)&&(identical(other.cancellationFeePercent, cancellationFeePercent) || other.cancellationFeePercent == cancellationFeePercent)&&(identical(other.offersStudio, offersStudio) || other.offersStudio == offersStudio)&&(identical(other.offersMobile, offersMobile) || other.offersMobile == offersMobile)&&(identical(other.travelRadiusKm, travelRadiusKm) || other.travelRadiusKm == travelRadiusKm)&&(identical(other.availabilityVersion, availabilityVersion) || other.availabilityVersion == availabilityVersion)&&(identical(other.acceptsCash, acceptsCash) || other.acceptsCash == acceptsCash)&&(identical(other.acceptsCard, acceptsCard) || other.acceptsCard == acceptsCard)&&(identical(other.cardReady, cardReady) || other.cardReady == cardReady));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,providerId,timeZone,acceptsBookings,requiresApproval,slotIntervalMinutes,bufferMinutes,minNoticeMinutes,maxAdvanceDays,cancellationWindowHours,cancellationFeePercent,offersStudio,offersMobile,travelRadiusKm,availabilityVersion);
+int get hashCode => Object.hash(runtimeType,providerId,timeZone,acceptsBookings,requiresApproval,slotIntervalMinutes,bufferMinutes,minNoticeMinutes,maxAdvanceDays,cancellationWindowHours,cancellationFeePercent,offersStudio,offersMobile,travelRadiusKm,availabilityVersion,acceptsCash,acceptsCard,cardReady);
 
 @override
 String toString() {
-  return 'ProviderBookingSettings(providerId: $providerId, timeZone: $timeZone, acceptsBookings: $acceptsBookings, requiresApproval: $requiresApproval, slotIntervalMinutes: $slotIntervalMinutes, bufferMinutes: $bufferMinutes, minNoticeMinutes: $minNoticeMinutes, maxAdvanceDays: $maxAdvanceDays, cancellationWindowHours: $cancellationWindowHours, cancellationFeePercent: $cancellationFeePercent, offersStudio: $offersStudio, offersMobile: $offersMobile, travelRadiusKm: $travelRadiusKm, availabilityVersion: $availabilityVersion)';
+  return 'ProviderBookingSettings(providerId: $providerId, timeZone: $timeZone, acceptsBookings: $acceptsBookings, requiresApproval: $requiresApproval, slotIntervalMinutes: $slotIntervalMinutes, bufferMinutes: $bufferMinutes, minNoticeMinutes: $minNoticeMinutes, maxAdvanceDays: $maxAdvanceDays, cancellationWindowHours: $cancellationWindowHours, cancellationFeePercent: $cancellationFeePercent, offersStudio: $offersStudio, offersMobile: $offersMobile, travelRadiusKm: $travelRadiusKm, availabilityVersion: $availabilityVersion, acceptsCash: $acceptsCash, acceptsCard: $acceptsCard, cardReady: $cardReady)';
 }
 
 
@@ -52,7 +57,7 @@ abstract mixin class $ProviderBookingSettingsCopyWith<$Res>  {
   factory $ProviderBookingSettingsCopyWith(ProviderBookingSettings value, $Res Function(ProviderBookingSettings) _then) = _$ProviderBookingSettingsCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'provider_id') String providerId,@JsonKey(name: 'time_zone') String timeZone,@JsonKey(name: 'accepts_bookings') bool acceptsBookings,@JsonKey(name: 'requires_approval') bool requiresApproval,@JsonKey(name: 'slot_interval_minutes') int slotIntervalMinutes,@JsonKey(name: 'buffer_minutes') int bufferMinutes,@JsonKey(name: 'min_notice_minutes') int minNoticeMinutes,@JsonKey(name: 'max_advance_days') int maxAdvanceDays,@JsonKey(name: 'cancellation_window_hours') int cancellationWindowHours,@JsonKey(name: 'cancellation_fee_percent') int cancellationFeePercent,@JsonKey(name: 'offers_studio') bool offersStudio,@JsonKey(name: 'offers_mobile') bool offersMobile,@JsonKey(name: 'travel_radius_km') double? travelRadiusKm,@JsonKey(name: 'availability_version') int availabilityVersion
+@JsonKey(name: 'provider_id') String providerId,@JsonKey(name: 'time_zone') String timeZone,@JsonKey(name: 'accepts_bookings') bool acceptsBookings,@JsonKey(name: 'requires_approval') bool requiresApproval,@JsonKey(name: 'slot_interval_minutes') int slotIntervalMinutes,@JsonKey(name: 'buffer_minutes') int bufferMinutes,@JsonKey(name: 'min_notice_minutes') int minNoticeMinutes,@JsonKey(name: 'max_advance_days') int maxAdvanceDays,@JsonKey(name: 'cancellation_window_hours') int cancellationWindowHours,@JsonKey(name: 'cancellation_fee_percent') int cancellationFeePercent,@JsonKey(name: 'offers_studio') bool offersStudio,@JsonKey(name: 'offers_mobile') bool offersMobile,@JsonKey(name: 'travel_radius_km') double? travelRadiusKm,@JsonKey(name: 'availability_version') int availabilityVersion,@JsonKey(name: 'accepts_cash') bool acceptsCash,@JsonKey(name: 'accepts_card') bool acceptsCard,@JsonKey(name: 'card_ready') bool cardReady
 });
 
 
@@ -69,7 +74,7 @@ class _$ProviderBookingSettingsCopyWithImpl<$Res>
 
 /// Create a copy of ProviderBookingSettings
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? providerId = null,Object? timeZone = null,Object? acceptsBookings = null,Object? requiresApproval = null,Object? slotIntervalMinutes = null,Object? bufferMinutes = null,Object? minNoticeMinutes = null,Object? maxAdvanceDays = null,Object? cancellationWindowHours = null,Object? cancellationFeePercent = null,Object? offersStudio = null,Object? offersMobile = null,Object? travelRadiusKm = freezed,Object? availabilityVersion = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? providerId = null,Object? timeZone = null,Object? acceptsBookings = null,Object? requiresApproval = null,Object? slotIntervalMinutes = null,Object? bufferMinutes = null,Object? minNoticeMinutes = null,Object? maxAdvanceDays = null,Object? cancellationWindowHours = null,Object? cancellationFeePercent = null,Object? offersStudio = null,Object? offersMobile = null,Object? travelRadiusKm = freezed,Object? availabilityVersion = null,Object? acceptsCash = null,Object? acceptsCard = null,Object? cardReady = null,}) {
   return _then(_self.copyWith(
 providerId: null == providerId ? _self.providerId : providerId // ignore: cast_nullable_to_non_nullable
 as String,timeZone: null == timeZone ? _self.timeZone : timeZone // ignore: cast_nullable_to_non_nullable
@@ -85,7 +90,10 @@ as int,offersStudio: null == offersStudio ? _self.offersStudio : offersStudio //
 as bool,offersMobile: null == offersMobile ? _self.offersMobile : offersMobile // ignore: cast_nullable_to_non_nullable
 as bool,travelRadiusKm: freezed == travelRadiusKm ? _self.travelRadiusKm : travelRadiusKm // ignore: cast_nullable_to_non_nullable
 as double?,availabilityVersion: null == availabilityVersion ? _self.availabilityVersion : availabilityVersion // ignore: cast_nullable_to_non_nullable
-as int,
+as int,acceptsCash: null == acceptsCash ? _self.acceptsCash : acceptsCash // ignore: cast_nullable_to_non_nullable
+as bool,acceptsCard: null == acceptsCard ? _self.acceptsCard : acceptsCard // ignore: cast_nullable_to_non_nullable
+as bool,cardReady: null == cardReady ? _self.cardReady : cardReady // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -170,10 +178,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'provider_id')  String providerId, @JsonKey(name: 'time_zone')  String timeZone, @JsonKey(name: 'accepts_bookings')  bool acceptsBookings, @JsonKey(name: 'requires_approval')  bool requiresApproval, @JsonKey(name: 'slot_interval_minutes')  int slotIntervalMinutes, @JsonKey(name: 'buffer_minutes')  int bufferMinutes, @JsonKey(name: 'min_notice_minutes')  int minNoticeMinutes, @JsonKey(name: 'max_advance_days')  int maxAdvanceDays, @JsonKey(name: 'cancellation_window_hours')  int cancellationWindowHours, @JsonKey(name: 'cancellation_fee_percent')  int cancellationFeePercent, @JsonKey(name: 'offers_studio')  bool offersStudio, @JsonKey(name: 'offers_mobile')  bool offersMobile, @JsonKey(name: 'travel_radius_km')  double? travelRadiusKm, @JsonKey(name: 'availability_version')  int availabilityVersion)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'provider_id')  String providerId, @JsonKey(name: 'time_zone')  String timeZone, @JsonKey(name: 'accepts_bookings')  bool acceptsBookings, @JsonKey(name: 'requires_approval')  bool requiresApproval, @JsonKey(name: 'slot_interval_minutes')  int slotIntervalMinutes, @JsonKey(name: 'buffer_minutes')  int bufferMinutes, @JsonKey(name: 'min_notice_minutes')  int minNoticeMinutes, @JsonKey(name: 'max_advance_days')  int maxAdvanceDays, @JsonKey(name: 'cancellation_window_hours')  int cancellationWindowHours, @JsonKey(name: 'cancellation_fee_percent')  int cancellationFeePercent, @JsonKey(name: 'offers_studio')  bool offersStudio, @JsonKey(name: 'offers_mobile')  bool offersMobile, @JsonKey(name: 'travel_radius_km')  double? travelRadiusKm, @JsonKey(name: 'availability_version')  int availabilityVersion, @JsonKey(name: 'accepts_cash')  bool acceptsCash, @JsonKey(name: 'accepts_card')  bool acceptsCard, @JsonKey(name: 'card_ready')  bool cardReady)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProviderBookingSettings() when $default != null:
-return $default(_that.providerId,_that.timeZone,_that.acceptsBookings,_that.requiresApproval,_that.slotIntervalMinutes,_that.bufferMinutes,_that.minNoticeMinutes,_that.maxAdvanceDays,_that.cancellationWindowHours,_that.cancellationFeePercent,_that.offersStudio,_that.offersMobile,_that.travelRadiusKm,_that.availabilityVersion);case _:
+return $default(_that.providerId,_that.timeZone,_that.acceptsBookings,_that.requiresApproval,_that.slotIntervalMinutes,_that.bufferMinutes,_that.minNoticeMinutes,_that.maxAdvanceDays,_that.cancellationWindowHours,_that.cancellationFeePercent,_that.offersStudio,_that.offersMobile,_that.travelRadiusKm,_that.availabilityVersion,_that.acceptsCash,_that.acceptsCard,_that.cardReady);case _:
   return orElse();
 
 }
@@ -191,10 +199,10 @@ return $default(_that.providerId,_that.timeZone,_that.acceptsBookings,_that.requ
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'provider_id')  String providerId, @JsonKey(name: 'time_zone')  String timeZone, @JsonKey(name: 'accepts_bookings')  bool acceptsBookings, @JsonKey(name: 'requires_approval')  bool requiresApproval, @JsonKey(name: 'slot_interval_minutes')  int slotIntervalMinutes, @JsonKey(name: 'buffer_minutes')  int bufferMinutes, @JsonKey(name: 'min_notice_minutes')  int minNoticeMinutes, @JsonKey(name: 'max_advance_days')  int maxAdvanceDays, @JsonKey(name: 'cancellation_window_hours')  int cancellationWindowHours, @JsonKey(name: 'cancellation_fee_percent')  int cancellationFeePercent, @JsonKey(name: 'offers_studio')  bool offersStudio, @JsonKey(name: 'offers_mobile')  bool offersMobile, @JsonKey(name: 'travel_radius_km')  double? travelRadiusKm, @JsonKey(name: 'availability_version')  int availabilityVersion)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'provider_id')  String providerId, @JsonKey(name: 'time_zone')  String timeZone, @JsonKey(name: 'accepts_bookings')  bool acceptsBookings, @JsonKey(name: 'requires_approval')  bool requiresApproval, @JsonKey(name: 'slot_interval_minutes')  int slotIntervalMinutes, @JsonKey(name: 'buffer_minutes')  int bufferMinutes, @JsonKey(name: 'min_notice_minutes')  int minNoticeMinutes, @JsonKey(name: 'max_advance_days')  int maxAdvanceDays, @JsonKey(name: 'cancellation_window_hours')  int cancellationWindowHours, @JsonKey(name: 'cancellation_fee_percent')  int cancellationFeePercent, @JsonKey(name: 'offers_studio')  bool offersStudio, @JsonKey(name: 'offers_mobile')  bool offersMobile, @JsonKey(name: 'travel_radius_km')  double? travelRadiusKm, @JsonKey(name: 'availability_version')  int availabilityVersion, @JsonKey(name: 'accepts_cash')  bool acceptsCash, @JsonKey(name: 'accepts_card')  bool acceptsCard, @JsonKey(name: 'card_ready')  bool cardReady)  $default,) {final _that = this;
 switch (_that) {
 case _ProviderBookingSettings():
-return $default(_that.providerId,_that.timeZone,_that.acceptsBookings,_that.requiresApproval,_that.slotIntervalMinutes,_that.bufferMinutes,_that.minNoticeMinutes,_that.maxAdvanceDays,_that.cancellationWindowHours,_that.cancellationFeePercent,_that.offersStudio,_that.offersMobile,_that.travelRadiusKm,_that.availabilityVersion);case _:
+return $default(_that.providerId,_that.timeZone,_that.acceptsBookings,_that.requiresApproval,_that.slotIntervalMinutes,_that.bufferMinutes,_that.minNoticeMinutes,_that.maxAdvanceDays,_that.cancellationWindowHours,_that.cancellationFeePercent,_that.offersStudio,_that.offersMobile,_that.travelRadiusKm,_that.availabilityVersion,_that.acceptsCash,_that.acceptsCard,_that.cardReady);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -211,10 +219,10 @@ return $default(_that.providerId,_that.timeZone,_that.acceptsBookings,_that.requ
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'provider_id')  String providerId, @JsonKey(name: 'time_zone')  String timeZone, @JsonKey(name: 'accepts_bookings')  bool acceptsBookings, @JsonKey(name: 'requires_approval')  bool requiresApproval, @JsonKey(name: 'slot_interval_minutes')  int slotIntervalMinutes, @JsonKey(name: 'buffer_minutes')  int bufferMinutes, @JsonKey(name: 'min_notice_minutes')  int minNoticeMinutes, @JsonKey(name: 'max_advance_days')  int maxAdvanceDays, @JsonKey(name: 'cancellation_window_hours')  int cancellationWindowHours, @JsonKey(name: 'cancellation_fee_percent')  int cancellationFeePercent, @JsonKey(name: 'offers_studio')  bool offersStudio, @JsonKey(name: 'offers_mobile')  bool offersMobile, @JsonKey(name: 'travel_radius_km')  double? travelRadiusKm, @JsonKey(name: 'availability_version')  int availabilityVersion)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'provider_id')  String providerId, @JsonKey(name: 'time_zone')  String timeZone, @JsonKey(name: 'accepts_bookings')  bool acceptsBookings, @JsonKey(name: 'requires_approval')  bool requiresApproval, @JsonKey(name: 'slot_interval_minutes')  int slotIntervalMinutes, @JsonKey(name: 'buffer_minutes')  int bufferMinutes, @JsonKey(name: 'min_notice_minutes')  int minNoticeMinutes, @JsonKey(name: 'max_advance_days')  int maxAdvanceDays, @JsonKey(name: 'cancellation_window_hours')  int cancellationWindowHours, @JsonKey(name: 'cancellation_fee_percent')  int cancellationFeePercent, @JsonKey(name: 'offers_studio')  bool offersStudio, @JsonKey(name: 'offers_mobile')  bool offersMobile, @JsonKey(name: 'travel_radius_km')  double? travelRadiusKm, @JsonKey(name: 'availability_version')  int availabilityVersion, @JsonKey(name: 'accepts_cash')  bool acceptsCash, @JsonKey(name: 'accepts_card')  bool acceptsCard, @JsonKey(name: 'card_ready')  bool cardReady)?  $default,) {final _that = this;
 switch (_that) {
 case _ProviderBookingSettings() when $default != null:
-return $default(_that.providerId,_that.timeZone,_that.acceptsBookings,_that.requiresApproval,_that.slotIntervalMinutes,_that.bufferMinutes,_that.minNoticeMinutes,_that.maxAdvanceDays,_that.cancellationWindowHours,_that.cancellationFeePercent,_that.offersStudio,_that.offersMobile,_that.travelRadiusKm,_that.availabilityVersion);case _:
+return $default(_that.providerId,_that.timeZone,_that.acceptsBookings,_that.requiresApproval,_that.slotIntervalMinutes,_that.bufferMinutes,_that.minNoticeMinutes,_that.maxAdvanceDays,_that.cancellationWindowHours,_that.cancellationFeePercent,_that.offersStudio,_that.offersMobile,_that.travelRadiusKm,_that.availabilityVersion,_that.acceptsCash,_that.acceptsCard,_that.cardReady);case _:
   return null;
 
 }
@@ -226,14 +234,15 @@ return $default(_that.providerId,_that.timeZone,_that.acceptsBookings,_that.requ
 @JsonSerializable()
 
 class _ProviderBookingSettings extends ProviderBookingSettings {
-  const _ProviderBookingSettings({@JsonKey(name: 'provider_id') required this.providerId, @JsonKey(name: 'time_zone') this.timeZone = BookingTime.defaultTimeZone, @JsonKey(name: 'accepts_bookings') this.acceptsBookings = true, @JsonKey(name: 'requires_approval') this.requiresApproval = false, @JsonKey(name: 'slot_interval_minutes') this.slotIntervalMinutes = 15, @JsonKey(name: 'buffer_minutes') this.bufferMinutes = 0, @JsonKey(name: 'min_notice_minutes') this.minNoticeMinutes = 120, @JsonKey(name: 'max_advance_days') this.maxAdvanceDays = 60, @JsonKey(name: 'cancellation_window_hours') this.cancellationWindowHours = 24, @JsonKey(name: 'cancellation_fee_percent') this.cancellationFeePercent = 0, @JsonKey(name: 'offers_studio') this.offersStudio = true, @JsonKey(name: 'offers_mobile') this.offersMobile = false, @JsonKey(name: 'travel_radius_km') this.travelRadiusKm, @JsonKey(name: 'availability_version') this.availabilityVersion = 0}): super._();
+  const _ProviderBookingSettings({@JsonKey(name: 'provider_id') required this.providerId, @JsonKey(name: 'time_zone') this.timeZone = BookingTime.defaultTimeZone, @JsonKey(name: 'accepts_bookings') this.acceptsBookings = true, @JsonKey(name: 'requires_approval') this.requiresApproval = false, @JsonKey(name: 'slot_interval_minutes') this.slotIntervalMinutes = 15, @JsonKey(name: 'buffer_minutes') this.bufferMinutes = 0, @JsonKey(name: 'min_notice_minutes') this.minNoticeMinutes = 120, @JsonKey(name: 'max_advance_days') this.maxAdvanceDays = 60, @JsonKey(name: 'cancellation_window_hours') this.cancellationWindowHours = 24, @JsonKey(name: 'cancellation_fee_percent') this.cancellationFeePercent = 0, @JsonKey(name: 'offers_studio') this.offersStudio = true, @JsonKey(name: 'offers_mobile') this.offersMobile = false, @JsonKey(name: 'travel_radius_km') this.travelRadiusKm, @JsonKey(name: 'availability_version') this.availabilityVersion = 0, @JsonKey(name: 'accepts_cash') this.acceptsCash = true, @JsonKey(name: 'accepts_card') this.acceptsCard = true, @JsonKey(name: 'card_ready') this.cardReady = false}): super._();
   factory _ProviderBookingSettings.fromJson(Map<String, dynamic> json) => _$ProviderBookingSettingsFromJson(json);
 
 @override@JsonKey(name: 'provider_id') final  String providerId;
 @override@JsonKey(name: 'time_zone') final  String timeZone;
 @override@JsonKey(name: 'accepts_bookings') final  bool acceptsBookings;
-/// Requests wait for the provider to accept instead of confirming
-/// instantly.
+/// Bookings paid in the app wait for the provider to accept instead of
+/// confirming instantly. Cash bookings are always requests, whatever this
+/// says (see BookingTerms).
 @override@JsonKey(name: 'requires_approval') final  bool requiresApproval;
 @override@JsonKey(name: 'slot_interval_minutes') final  int slotIntervalMinutes;
 @override@JsonKey(name: 'buffer_minutes') final  int bufferMinutes;
@@ -247,6 +256,13 @@ class _ProviderBookingSettings extends ProviderBookingSettings {
 @override@JsonKey(name: 'travel_radius_km') final  double? travelRadiusKm;
 /// Moves whenever availability may have changed (see the migration).
 @override@JsonKey(name: 'availability_version') final  int availabilityVersion;
+/// The provider's choice to take cash. Ignored while card payments aren't
+/// ready: cash is then always accepted (see [takesCash]).
+@override@JsonKey(name: 'accepts_cash') final  bool acceptsCash;
+/// The provider's choice to take payment in the app.
+@override@JsonKey(name: 'accepts_card') final  bool acceptsCard;
+/// Set by the server once the provider's Stripe account can receive payouts.
+@override@JsonKey(name: 'card_ready') final  bool cardReady;
 
 /// Create a copy of ProviderBookingSettings
 /// with the given fields replaced by the non-null parameter values.
@@ -261,16 +277,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProviderBookingSettings&&(identical(other.providerId, providerId) || other.providerId == providerId)&&(identical(other.timeZone, timeZone) || other.timeZone == timeZone)&&(identical(other.acceptsBookings, acceptsBookings) || other.acceptsBookings == acceptsBookings)&&(identical(other.requiresApproval, requiresApproval) || other.requiresApproval == requiresApproval)&&(identical(other.slotIntervalMinutes, slotIntervalMinutes) || other.slotIntervalMinutes == slotIntervalMinutes)&&(identical(other.bufferMinutes, bufferMinutes) || other.bufferMinutes == bufferMinutes)&&(identical(other.minNoticeMinutes, minNoticeMinutes) || other.minNoticeMinutes == minNoticeMinutes)&&(identical(other.maxAdvanceDays, maxAdvanceDays) || other.maxAdvanceDays == maxAdvanceDays)&&(identical(other.cancellationWindowHours, cancellationWindowHours) || other.cancellationWindowHours == cancellationWindowHours)&&(identical(other.cancellationFeePercent, cancellationFeePercent) || other.cancellationFeePercent == cancellationFeePercent)&&(identical(other.offersStudio, offersStudio) || other.offersStudio == offersStudio)&&(identical(other.offersMobile, offersMobile) || other.offersMobile == offersMobile)&&(identical(other.travelRadiusKm, travelRadiusKm) || other.travelRadiusKm == travelRadiusKm)&&(identical(other.availabilityVersion, availabilityVersion) || other.availabilityVersion == availabilityVersion));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProviderBookingSettings&&(identical(other.providerId, providerId) || other.providerId == providerId)&&(identical(other.timeZone, timeZone) || other.timeZone == timeZone)&&(identical(other.acceptsBookings, acceptsBookings) || other.acceptsBookings == acceptsBookings)&&(identical(other.requiresApproval, requiresApproval) || other.requiresApproval == requiresApproval)&&(identical(other.slotIntervalMinutes, slotIntervalMinutes) || other.slotIntervalMinutes == slotIntervalMinutes)&&(identical(other.bufferMinutes, bufferMinutes) || other.bufferMinutes == bufferMinutes)&&(identical(other.minNoticeMinutes, minNoticeMinutes) || other.minNoticeMinutes == minNoticeMinutes)&&(identical(other.maxAdvanceDays, maxAdvanceDays) || other.maxAdvanceDays == maxAdvanceDays)&&(identical(other.cancellationWindowHours, cancellationWindowHours) || other.cancellationWindowHours == cancellationWindowHours)&&(identical(other.cancellationFeePercent, cancellationFeePercent) || other.cancellationFeePercent == cancellationFeePercent)&&(identical(other.offersStudio, offersStudio) || other.offersStudio == offersStudio)&&(identical(other.offersMobile, offersMobile) || other.offersMobile == offersMobile)&&(identical(other.travelRadiusKm, travelRadiusKm) || other.travelRadiusKm == travelRadiusKm)&&(identical(other.availabilityVersion, availabilityVersion) || other.availabilityVersion == availabilityVersion)&&(identical(other.acceptsCash, acceptsCash) || other.acceptsCash == acceptsCash)&&(identical(other.acceptsCard, acceptsCard) || other.acceptsCard == acceptsCard)&&(identical(other.cardReady, cardReady) || other.cardReady == cardReady));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,providerId,timeZone,acceptsBookings,requiresApproval,slotIntervalMinutes,bufferMinutes,minNoticeMinutes,maxAdvanceDays,cancellationWindowHours,cancellationFeePercent,offersStudio,offersMobile,travelRadiusKm,availabilityVersion);
+int get hashCode => Object.hash(runtimeType,providerId,timeZone,acceptsBookings,requiresApproval,slotIntervalMinutes,bufferMinutes,minNoticeMinutes,maxAdvanceDays,cancellationWindowHours,cancellationFeePercent,offersStudio,offersMobile,travelRadiusKm,availabilityVersion,acceptsCash,acceptsCard,cardReady);
 
 @override
 String toString() {
-  return 'ProviderBookingSettings(providerId: $providerId, timeZone: $timeZone, acceptsBookings: $acceptsBookings, requiresApproval: $requiresApproval, slotIntervalMinutes: $slotIntervalMinutes, bufferMinutes: $bufferMinutes, minNoticeMinutes: $minNoticeMinutes, maxAdvanceDays: $maxAdvanceDays, cancellationWindowHours: $cancellationWindowHours, cancellationFeePercent: $cancellationFeePercent, offersStudio: $offersStudio, offersMobile: $offersMobile, travelRadiusKm: $travelRadiusKm, availabilityVersion: $availabilityVersion)';
+  return 'ProviderBookingSettings(providerId: $providerId, timeZone: $timeZone, acceptsBookings: $acceptsBookings, requiresApproval: $requiresApproval, slotIntervalMinutes: $slotIntervalMinutes, bufferMinutes: $bufferMinutes, minNoticeMinutes: $minNoticeMinutes, maxAdvanceDays: $maxAdvanceDays, cancellationWindowHours: $cancellationWindowHours, cancellationFeePercent: $cancellationFeePercent, offersStudio: $offersStudio, offersMobile: $offersMobile, travelRadiusKm: $travelRadiusKm, availabilityVersion: $availabilityVersion, acceptsCash: $acceptsCash, acceptsCard: $acceptsCard, cardReady: $cardReady)';
 }
 
 
@@ -281,7 +297,7 @@ abstract mixin class _$ProviderBookingSettingsCopyWith<$Res> implements $Provide
   factory _$ProviderBookingSettingsCopyWith(_ProviderBookingSettings value, $Res Function(_ProviderBookingSettings) _then) = __$ProviderBookingSettingsCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'provider_id') String providerId,@JsonKey(name: 'time_zone') String timeZone,@JsonKey(name: 'accepts_bookings') bool acceptsBookings,@JsonKey(name: 'requires_approval') bool requiresApproval,@JsonKey(name: 'slot_interval_minutes') int slotIntervalMinutes,@JsonKey(name: 'buffer_minutes') int bufferMinutes,@JsonKey(name: 'min_notice_minutes') int minNoticeMinutes,@JsonKey(name: 'max_advance_days') int maxAdvanceDays,@JsonKey(name: 'cancellation_window_hours') int cancellationWindowHours,@JsonKey(name: 'cancellation_fee_percent') int cancellationFeePercent,@JsonKey(name: 'offers_studio') bool offersStudio,@JsonKey(name: 'offers_mobile') bool offersMobile,@JsonKey(name: 'travel_radius_km') double? travelRadiusKm,@JsonKey(name: 'availability_version') int availabilityVersion
+@JsonKey(name: 'provider_id') String providerId,@JsonKey(name: 'time_zone') String timeZone,@JsonKey(name: 'accepts_bookings') bool acceptsBookings,@JsonKey(name: 'requires_approval') bool requiresApproval,@JsonKey(name: 'slot_interval_minutes') int slotIntervalMinutes,@JsonKey(name: 'buffer_minutes') int bufferMinutes,@JsonKey(name: 'min_notice_minutes') int minNoticeMinutes,@JsonKey(name: 'max_advance_days') int maxAdvanceDays,@JsonKey(name: 'cancellation_window_hours') int cancellationWindowHours,@JsonKey(name: 'cancellation_fee_percent') int cancellationFeePercent,@JsonKey(name: 'offers_studio') bool offersStudio,@JsonKey(name: 'offers_mobile') bool offersMobile,@JsonKey(name: 'travel_radius_km') double? travelRadiusKm,@JsonKey(name: 'availability_version') int availabilityVersion,@JsonKey(name: 'accepts_cash') bool acceptsCash,@JsonKey(name: 'accepts_card') bool acceptsCard,@JsonKey(name: 'card_ready') bool cardReady
 });
 
 
@@ -298,7 +314,7 @@ class __$ProviderBookingSettingsCopyWithImpl<$Res>
 
 /// Create a copy of ProviderBookingSettings
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? providerId = null,Object? timeZone = null,Object? acceptsBookings = null,Object? requiresApproval = null,Object? slotIntervalMinutes = null,Object? bufferMinutes = null,Object? minNoticeMinutes = null,Object? maxAdvanceDays = null,Object? cancellationWindowHours = null,Object? cancellationFeePercent = null,Object? offersStudio = null,Object? offersMobile = null,Object? travelRadiusKm = freezed,Object? availabilityVersion = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? providerId = null,Object? timeZone = null,Object? acceptsBookings = null,Object? requiresApproval = null,Object? slotIntervalMinutes = null,Object? bufferMinutes = null,Object? minNoticeMinutes = null,Object? maxAdvanceDays = null,Object? cancellationWindowHours = null,Object? cancellationFeePercent = null,Object? offersStudio = null,Object? offersMobile = null,Object? travelRadiusKm = freezed,Object? availabilityVersion = null,Object? acceptsCash = null,Object? acceptsCard = null,Object? cardReady = null,}) {
   return _then(_ProviderBookingSettings(
 providerId: null == providerId ? _self.providerId : providerId // ignore: cast_nullable_to_non_nullable
 as String,timeZone: null == timeZone ? _self.timeZone : timeZone // ignore: cast_nullable_to_non_nullable
@@ -314,7 +330,10 @@ as int,offersStudio: null == offersStudio ? _self.offersStudio : offersStudio //
 as bool,offersMobile: null == offersMobile ? _self.offersMobile : offersMobile // ignore: cast_nullable_to_non_nullable
 as bool,travelRadiusKm: freezed == travelRadiusKm ? _self.travelRadiusKm : travelRadiusKm // ignore: cast_nullable_to_non_nullable
 as double?,availabilityVersion: null == availabilityVersion ? _self.availabilityVersion : availabilityVersion // ignore: cast_nullable_to_non_nullable
-as int,
+as int,acceptsCash: null == acceptsCash ? _self.acceptsCash : acceptsCash // ignore: cast_nullable_to_non_nullable
+as bool,acceptsCard: null == acceptsCard ? _self.acceptsCard : acceptsCard // ignore: cast_nullable_to_non_nullable
+as bool,cardReady: null == cardReady ? _self.cardReady : cardReady // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

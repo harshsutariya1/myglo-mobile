@@ -140,6 +140,7 @@ class _Detail extends StatelessWidget {
               ),
             ],
           ),
+        if (user.isProvider) _PayoutAccountSection(userId: user.userId),
         AdminSection(
           title: 'Recent bookings',
           children: user.recentBookings.isEmpty
@@ -172,6 +173,50 @@ class _Detail extends StatelessWidget {
           label: const Text('Admin history for this account'),
         ),
       ],
+    );
+  }
+}
+
+/// The provider's Stripe payout account as Myglo last saw it.
+class _PayoutAccountSection extends ConsumerWidget {
+  const _PayoutAccountSection({required this.userId});
+
+  final String userId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = context.colorScheme;
+    final account = ref.watch(adminPayoutAccountProvider(userId));
+    return AdminSection(
+      title: 'Card payments',
+      children: switch (account) {
+        AsyncData(value: null) => [const AdminInfoRow(label: 'Stripe account', value: 'Not set up')],
+        AsyncData(:final value?) => [
+            AdminInfoRow(
+              label: 'Transfers',
+              value: '${value['transfers_status']}',
+              valueColor: value['transfers_status'] == 'active' ? AppTheme.success : AppTheme.warning,
+            ),
+            AdminInfoRow(label: 'Payouts', value: value['payouts_enabled'] == true ? 'Enabled' : 'Not enabled'),
+            AdminInfoRow(
+              label: 'Takes',
+              value: [
+                if (value['accepts_card'] == true && value['card_ready'] == true) 'Card',
+                if (value['accepts_cash'] == true || value['card_ready'] != true) 'Cash',
+              ].join(' + '),
+            ),
+            if ((value['requirements_due'] as List?)?.isNotEmpty ?? false)
+              AdminInfoRow(label: 'Stripe needs', value: (value['requirements_due'] as List).join('\n')),
+            if (value['disabled_reason'] != null) AdminInfoRow(label: 'Reason', value: '${value['disabled_reason']}'),
+            if (value['first_enabled_at'] != null)
+              AdminInfoRow(label: 'Enabled since', value: adminDate(DateTime.parse('${value['first_enabled_at']}'))),
+            AdminInfoRow(label: 'Stripe account', value: '${value['stripe_account_id']}'),
+          ],
+        AsyncError() => [
+            Text("Couldn't load the payout account.", style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6))),
+          ],
+        _ => [const Padding(padding: EdgeInsets.all(8), child: LinearProgressIndicator())],
+      },
     );
   }
 }

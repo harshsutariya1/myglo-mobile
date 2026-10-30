@@ -6,8 +6,6 @@ import '../../../../core/routing/app_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/skeleton/skeletons.dart';
-import '../../../../core/widgets/snackbar_utils.dart';
-import '../../../../core/widgets/soon_badge.dart';
 import '../../../customers/provider_profile/views/widgets/provider_profile_header.dart' show providerDisplayName;
 import '../../../customers/provider_profile/views/widgets/section_states.dart';
 import '../../../shared/authentication/controllers/user_profile_provider.dart';
@@ -121,11 +119,10 @@ class BusinessToolsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               _ActionItem(
-                title: 'Financials',
-                subtitle: 'View payout history and manage bank details',
+                title: 'Payments & payouts',
+                subtitle: 'Take card payments, bank details and payouts',
                 icon: Icons.account_balance_wallet,
-                soon: true,
-                onTap: () => context.showComingSoon('Financials'),
+                onTap: () => context.pushNamed(AppRoute.providerPayments.name),
               ),
               const SizedBox(height: 100), // Bottom navigation bar padding
             ],
@@ -439,16 +436,12 @@ class _ActionItem extends StatelessWidget {
     required this.subtitle,
     required this.icon,
     required this.onTap,
-    this.soon = false,
   });
 
   final String title;
   final String subtitle;
   final IconData icon;
   final VoidCallback onTap;
-
-  /// Not live yet: shows a "Soon" badge instead of the chevron.
-  final bool soon;
 
   @override
   Widget build(BuildContext context) {
@@ -507,7 +500,7 @@ class _ActionItem extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            if (soon) const SoonBadge() else Icon(Icons.chevron_right, color: Colors.grey.shade400),
+            Icon(Icons.chevron_right, color: Colors.grey.shade400),
           ],
         ),
       ),

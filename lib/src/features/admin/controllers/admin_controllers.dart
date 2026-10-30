@@ -26,6 +26,10 @@ final adminUserProvider = FutureProvider.autoDispose.family<AdminUserDetail, Str
   (ref, userId) => ref.watch(adminRepositoryProvider).getUser(userId),
 );
 
+final adminPayoutAccountProvider = FutureProvider.autoDispose.family<Map<String, dynamic>?, String>(
+  (ref, userId) => ref.watch(adminRepositoryProvider).getPayoutAccount(userId),
+);
+
 /// A page-by-page list: what's loaded so far and whether there's more.
 class PagedList<T> {
   const PagedList({this.items = const [], this.hasMore = false, this.loadingMore = false, this.loadMoreError});

@@ -245,13 +245,13 @@ void main() {
   testWidgets('features that are not live explain themselves', (tester) async {
     await _pump(tester);
 
-    await tester.scrollUntilVisible(find.text('Bank account'), 300);
-    await tester.ensureVisible(find.text('Bank account'));
+    await tester.scrollUntilVisible(find.text('Invoices & tax receipts'), 300);
+    await tester.ensureVisible(find.text('Invoices & tax receipts'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Bank account'));
+    await tester.tap(find.text('Invoices & tax receipts'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Payouts is coming soon'), findsOneWidget);
+    expect(find.text('Automated invoices is coming soon'), findsOneWidget);
   });
 
   testWidgets('email visibility toggle saves the new value', (tester) async {

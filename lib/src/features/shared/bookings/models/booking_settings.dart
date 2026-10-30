@@ -33,10 +33,27 @@ abstract class ProviderBookingSettings with _$ProviderBookingSettings {
 
     /// Moves whenever availability may have changed (see the migration).
     @JsonKey(name: 'availability_version') @Default(0) int availabilityVersion,
+
+    /// The provider's choice to take cash. Ignored while card payments aren't
+    /// ready: cash is then always accepted (see [takesCash]).
+    @JsonKey(name: 'accepts_cash') @Default(true) bool acceptsCash,
+
+    /// The provider's choice to take payment in the app.
+    @JsonKey(name: 'accepts_card') @Default(true) bool acceptsCard,
+
+    /// Set by the server once the provider's Stripe account can receive payouts.
+    @JsonKey(name: 'card_ready') @Default(false) bool cardReady,
   }) = _ProviderBookingSettings;
 
   factory ProviderBookingSettings.fromJson(Map<String, dynamic> json) => _$ProviderBookingSettingsFromJson(json);
 
   /// Last day a client may book, counted from [today] (provider-local).
   DateTime lastBookableDay(DateTime today) => today.add(Duration(days: maxAdvanceDays));
+
+  /// Clients can pay in the app. Mirrors `private.provider_takes_card`.
+  bool get takesCard => acceptsCard && cardReady;
+
+  /// Clients can pay cash. Mirrors `private.provider_takes_cash`: always true
+  /// while card payments aren't available, so a provider is never unbookable.
+  bool get takesCash => acceptsCash || !takesCard;
 }

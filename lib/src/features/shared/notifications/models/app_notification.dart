@@ -29,6 +29,12 @@ enum NotificationKind {
 
   /// Client: the provider replied to their review.
   reviewReply('review_reply', Icons.reply_rounded),
+
+  /// Provider: their Stripe account can take card payments.
+  paymentsReady('payments_ready', Icons.credit_score_rounded),
+
+  /// Provider: Stripe needs more details to keep card payments on.
+  paymentsActionNeeded('payments_action_needed', Icons.assignment_late_outlined),
   unknown('unknown', Icons.notifications_none_rounded);
 
   const NotificationKind(this.key, this.icon);
@@ -39,11 +45,16 @@ enum NotificationKind {
   static NotificationKind fromKey(String? key) =>
       values.firstWhere((kind) => kind.key == key, orElse: () => unknown);
 
+  /// About the provider's card payments set-up rather than a booking.
+  bool get isAboutPayments => this == paymentsReady || this == paymentsActionNeeded;
+
   Color color(ColorScheme scheme) => switch (this) {
         bookingNew || bookingConfirmed || bookingCompleted => AppTheme.success,
         bookingRequest || bookingRequestReminder || bookingRequested => AppTheme.warning,
         bookingDeclined || bookingCancelled || bookingNoShow => AppTheme.destructive,
         bookingReminder || reviewReply => scheme.primary,
+        paymentsReady => AppTheme.success,
+        paymentsActionNeeded => AppTheme.warning,
         reviewReceived || reviewUpdated || reviewThanks => AppTheme.warning,
         bookingExpired || unknown => scheme.onSurface.withValues(alpha: 0.55),
       };

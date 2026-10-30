@@ -288,7 +288,7 @@ void main() {
       ]);
 
       expect(find.text('Profile views'), findsNothing);
-      expect(find.byType(SoonBadge), findsOneWidget); // Only Financials.
+      expect(find.byType(SoonBadge), findsNothing); // Payments & payouts is live.
       expect(find.text('4.8'), findsOneWidget);
       expect(find.text('(12)'), findsOneWidget);
       // The two separate cards are gone.
@@ -352,16 +352,13 @@ void main() {
       expect(router.routeInformationProvider.value.uri.path, AppRoute.providerProfile.path);
     });
 
-    testWidgets('Financials is marked Soon and only explains that', (tester) async {
+    testWidgets('Payments & payouts is live, not marked Soon', (tester) async {
       await _pump(tester, _overrides(_FakeRepository(_october)));
 
-      final tile = find.ancestor(of: find.text('Financials'), matching: find.byType(InkWell));
-      expect(find.descendant(of: tile, matching: find.byType(SoonBadge)), findsOneWidget);
-      expect(find.descendant(of: tile, matching: find.byIcon(Icons.chevron_right)), findsNothing);
-
-      await _tapVisible(tester, find.text('Financials'));
-      expect(find.text('Financials is coming soon'), findsOneWidget);
-      expect(find.byType(BusinessToolsScreen), findsOneWidget);
+      final tile = find.ancestor(of: find.text('Payments & payouts'), matching: find.byType(InkWell));
+      expect(find.descendant(of: tile, matching: find.byType(SoonBadge)), findsNothing);
+      expect(find.descendant(of: tile, matching: find.byIcon(Icons.chevron_right)), findsOneWidget);
+      expect(find.text('Financials'), findsNothing);
     });
 
     testWidgets('Manage Schedule still opens working hours', (tester) async {

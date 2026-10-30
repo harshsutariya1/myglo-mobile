@@ -22,6 +22,7 @@ import '../../../../shared/bookings/models/booking_failure.dart';
 import '../../../schedule/controllers/provider_schedule_controller.dart';
 import '../../../schedule/views/widgets/booking_rules_section.dart';
 import '../../controllers/provider_settings_controller.dart';
+import '../../../payments/views/widgets/payment_options_section.dart';
 import '../widgets/settings_widgets.dart';
 
 /// Provider settings hub: identity and status up top, then grouped settings.
@@ -115,21 +116,21 @@ class SettingsScreen extends ConsumerWidget {
             ],
           ),
           const BookingRulesSection(),
+          const PaymentOptionsSection(),
           SettingsSection(
             title: 'Payouts & banking',
             children: [
               SettingsTile(
                 icon: Icons.account_balance_outlined,
-                title: 'Bank account',
-                subtitle: 'BSB and account number for payouts',
-                soon: true,
-                onTap: () => soon('Payouts'),
+                title: 'Card payments & payouts',
+                subtitle: 'Set up with Stripe, bank details and payout history',
+                onTap: () => context.pushNamed(AppRoute.providerPayments.name),
               ),
               SettingsTile(
                 icon: Icons.calendar_month_outlined,
                 title: 'Payout schedule',
-                soon: true,
-                onTap: () => soon('Payout schedules'),
+                subtitle: 'Weekly, every Monday',
+                onTap: () => context.pushNamed(AppRoute.providerPayments.name),
               ),
               SettingsTile(
                 icon: Icons.request_quote_outlined,

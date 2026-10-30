@@ -34,6 +34,10 @@ class NotificationBell extends ConsumerWidget {
 
 /// Opens whatever [notification] is about, as the signed-in role sees it.
 void openNotificationTarget(BuildContext context, WidgetRef ref, AppNotification notification) {
+  if (notification.kind.isAboutPayments) {
+    context.pushNamed(AppRoute.providerPayments.name);
+    return;
+  }
   final bookingId = notification.bookingId;
   if (bookingId == null) return;
   final isProvider = ref.read(userProfileProvider).value?.isProvider ?? false;

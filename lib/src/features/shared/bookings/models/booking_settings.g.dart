@@ -27,6 +27,9 @@ _ProviderBookingSettings _$ProviderBookingSettingsFromJson(
   offersMobile: json['offers_mobile'] as bool? ?? false,
   travelRadiusKm: (json['travel_radius_km'] as num?)?.toDouble(),
   availabilityVersion: (json['availability_version'] as num?)?.toInt() ?? 0,
+  acceptsCash: json['accepts_cash'] as bool? ?? true,
+  acceptsCard: json['accepts_card'] as bool? ?? true,
+  cardReady: json['card_ready'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$ProviderBookingSettingsToJson(
@@ -46,4 +49,7 @@ Map<String, dynamic> _$ProviderBookingSettingsToJson(
   'offers_mobile': instance.offersMobile,
   'travel_radius_km': instance.travelRadiusKm,
   'availability_version': instance.availabilityVersion,
+  'accepts_cash': instance.acceptsCash,
+  'accepts_card': instance.acceptsCard,
+  'card_ready': instance.cardReady,
 };

@@ -8,6 +8,7 @@ import '../../../../core/routing/app_router.dart';
 import '../../../../core/utils/app_logger.dart';
 import '../../authentication/controllers/user_profile_provider.dart';
 import '../controllers/notifications_controller.dart';
+import '../models/app_notification.dart';
 import 'push_messaging.dart';
 import 'push_notifications_controller.dart';
 
@@ -93,6 +94,10 @@ class _PushNotificationHostState extends ConsumerState<PushNotificationHost> wit
     _pending = null;
     final notificationId = message.notificationId;
     if (notificationId != null) unawaited(ref.read(notificationsProvider.notifier).markRead(notificationId));
+    if (user.isProvider && NotificationKind.fromKey(message.kind).isAboutPayments) {
+      router.pushNamed(AppRoute.providerPayments.name);
+      return;
+    }
     final bookingId = message.bookingId;
     if (bookingId == null) {
       router.pushNamed(AppRoute.notifications.name);

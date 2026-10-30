@@ -26,6 +26,7 @@ import '../../features/providers/provider_profiles/views/screens/settings_screen
 import '../../features/providers/provider_profiles/views/screens/cover_photos_screen.dart';
 import '../../features/providers/provider_profiles/views/screens/edit_provider_profile_screen.dart';
 import '../../features/providers/location/views/business_location_screen.dart';
+import '../../features/providers/payments/views/payments_setup_screen.dart';
 import '../../features/customers/explore/views/provider_search_screen.dart';
 import '../../features/customers/explore/views/providers_map_screen.dart';
 import '../../features/discovery_feed/views/discovery_screen.dart';
@@ -112,6 +113,8 @@ enum AppRoute {
   businessLocation(path: '/business/location'),
   // The provider's clients, full-screen over Business Tools.
   providerContacts(path: '/business/contacts'),
+  // Card payments and payouts (Stripe), full-screen.
+  providerPayments(path: '/business/payments'),
   // Admin accounts only (see isAdminOnlyPath). Two-factor comes first; the
   // rest lives in the admin shell.
   adminVerify(path: '/admin-verify'),
@@ -301,6 +304,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoute.providerContacts.path,
         name: AppRoute.providerContacts.name,
         builder: (context, state) => const ContactsScreen(),
+      ),
+      GoRoute(
+        path: AppRoute.providerPayments.path,
+        name: AppRoute.providerPayments.name,
+        builder: (context, state) => const PaymentsSetupScreen(),
       ),
       GoRoute(
         path: AppRoute.providerSearch.path,
