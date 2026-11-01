@@ -151,7 +151,7 @@ def request(method, url, headers=None, body=None, timeout=60):
                 print(f"  rate limited, waiting {wait}s", file=sys.stderr)
                 time.sleep(wait)
                 continue
-            if e.code in (500, 502, 503, 504) and attempt < 2:
+            if e.code in (500, 502, 503, 504, 520, 521, 522, 523, 524) and attempt < 2:
                 time.sleep(3 * (attempt + 1))
                 continue
             raise RuntimeError(f"{method} {url.split('?')[0]} -> {e.code}: {detail}") from None
@@ -220,9 +220,10 @@ def search_pexels(api_key, query):
 class PhotoPool:
     """Stock photos per search term, handed out without repeats where possible."""
 
-    def __init__(self, search, workdir):
+    def __init__(self, search, workdir, budget=UNIQUE_PHOTO_BUDGET):
         self.search = search
         self.workdir = workdir
+        self.budget = budget  # None: no cap (local photos cost nothing to reuse or not)
         self.cache = {}
         self.used = set()
         self.credits = {}
@@ -239,7 +240,7 @@ class PhotoPool:
         if not options:
             raise RuntimeError(f"No photo results for {queries}")
         # Past the download budget, reuse photos already fetched for these queries.
-        if len(self.used) >= UNIQUE_PHOTO_BUDGET:
+        if self.budget is not None and len(self.used) >= self.budget:
             options = [p for p in options if p["id"] in self.used] or options
         fresh = [p for p in options if p["id"] not in self.used]
         photo = random.choice(fresh or options)
@@ -348,7 +349,7 @@ class FolderMedia:
         if not self.folders:
             sys.exit(f"No photos found in the subfolders of {root}")
         print("Photos per folder: " + ", ".join(f"{k} {len(v)}" for k, v in sorted(self.folders.items())))
-        self.pool = PhotoPool(lambda folder: list(self.folders.get(folder, [])), workdir)
+        self.pool = PhotoPool(lambda folder: list(self.folders.get(folder, [])), workdir, budget=None)
 
     def _take(self, folders, fallback):
         available = [f for f in folders if f in self.folders] or [f for f in fallback if f in self.folders] \
