@@ -53,8 +53,46 @@ place holds. The app doesn't enable eftpos for Apple Pay, which avoids
 Stripe's known failure for eftpos Apple Pay holds. The payment screen shows
 the dual-network notice that Australian least-cost routing requires.
 
-Refunds for cancelled or missed card bookings, transfers to providers and
-disputes come with the payment lifecycle milestone.
+### After the appointment: refunds, transfers, payouts and disputes
+
+Money is worked out only in SQL. The jobs worker just carries out the Stripe
+call with the amount the database gave it.
+
+- **Cancellations.**
+  - Cancelled in the free window (by anyone), declined, or cancelled by Myglo:
+    the client gets a **full refund**. A hold is released instead of charged.
+  - Late client cancellation or no-show: the provider keeps the late-fee %
+    and the rest is refunded.
+- **Completion.** A card booking completes when the provider marks it done,
+  or automatically `auto_complete_after_hours` (24) after it ends. Completion
+  schedules the provider's **settlement**: the amount kept, minus the Myglo fee
+  (`platform_fee_percent` was snapshotted on the booking).
+- **Transfers.** A settlement is transferred to the provider's connected
+  account with `source_transaction` set to the charge, so it never draws on
+  Myglo's balance. It waits (status `held`) while:
+  - the provider's payout account isn't active (`payout_account`). It goes
+    out by itself once they fix it;
+  - a dispute is open (`dispute`);
+  - the client has an open problem report on the booking (`report`). It goes
+    out when an admin closes the last report;
+  - an admin put it on hold (`admin`).
+- **Payouts.** Stripe pays each provider's balance to their bank every Monday.
+  The `/connect` webhook records each payout and tells the provider when it's
+  paid or failed.
+- **Disputes.** A new dispute holds the settlement, or reverses the transfer
+  if it was already paid. The provider is told and the admins get an email.
+  - Won: the provider is paid again.
+  - Lost: the client keeps the money and the provider's share stays reversed.
+    Stripe's dispute fee is charged to Myglo's balance; it isn't passed on to
+    providers.
+- **Admin refunds.** An admin can refund any part of what's left from the
+  booking's page in the admin area. With **Recover from provider**, the part
+  already transferred is reversed from the provider in proportion.
+
+Every Stripe call has an idempotency key (`capture:<booking>`,
+`refund:<refund id>`, `transfer:<booking>:<attempt>`…), so a retried job can't
+act twice. Webhooks re-fetch the object from Stripe instead of trusting the
+event, so events arriving late or out of order are harmless.
 
 ## Set-up (sandbox first, then live)
 
@@ -158,23 +196,169 @@ They need no logic. The app refreshes the provider's status when they return
 to it, and the webhook keeps it current. Once iOS Associated Domains are set up
 (see `docs/share_links.md`), these paths can open the app directly.
 
-### 7. Before going live
+### 7. Go-live checklist
 
-- **Apple Pay:** Sam creates a Merchant ID in the Apple Developer account
-  (for example `merchant.app.myglo`), then makes the Apple Pay certificate in
-  Stripe (**Settings → Payment methods → Apple Pay → iOS certificates**).
-  Then add the Apple Pay capability to `ios/Runner` and set
-  `APPLE_PAY_MERCHANT_ID` in `.env`.
-- **Google Pay:** request production access in the Google Pay & Wallet Console.
-- **Live mode:** repeat steps 1–5 in live mode with new keys and secrets.
-  Then set the Myglo fee (5.5%) and fee-free period (14 days) in the admin
-  area under **Settings → Platform settings**.
-- **Legal and accounts:**
-  - Terms and Privacy must cover: payment at booking, holds for requests,
-    funds held until the appointment, the 24-hour problem window, refunds and
-    the late-cancellation fee.
-  - The accountant decides GST on the fee.
-  - Upgrade Supabase to Pro (backups) before real money flows.
+Tick these in order. Nothing here can be done from the app.
+
+**Accounts and legal**
+
+- [ ] Nexotec's live Stripe account is activated, and its Connect platform
+      profile is complete (step 1, in live mode).
+- [ ] Terms and Privacy cover: payment at booking, holds for requests, funds
+      held until the appointment, the problem-report window, refunds, the
+      late-cancellation fee, and that Myglo may suspend accounts and hide
+      content.
+- [ ] The accountant has decided GST on the Myglo fee (the app's tax-invoice
+      tile stays "Soon" until then).
+- [ ] Supabase is on Pro (daily backups, point-in-time recovery) before real
+      money flows.
+
+**Stripe, live mode**
+
+- [ ] Payment methods set as in step 2.
+- [ ] A live **restricted** key with the step 3 permissions, saved as
+      `STRIPE_SECRET_KEY`. The webhook ignores events whose mode doesn't
+      match the key, so change the key and the signing secrets together.
+- [ ] The three live webhook destinations from step 4, and their three signing
+      secrets.
+- [ ] `STRIPE_PUBLISHABLE_KEY` in the release build's `.env` is `pk_live_…`.
+- [ ] **Apple Pay:** Sam creates a Merchant ID in the Apple Developer account
+      (for example `merchant.app.myglo`), then makes the Apple Pay certificate
+      in Stripe (**Settings → Payment methods → Apple Pay → iOS
+      certificates**). Then add the Apple Pay capability to `ios/Runner` and
+      set `APPLE_PAY_MERCHANT_ID` in `.env`.
+- [ ] **Google Pay:** production access in the Google Pay & Wallet Console.
+
+**Myglo**
+
+- [ ] At least two admin accounts with authenticators (`docs/admin.md`).
+- [ ] Leaked-password protection is on (Supabase **Authentication →
+      Policies**): admin accounts sign in with a password.
+- [ ] Platform settings: Myglo fee 5.5%, fee-free period 14 days (admin area,
+      **Settings → Platform settings**).
+- [ ] `SENTRY_DSN_FUNCTIONS` is set, and a test error from a function shows up
+      in Sentry.
+- [ ] The two `myglo.app/stripe/connect/*` pages are live (step 6).
+- [ ] A live smoke test with a real card and a small service: book, pay,
+      complete, see the transfer in Stripe, then refund it from the admin area.
+
+## Runbooks
+
+Most problems show up in the admin area first: **Payments** lists open
+disputes, held shares, failed transfers and failed background jobs. Admins
+also get an email for each failed job, dispute and report. Each fix below is
+audited.
+
+### A client should get money back
+
+Open the booking (**Payments**, search by reference) → **Refund**. Enter the
+amount and a reason. Leave **Recover from provider** on if the provider has
+already been paid and should give their part back. The refund runs as a job;
+its status shows on the booking.
+
+To cancel an upcoming booking on Myglo's behalf, use **Cancel booking** on the
+same page. It refunds in full (or releases a hold) and tells both sides.
+
+### A transfer to a provider failed
+
+The booking shows **Failed** and the job's error. Common causes:
+
+- **The provider's account can't receive transfers.** Their account page
+  shows what Stripe needs. Ask them to finish setup in the app's **Payments &
+  payouts** screen. The settlement waits and goes out by itself when their
+  account is active again; no retry is needed.
+- **Anything else** (a Stripe outage, a permission missing from the restricted
+  key): fix the cause, then **Retry** the job under **Failed background jobs**.
+  The retry uses the same idempotency key, so it can't pay twice.
+
+### A dispute was opened
+
+1. The provider's share is already held (or reversed if it had been paid).
+2. Respond in the **Stripe Dashboard → Payments → Disputes** before the
+   deadline in the admin email. Myglo responds, not the provider. Useful
+   evidence: the booking's history in the admin area, the provider's notes and
+   photos, and messages with the client.
+3. When Stripe decides, the webhook closes the dispute. A win pays the
+   provider again; a loss keeps the share reversed.
+
+### A refund failed
+
+Rare; usually the client's card was closed. The booking shows the refund's
+status and Stripe's reason, and the admins get an email from the failed job.
+Contact the client and pay them back another way (for example a bank
+transfer from Nexotec), and keep a record of it. The provider's share isn't
+affected: the money is still in Myglo's balance.
+
+### A job keeps failing
+
+Look at the job's last error under **Failed background jobs**. Jobs retry
+with backoff for up to 8 attempts, then alert the admins. After fixing the
+cause, **Retry**. If the worker itself is down (every job failing), check the
+`jobs-worker` logs in Supabase (**Edge Functions → jobs-worker → Logs**). The
+`myglo-jobs-sweep` cron job picks everything up again once it's fixed.
+
+### Webhooks stopped arriving
+
+Check **Developers → Webhooks** in Stripe for failing deliveries. If the
+signing secret was rotated, update the matching `STRIPE_WEBHOOK_SECRET_*`
+secret. Then resend the failed events from the Stripe Dashboard. Each is
+processed once (`private.stripe_events`), so resending is safe. The app's
+sync call and the jobs worker also re-read PaymentIntents from Stripe, so
+bookings don't stay stuck on a missed event.
+
+### Rotate a key
+
+1. Create the new restricted key (or roll a webhook signing secret) in Stripe.
+2. Update the Supabase secret. Functions pick it up on their next start,
+   within a minute.
+3. Delete the old key in Stripe once the functions' logs show no Stripe auth
+   errors.
+
+Never paste keys into chats, issues or the repo.
+
+## Sandbox test run
+
+Run this once after set-up, and again before launch in live mode with a real
+card and small amounts. You need one provider account, one client account and
+one admin account (with its authenticator). Check results in the admin area
+(**Payments**) and in the Stripe Dashboard.
+
+1. **Provider onboarding.** Signed in as the provider: **Business → Payments &
+   payouts → Continue with Stripe**. Use Stripe's test data (below). Back in
+   the app the status shows card payments as ready, and under **How clients
+   pay**, **Pay in the app** is on.
+2. **Instant booking.** As the client, book a service and choose **Pay now in
+   the app**. Pay with `4242 4242 4242 4242`. The booking is confirmed for
+   both sides and shows "Visa •• 4242".
+3. **3D Secure.** Book again with `4000 0025 0000 3155` and complete the
+   challenge.
+4. **Declined card.** `4000 0000 0000 9995` shows the decline, and the same
+   checkout can be retried with 4242.
+5. **Request with a hold.** Turn on **Approve each booking** for the provider
+   (**Settings → Availability & bookings**).
+   Book with 4242: the card is held, not charged. Accept it as the provider:
+   it's charged. Book another and decline it: the hold is released. A third
+   left unanswered expires at its reply-by time.
+6. **Cancellations.** Cancel a paid booking inside the free window (full
+   refund), and one late (refund minus the late fee).
+7. **Completion and transfer.** Mark a paid booking complete as the provider.
+   A transfer appears on the provider's connected account in Stripe, and
+   **Earnings** shows it.
+8. **Problem report.** On a booking that has started, the client taps
+   **Report a problem**. The provider's share is held; resolving the report
+   in **Moderation** releases it.
+9. **Admin refund.** In **Payments**, open a completed booking and refund part
+   of it with **Recover from provider** on. Stripe shows the refund and a
+   transfer reversal.
+10. **Dispute.** Pay with `4000 0000 0000 0259`. A dispute opens a few seconds
+    later: the share is held or reversed, the provider is told, and admins get
+    an email.
+11. **Suspension.** In **People**, suspend the test client (fresh code). They
+    are signed out within the hour and can't sign in again; lifting the
+    suspension lets them back in.
+
+Each step should leave no failed jobs under **Payments → Failed background
+jobs**.
 
 ## Test cards (sandbox)
 

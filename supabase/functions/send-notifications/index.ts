@@ -496,7 +496,14 @@ function badgeFor(kind: string, booking: BookingSummary | null): Badge {
     case 'payments_ready':
       return { label: 'Payments', color: '#15803D', background: '#DCFCE7' };
     case 'payments_action_needed':
+    case 'payout_failed':
       return { label: 'Action needed', color: '#B45309', background: '#FEF3C7' };
+    case 'payment_refunded':
+      return { label: 'Refund', color: '#15803D', background: '#DCFCE7' };
+    case 'payout_paid':
+      return { label: 'Payout', color: '#15803D', background: '#DCFCE7' };
+    case 'booking_disputed':
+      return { label: 'Disputed', color: '#B91C1C', background: '#FEE2E2' };
     default:
       return { label: 'Reminder', color: '#BE185D', background: '#FCE7F3' };
   }
@@ -552,6 +559,12 @@ function renderEmail(delivery: Delivery): { subject: string; html: string; text:
     textLines.push(`Reference: ${booking.reference}`);
   }
 
+  // Payout and account emails have no booking behind them.
+  const openApp = booking ? 'Open the Myglo app to view or manage this booking.' : 'Open the Myglo app for details.';
+  const reason = booking
+    ? "You're receiving this email because of a booking on Myglo."
+    : "You're receiving this email because you take payments on Myglo.";
+
   const policy = booking && !forProvider && ['booking_confirmed', 'booking_requested'].includes(delivery.kind)
     ? policyLine(booking)
     : null;
@@ -585,10 +598,10 @@ ${rows.length ? `<tr><td style="padding:22px 28px 0;">
 </td></tr>` : ''}
 ${policy ? `<tr><td style="padding:16px 28px 0;font-size:13px;line-height:1.5;color:${BRAND.body};">${esc(policy)}</td></tr>` : ''}
 <tr><td style="padding:22px 28px 28px;font-size:12.5px;line-height:1.55;color:${BRAND.muted};">
-Open the Myglo app to view or manage this booking.${zoneLabel ? `<br>Times are shown in ${esc(zoneLabel)}.` : ''}
+${esc(openApp)}${zoneLabel ? `<br>Times are shown in ${esc(zoneLabel)}.` : ''}
 </td></tr>
 </table>
-<p style="margin:18px 0 0;font-size:11.5px;line-height:1.5;color:${BRAND.muted};">You're receiving this email because of a booking on Myglo.</p>
+<p style="margin:18px 0 0;font-size:11.5px;line-height:1.5;color:${BRAND.muted};">${esc(reason)}</p>
 </td></tr>
 </table>
 </body>
@@ -602,7 +615,7 @@ Open the Myglo app to view or manage this booking.${zoneLabel ? `<br>Times are s
     ...(textLines.length ? ['', ...textLines] : []),
     ...(policy ? ['', policy] : []),
     '',
-    'Open the Myglo app to view or manage this booking.',
+    openApp,
     ...(zoneLabel ? [`Times are shown in ${zoneLabel}.`] : []),
   ].join('\n');
 

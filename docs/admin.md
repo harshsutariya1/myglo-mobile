@@ -92,6 +92,70 @@ select * from private.admin_audit_log
 where target_id = '<uuid>' order by id;
 ```
 
+## Moderation
+
+### Reports
+
+Clients and providers report posts, comments, reviews and providers from the
+app's menus. Clients also report a problem with a booking, from its start
+until **Problem reports allowed after the end** (24 h) after it ends.
+
+- Reports are private. The reported person isn't told who sent them.
+- A person can have one open report per thing they report. They can send at
+  most 20 reports a day.
+- Every report emails the admins. Safety, harassment and booking reports are
+  marked **[Action needed]**.
+- A booking report **holds the provider's share** until an admin closes it.
+
+The **Moderation** tab lists open, resolved and dismissed reports. Open one to
+see what was reported, then:
+
+- **Hide** the post, comment or review (fresh code). Hidden content is
+  visible only to its author. A hidden review also leaves the provider's
+  rating, and its photos are hidden with it. **Show again** reverses it.
+- Jump to the **author's account**, the **reporter**, or the **booking and
+  payment** to refund or cancel.
+- **Resolve** (something was done) or **Dismiss** (nothing needed), with a
+  note. Closing the last open report on a booking releases the provider's
+  share, unless it's held for another reason. Refund first if the client is
+  owed money.
+
+### Suspending an account
+
+On an account's page (**People**), **Suspend account** needs a reason and a
+fresh code. A suspension:
+
+- bans the account in Supabase Auth through the jobs worker, so it can't sign
+  in or refresh its session. A session already open lasts at most until its
+  access token expires (an hour);
+- makes the database refuse every change the account tries in the meantime:
+  posts, comments, likes, reviews, bookings, profile and settings;
+- removes a suspended provider from search, the map and booking;
+- optionally cancels the account's upcoming bookings on Myglo's behalf. Card
+  payments are refunded in full and both sides are told.
+
+**Lift suspension** reverses the ban and the write block. Cancelled bookings
+stay cancelled.
+
+### Stopping a provider's bookings
+
+**Stop new bookings** (providers only, fresh code) removes the provider from
+search, the map and free times, and refuses new bookings. Their existing
+bookings go ahead and they can still use the app. **Allow bookings** reverses
+it.
+
+### Queries
+
+```sql
+-- Open reports, oldest first
+select created_at, target_type, reason, details from public.reports
+where status = 'open' order by created_at;
+
+-- Accounts that are suspended or can't be booked
+select u.email, r.* from private.user_restrictions r join auth.users u on u.id = r.user_id
+where r.suspended_at is not null or r.bookings_blocked_at is not null;
+```
+
 ## Platform settings
 
 All settings live in `private.platform_settings` and are edited from
