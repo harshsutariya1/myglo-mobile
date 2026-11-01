@@ -46,3 +46,6 @@ app.*.map.json
 .env
 
 sentry.properties
+
+# Personal Claude Code settings
+.claude/settings.local.json
