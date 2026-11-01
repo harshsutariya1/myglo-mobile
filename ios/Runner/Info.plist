@@ -22,6 +22,19 @@
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<!-- myglo:// brings the app back after a bank's 3-D Secure page
+		     (Stripe's payment sheet uses it as its return URL). -->
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>app.myglo.payments</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>myglo</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>GMSApiKey</key>

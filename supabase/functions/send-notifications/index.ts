@@ -493,6 +493,10 @@ function badgeFor(kind: string, booking: BookingSummary | null): Badge {
     case 'review_updated':
     case 'review_reply':
       return { label: 'Review', color: '#BE185D', background: '#FCE7F3' };
+    case 'payments_ready':
+      return { label: 'Payments', color: '#15803D', background: '#DCFCE7' };
+    case 'payments_action_needed':
+      return { label: 'Action needed', color: '#B45309', background: '#FEF3C7' };
     default:
       return { label: 'Reminder', color: '#BE185D', background: '#FCE7F3' };
   }
@@ -531,14 +535,7 @@ function renderEmail(delivery: Delivery): { subject: string; html: string; text:
     rows.push(detailRow('Services', `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${services}</table>`));
     textLines.push(...booking.services.map((s) => `  ${s.name} — ${s.price}`));
 
-    const cash = booking.payment_method === 'cash';
-    const paymentNote = !cash
-      ? ''
-      : booking.payment_status === 'paid'
-        ? 'Paid in cash'
-        : booking.payment_status === 'void'
-          ? 'Nothing to pay'
-          : forProvider ? 'Collect in cash at the appointment' : 'Pay in cash at your appointment';
+    const paymentNote = paymentNoteFor(booking, forProvider);
     rows.push(detailRow(
       'Total',
       `<span style="font-size:18px;font-weight:800;color:${BRAND.ink};">${esc(booking.total)}</span>`
@@ -706,6 +703,37 @@ function reviewData(delivery: Delivery): ReviewData | null {
     : [];
   const provider = typeof data.provider_name === 'string' && data.provider_name.trim() ? data.provider_name.trim() : null;
   return { rating, body, services, provider_name: provider };
+}
+
+/** How the booking is (or will be) paid, from the recipient's side. */
+function paymentNoteFor(booking: BookingSummary, forProvider: boolean): string {
+  if (booking.payment_method === 'cash') {
+    switch (booking.payment_status) {
+      case 'paid':
+        return 'Paid in cash';
+      case 'void':
+        return 'Nothing to pay';
+      default:
+        return forProvider ? 'Collect in cash at the appointment' : 'Pay in cash at your appointment';
+    }
+  }
+  switch (booking.payment_status) {
+    case 'authorized':
+      if (booking.status === 'confirmed') return 'Being charged now';
+      return forProvider
+        ? "Held on the client's card. It's charged when you accept"
+        : "Held on your card, not charged, until it's accepted";
+    case 'paid':
+      return 'Paid in the app';
+    case 'partially_refunded':
+      return 'Paid in the app, partly refunded';
+    case 'refunded':
+      return 'Refunded';
+    case 'void':
+      return forProvider ? 'Nothing to collect' : 'Nothing charged';
+    default:
+      return '';
+  }
 }
 
 function policyLine(booking: BookingSummary): string | null {

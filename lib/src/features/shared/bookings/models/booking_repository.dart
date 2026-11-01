@@ -36,7 +36,8 @@ enum BookingListScope {
   /// Requests waiting for the provider, soonest first.
   requests,
 
-  /// Finished or closed bookings, most recent first.
+  /// Finished or closed bookings, most recent first (never unpaid
+  /// checkouts).
   past;
 
   /// Whether the list runs from the most recent backwards.
@@ -162,7 +163,11 @@ class BookingRepository {
         case BookingListScope.requests:
           query = query.eq('status', 'pending');
         case BookingListScope.past:
-          query = query.or('ends_at.lt."$nowIso",status.not.in.(pending,confirmed)');
+          // Checkouts that were never paid aren't bookings (providers can't
+          // see them at all); unpaid ones still in progress aren't past.
+          query = query
+              .not('status', 'in', '(awaiting_payment,checkout_expired)')
+              .or('ends_at.lt."$nowIso",status.not.in.(pending,confirmed)');
       }
       if (after != null) {
         // (starts_at, id) keeps the order total when start times repeat.

@@ -16,8 +16,45 @@ Server pieces:
 |---|---|
 | `private.jobs` + `jobs-worker` | Runs every Stripe call that follows a booking change (capture, cancel, refund, transfer), with idempotency keys and retries. |
 | `connect` | Creates a provider's connected account, makes onboarding links, refreshes status, and opens their Express Dashboard. |
+| `payments` | Card checkout for clients: creates (or reuses) the booking's PaymentIntent for Stripe's payment sheet, and checks Stripe when the app is waiting for the outcome. |
 | `stripe-webhook` | Receives Stripe events: `/platform`, `/connect` and `/v2`, each with its own signing secret. |
 | `private.provider_payout_accounts` | Each provider's account state. `provider_booking_settings.card_ready` says whether they can take card payments. |
+| `apply_payment_intent_state()` | The only place a PaymentIntent's state reaches a booking. The webhook, the `payments` function and the jobs worker all fetch the PaymentIntent from Stripe and pass it here. |
+
+### How a card booking moves
+
+1. **Checkout.** The client picks "Card or Apple Pay / Google Pay". `create_booking`
+   makes the booking `awaiting_payment`: it holds the time for
+   `checkout_hold_minutes` (15) and the provider can't see it yet.
+2. **Payment sheet.** `payments` creates a PaymentIntent for the amount the
+   database set (cards only; Apple Pay and Google Pay are card payments).
+   Instant bookings are charged straight away. Bookings that need the
+   provider's approval are a **hold** (manual capture).
+3. **Stripe's answer** (webhook, or the app's sync call):
+   - paid: the booking is `confirmed`, and both sides are told;
+   - card held: the booking is a `pending` request, which must be answered
+     by `respond_by`. That's the earliest of the appointment start,
+     `card_request_response_hours` (144) after the hold, and 2 hours
+     before the hold on the card lapses.
+4. **The provider answers.** Accepting captures the hold; declining, or not
+   answering in time, releases it. Both run as background jobs.
+5. **Unfinished checkouts** close when the hold on the time runs out. The
+   PaymentIntent is cancelled first, so a payment made at the last moment
+   still counts. Money that arrives on a checkout that's already closed is
+   refunded automatically. Starting a new booking, or leaving the payment
+   step, gives up the client's unfinished checkout straight away.
+
+Card payments are only offered for appointments up to `card_max_advance_days`
+(60) ahead, because Stripe can hold funds for a limited time. All three
+settings are under **Settings → Platform settings** in the admin area.
+
+Holds route co-badged debit cards over Visa/Mastercard, since eftpos can't
+place holds. The app doesn't enable eftpos for Apple Pay, which avoids
+Stripe's known failure for eftpos Apple Pay holds. The payment screen shows
+the dual-network notice that Australian least-cost routing requires.
+
+Refunds for cancelled or missed card bookings, transfers to providers and
+disputes come with the payment lifecycle milestone.
 
 ## Set-up (sandbox first, then live)
 

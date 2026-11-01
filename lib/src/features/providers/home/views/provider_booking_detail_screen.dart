@@ -53,7 +53,7 @@ class _ProviderBookingDetailScreenState extends ConsumerState<ProviderBookingDet
       ProviderBookingAction.decline => 'Request declined. ${booking.clientName} has been notified.',
       ProviderBookingAction.cancel => 'Appointment cancelled. ${booking.clientName} has been notified.',
       ProviderBookingAction.complete =>
-        updated.paymentStatus == PaymentStatus.paid ? 'Completed and marked as paid' : 'Appointment completed',
+        !updated.paidInApp && updated.paymentStatus == PaymentStatus.paid ? 'Completed and marked as paid' : 'Appointment completed',
       ProviderBookingAction.noShow => 'Marked as a no-show',
     });
   }
@@ -262,11 +262,14 @@ class _ProviderBookingDetailScreenState extends ConsumerState<ProviderBookingDet
             label: _busy ? spinner() : const Text('Record cash payment'),
           ),
         ];
+      // Unpaid checkouts never reach providers (the server hides them).
       case BookingStatus.completed ||
             BookingStatus.cancelled ||
             BookingStatus.declined ||
             BookingStatus.expired ||
-            BookingStatus.noShow:
+            BookingStatus.noShow ||
+            BookingStatus.awaitingPayment ||
+            BookingStatus.checkoutExpired:
         return const [];
     }
   }

@@ -44,6 +44,8 @@ class BookingPill extends StatelessWidget {
 
 /// Colour and icon for each booking status.
 ({Color color, IconData icon}) bookingStatusStyle(BookingStatus status, ColorScheme scheme) => switch (status) {
+      BookingStatus.awaitingPayment => (color: AppTheme.warning, icon: Icons.credit_card_rounded),
+      BookingStatus.checkoutExpired => (color: scheme.onSurface.withValues(alpha: 0.55), icon: Icons.credit_card_off_rounded),
       BookingStatus.pending => (color: AppTheme.warning, icon: Icons.hourglass_top_rounded),
       BookingStatus.confirmed => (color: AppTheme.success, icon: Icons.check_circle_rounded),
       BookingStatus.completed => (color: AppTheme.success, icon: Icons.done_all_rounded),
@@ -70,7 +72,7 @@ class BookingStatusPill extends StatelessWidget {
   }
 }
 
-/// `Pending (Cash)`, `Paid (Cash)`…
+/// `Pending (Cash)`, `Paid (Card)`, `Card held`…
 class PaymentStatusPill extends StatelessWidget {
   const PaymentStatusPill({super.key, required this.method, required this.status, this.dense = false});
 
@@ -81,9 +83,13 @@ class PaymentStatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = switch (status) {
-      PaymentStatus.pending => AppTheme.burntOrange,
+      PaymentStatus.pending || PaymentStatus.requiresPayment || PaymentStatus.authorized => AppTheme.burntOrange,
       PaymentStatus.paid => AppTheme.success,
-      PaymentStatus.refunded || PaymentStatus.voided => context.colorScheme.onSurface.withValues(alpha: 0.55),
+      PaymentStatus.failed => AppTheme.destructive,
+      PaymentStatus.partiallyRefunded ||
+      PaymentStatus.refunded ||
+      PaymentStatus.voided ||
+      PaymentStatus.unknown => context.colorScheme.onSurface.withValues(alpha: 0.55),
     };
     return Semantics(
       label: 'Payment: ${paymentStatusLabel(method, status)}',

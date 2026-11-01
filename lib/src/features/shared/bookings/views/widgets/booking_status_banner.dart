@@ -20,16 +20,44 @@ class BookingStatusBanner extends StatelessWidget {
     final client = booking.clientName;
     final when = Formatters.dateTimeShort(booking.startsAtLocal);
     final fee = booking.cancellationFeeCents > 0 ? Formatters.audCents(booking.cancellationFeeCents) : null;
+    final total = Formatters.audCents(booking.totalCents);
+    final card = booking.paidInApp;
+    final holdReleased = card ? ' The hold on ${forProvider ? 'their' : 'your'} card was released.' : '';
     String reason(String? text) => (text ?? '').trim().isEmpty ? '' : ' Note: “${text!.trim()}”';
 
     switch (booking.status) {
+      case BookingStatus.awaitingPayment:
+        return (
+          title: 'Finishing your payment',
+          message: "We're confirming your payment with your bank. This usually takes a few seconds.",
+        );
+      case BookingStatus.checkoutExpired:
+        return (
+          title: 'Payment not completed',
+          message: "This booking wasn't paid for, so nothing was charged and the time was released.",
+        );
       case BookingStatus.pending:
+        final deadline = Formatters.dateTimeShort(booking.respondByLocal);
         return forProvider
-            ? (title: 'New request', message: '$client is waiting for your answer. Respond before $when, or it expires.')
-            : (title: 'Waiting for $provider', message: "Your time is held while they review it. We'll notify you when they respond.");
+            ? (
+                title: 'New request',
+                message: '$client is waiting for your answer. Respond before $deadline, or it expires.'
+                    '${card ? ' $total is held on their card and charged when you accept.' : ''}',
+              )
+            : (
+                title: 'Waiting for $provider',
+                message: card
+                    ? "$total is held on your card, not charged, while they review it. We'll notify you when they respond."
+                    : "Your time is held while they review it. We'll notify you when they respond.",
+              );
       case BookingStatus.confirmed when booking.hasStarted(now):
         return forProvider
-            ? (title: 'Appointment in progress', message: 'Mark it as completed once you’re done, and record the cash payment.')
+            ? (
+                title: 'Appointment in progress',
+                message: card
+                    ? 'Mark it as completed once you’re done. It was paid in the app.'
+                    : 'Mark it as completed once you’re done, and record the cash payment.',
+              )
             : (title: 'Happening now', message: 'Enjoy your appointment with $provider.');
       case BookingStatus.confirmed:
         return (
@@ -54,15 +82,15 @@ class BookingStatusBanner extends StatelessWidget {
         return (
           title: 'Request declined',
           message: forProvider
-              ? 'You declined this request.${reason(booking.declineReason)}'
-              : "$provider couldn't take this booking.${reason(booking.declineReason)}",
+              ? 'You declined this request.${reason(booking.declineReason)}$holdReleased'
+              : "$provider couldn't take this booking.${reason(booking.declineReason)}$holdReleased",
         );
       case BookingStatus.expired:
         return (
           title: 'Request expired',
           message: forProvider
-              ? 'This request lapsed before you responded.'
-              : "$provider didn't respond before the appointment time.",
+              ? 'This request lapsed before you responded.$holdReleased'
+              : "$provider didn't respond in time.$holdReleased",
         );
       case BookingStatus.noShow:
         return (

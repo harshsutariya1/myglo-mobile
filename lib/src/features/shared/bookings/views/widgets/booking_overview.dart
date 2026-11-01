@@ -118,11 +118,24 @@ class BookingPriceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cash = booking.paymentMethod == PaymentMethod.cash;
+    final card = booking.cardSummary;
+    final refunded = Formatters.audCents(booking.amountRefundedCents);
     final note = switch (booking.paymentStatus) {
       PaymentStatus.pending when cash =>
         forProvider ? 'To collect in cash at the appointment.' : 'Pay in cash at your appointment.',
-      PaymentStatus.paid => 'Paid${cash ? ' in cash' : ''}.',
-      PaymentStatus.voided => 'Nothing to pay.',
+      PaymentStatus.requiresPayment => forProvider ? null : 'Not paid yet.',
+      PaymentStatus.authorized when booking.status == BookingStatus.confirmed => 'Being charged now.',
+      PaymentStatus.authorized => forProvider
+          ? 'Held on the client\'s card. Charged when you accept.'
+          : 'Held on your card${card == null ? '' : ' ($card)'}, not charged until ${booking.providerName} accepts.',
+      PaymentStatus.paid when cash => 'Paid in cash.',
+      PaymentStatus.paid => 'Paid in the app${card == null ? '' : ' · $card'}.',
+      PaymentStatus.partiallyRefunded => 'Paid in the app. $refunded refunded.',
+      PaymentStatus.refunded => '$refunded refunded${forProvider ? ' to the client' : ' to your card'}.',
+      PaymentStatus.voided => booking.paidInApp ? 'Nothing charged.' : 'Nothing to pay.',
+      PaymentStatus.failed => forProvider
+          ? 'The card payment didn\'t go through. Myglo is following it up.'
+          : 'Your card payment didn\'t go through. Myglo will be in touch.',
       _ => null,
     };
     return BookingSectionCard(
@@ -164,11 +177,14 @@ class AddToCalendarButton extends ConsumerWidget {
             'Booking ${booking.reference} on Myglo',
             if (forProvider) ...[
               'Client: ${booking.clientName}, ${booking.clientPhone}',
-              if (cash) 'Collect $total in cash',
+              if (cash) 'Collect $total in cash' else if (booking.paymentStatus == PaymentStatus.paid) 'Paid in the app',
               if ((booking.accessNotes ?? '').isNotEmpty) 'Access: ${booking.accessNotes}',
             ] else ...[
               if (booking.status == BookingStatus.pending) 'Waiting for ${booking.providerName} to confirm',
-              if (cash) 'Pay $total in cash at the appointment',
+              if (cash)
+                'Pay $total in cash at the appointment'
+              else if (booking.paymentStatus == PaymentStatus.paid)
+                'Paid in the app',
             ],
           ].join('\n'),
         ));

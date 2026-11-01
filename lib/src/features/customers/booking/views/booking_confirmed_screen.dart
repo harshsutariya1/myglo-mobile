@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/routing/app_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/skeleton/skeletons.dart';
 import '../../../shared/bookings/controllers/booking_controllers.dart';
 import '../../../shared/bookings/models/booking.dart';
@@ -99,19 +100,31 @@ class _Confirmation extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
     final pending = booking.status == BookingStatus.pending;
-    final confirmed = booking.status == BookingStatus.confirmed;
-    final title = pending
-        ? 'Request sent!'
-        : confirmed
-            ? "You're booked!"
-            : 'Booking ${booking.status.label.toLowerCase()}';
-    final message = pending
-        ? "${booking.providerName} confirms bookings personally. We'll notify you as soon as they reply. "
-            'Your time is held in the meantime.'
-        : confirmed
-            ? "${booking.providerName} is expecting you. You'll find this booking under Bookings, and we'll remind "
-                'you before your appointment.'
-            : 'This booking was updated since you made it. See the latest details below.';
+    final confirming = booking.status == BookingStatus.awaitingPayment;
+    final total = Formatters.audCents(booking.totalCents);
+    final held = booking.paymentStatus == PaymentStatus.authorized;
+    final paid = booking.paymentStatus == PaymentStatus.paid && booking.paidInApp;
+    final title = switch (booking.status) {
+      BookingStatus.awaitingPayment => 'Confirming your payment',
+      BookingStatus.checkoutExpired => 'Payment not completed',
+      BookingStatus.pending => 'Request sent!',
+      BookingStatus.confirmed => "You're booked!",
+      _ => 'Booking ${booking.status.label.toLowerCase()}',
+    };
+    final message = switch (booking.status) {
+      BookingStatus.awaitingPayment =>
+        "Your bank is confirming the payment. This usually takes a few seconds, and this page updates by itself.",
+      BookingStatus.checkoutExpired =>
+        "The payment didn't go through in time, so nothing was charged and the time was released. "
+            'You can book again from ${booking.providerName}\'s profile.',
+      BookingStatus.pending =>
+        "${booking.providerName} confirms bookings personally. We'll notify you as soon as they reply. "
+            '${held ? '$total is held on your card, not charged, until they accept.' : 'Your time is held in the meantime.'}',
+      BookingStatus.confirmed =>
+        "${booking.providerName} is expecting you.${paid ? ' You paid $total.' : ''} You'll find this booking under "
+            "Bookings, and we'll remind you before your appointment.",
+      _ => 'This booking was updated since you made it. See the latest details below.',
+    };
 
     return CustomScrollView(
       slivers: [
@@ -128,7 +141,11 @@ class _Confirmation extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
-              Center(child: _SuccessBadge(pending: pending)),
+              Center(
+                child: confirming
+                    ? const SizedBox.square(dimension: 128, child: Center(child: CircularProgressIndicator()))
+                    : _SuccessBadge(pending: pending || booking.status.isCheckout),
+              ),
               const SizedBox(height: 22),
               Semantics(
                 header: true,

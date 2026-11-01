@@ -137,4 +137,22 @@ class AppConfig {
   /// Width from which admin screens show a list and its detail side by side
   /// and use a navigation rail instead of a bottom bar.
   static const double adminWideLayoutWidth = 840;
+
+  /// Name shown in Stripe's payment sheet, Apple Pay and Google Pay.
+  static const String paymentsMerchantName = 'Myglo';
+
+  /// Country of Myglo's Stripe account (Apple Pay and Google Pay need it).
+  static const String paymentsMerchantCountry = 'AU';
+
+  /// Custom URL scheme that brings the app back after a bank's 3-D Secure
+  /// page (registered in ios/Runner/Info.plist).
+  static const String paymentsUrlScheme = 'myglo';
+
+  /// How long the app waits for Stripe's answer to reach the booking after
+  /// the payment sheet closes, before showing it as still processing.
+  static const Duration paymentConfirmationTimeout = Duration(seconds: 20);
+
+  /// Fallback for how long an unpaid checkout holds the time (the server's
+  /// own setting decides; this only drives the countdown before it loads).
+  static const Duration checkoutHoldFallback = Duration(minutes: 15);
 }

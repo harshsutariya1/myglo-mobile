@@ -2,6 +2,16 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 /// Where a booking is in its lifecycle. Mirrors `bookings.status`.
 enum BookingStatus {
+  /// A booking paid in the app, waiting for the client to finish paying. It
+  /// holds the time for a few minutes; only the client can see it.
+  @JsonValue('awaiting_payment')
+  awaitingPayment,
+
+  /// A booking paid in the app whose payment was never finished (abandoned,
+  /// or the hold on the time ran out). Only the client can see it.
+  @JsonValue('checkout_expired')
+  checkoutExpired,
+
   /// Waiting for the provider to accept (providers who approve requests).
   @JsonValue('pending')
   pending,
@@ -23,7 +33,12 @@ enum BookingStatus {
   /// Still holds the provider's time.
   bool get isActive => this == pending || this == confirmed;
 
+  /// Still in checkout: not a booking the provider knows about yet.
+  bool get isCheckout => this == awaitingPayment || this == checkoutExpired;
+
   String get label => switch (this) {
+        awaitingPayment => 'Awaiting payment',
+        checkoutExpired => 'Payment not completed',
         pending => 'Pending approval',
         confirmed => 'Confirmed',
         declined => 'Declined',
@@ -36,20 +51,41 @@ enum BookingStatus {
 
 /// Mirrors `bookings.payment_status`.
 enum PaymentStatus {
+  /// Cash: to be paid at the appointment.
   @JsonValue('pending')
   pending,
+
+  /// Paid in the app: the client hasn't finished paying yet.
+  @JsonValue('requires_payment')
+  requiresPayment,
+
+  /// Paid in the app: the amount is held on the client's card until the
+  /// provider accepts the request.
+  @JsonValue('authorized')
+  authorized,
   @JsonValue('paid')
   paid,
+  @JsonValue('partially_refunded')
+  partiallyRefunded,
   @JsonValue('refunded')
   refunded,
 
   /// Nothing is owed any more (cancelled, declined, expired…).
   @JsonValue('void')
-  voided;
+  voided,
+
+  /// The payment couldn't be completed (Myglo follows it up).
+  @JsonValue('failed')
+  failed,
+
+  /// A status this version of the app doesn't know yet.
+  unknown;
 }
 
-/// Mirrors `bookings.payment_method`. Only [cash] is live; the others are
-/// shown as coming soon until card payments (Stripe) launch.
+/// Mirrors `bookings.payment_method`. Bookings are paid in [cash] or in the
+/// app as [card] (Apple Pay and Google Pay are card payments, recorded as
+/// [card] with the wallet on the payment). The wallet and Afterpay values
+/// exist on the server but aren't offered.
 enum PaymentMethod {
   @JsonValue('cash')
   cash,
@@ -82,9 +118,9 @@ enum PaymentMethod {
   /// provider accepts and never carry a fee (see [BookingTerms]).
   bool get isCash => this == cash;
 
-  /// Can be chosen when booking. Card, wallets and Afterpay go live with
-  /// Stripe; the server rejects them until then.
-  bool get isAvailable => isCash;
+  /// Can be chosen when booking (if the provider takes it). Afterpay comes
+  /// later; wallets are offered inside the card payment sheet.
+  bool get isOffered => this == cash || this == card;
 }
 
 /// Where the appointment happens. Mirrors `bookings.location_type`.
@@ -110,13 +146,18 @@ enum CancelledBy {
   system,
 }
 
-/// Human label for a payment line, e.g. `Pending (Cash)`.
+/// Human label for a payment line, e.g. `Pending (Cash)` or `Card held`.
 String paymentStatusLabel(PaymentMethod method, PaymentStatus status) {
-  final via = method.label;
+  final via = method.isCash ? 'Cash' : 'Card';
   return switch (status) {
     PaymentStatus.pending => 'Pending ($via)',
+    PaymentStatus.requiresPayment => 'Awaiting payment',
+    PaymentStatus.authorized => 'Card held',
     PaymentStatus.paid => 'Paid ($via)',
+    PaymentStatus.partiallyRefunded => 'Partly refunded',
     PaymentStatus.refunded => 'Refunded',
     PaymentStatus.voided => 'Nothing to pay',
+    PaymentStatus.failed => 'Payment failed',
+    PaymentStatus.unknown => 'Payment ($via)',
   };
 }

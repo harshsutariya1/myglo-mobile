@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/config/remote_app_config.dart';
 import '../../../../core/routing/app_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
@@ -13,6 +14,7 @@ import '../../../shared/authentication/controllers/user_profile_provider.dart';
 import '../../../shared/bookings/controllers/booking_controllers.dart';
 import '../../../shared/bookings/models/booking_enums.dart';
 import '../../../shared/bookings/models/booking_failure.dart';
+import '../../../shared/bookings/models/booking_settings.dart';
 import '../../../shared/bookings/models/booking_terms.dart';
 import '../../../shared/bookings/views/widgets/booking_summary.dart';
 import '../../provider_profile/controllers/public_provider_profile_controller.dart';
@@ -25,15 +27,57 @@ import 'booking_flow_navigation.dart';
 import 'widgets/booking_flow_scaffold.dart';
 import 'widgets/payment_option_tile.dart';
 
+/// Which ways to pay this booking can use, from the provider's settings and
+/// how far ahead it is.
+class PaymentChoices {
+  const PaymentChoices({required this.cash, required this.card, required this.cardTooFarAhead});
+
+  factory PaymentChoices.of(
+    ProviderBookingSettings? settings, {
+    required DateTime? startsAt,
+    required int cardMaxAdvanceDays,
+    required DateTime now,
+  }) {
+    // Until settings load, offer cash only: the server decides either way.
+    if (settings == null) return const PaymentChoices(cash: true, card: false, cardTooFarAhead: false);
+    final tooFar = startsAt != null && startsAt.isAfter(now.add(Duration(days: cardMaxAdvanceDays)));
+    return PaymentChoices(
+      cash: settings.takesCash,
+      card: settings.takesCard && !tooFar,
+      cardTooFarAhead: settings.takesCard && tooFar,
+    );
+  }
+
+  /// The provider takes cash at the appointment.
+  final bool cash;
+
+  /// The client can pay in the app for this booking.
+  final bool card;
+
+  /// The provider takes card, but not this far ahead.
+  final bool cardTooFarAhead;
+
+  bool allows(PaymentMethod method) => method.isCash ? cash : method == PaymentMethod.card && card;
+
+  /// The method to fall back on when [method] can't be used.
+  PaymentMethod? fallbackFor(PaymentMethod method) {
+    if (allows(method)) return null;
+    if (card) return PaymentMethod.card;
+    if (cash) return PaymentMethod.cash;
+    return null;
+  }
+}
+
 /// Step 5: choose how to pay and place the booking.
 ///
-/// Only cash is live; card, wallet and buy-now-pay-later rails are listed as
-/// coming soon. A cash booking is always sent as a request the provider
-/// accepts, with no booking or cancellation fees (see [BookingTerms]).
-/// Placing the booking re-checks everything server-side in one
-/// transaction (the time, prices, travel area); if something changed, the
-/// client is taken straight to the step that needs attention with their
-/// other choices intact.
+/// Clients pay in the app (card, Apple Pay or Google Pay through Stripe's
+/// payment sheet) or in cash at the appointment, as the provider allows.
+/// A cash booking is always a request with no fees; a booking paid in the
+/// app follows the provider's own rules: charged now for instant bookings,
+/// or held on the card until a request is accepted (see [BookingTerms]).
+/// Placing the booking re-checks everything server-side in one transaction
+/// (the time, prices, travel area); if something changed, the client is taken
+/// straight to the step that needs attention with their other choices intact.
 class BookingPaymentScreen extends ConsumerWidget {
   const BookingPaymentScreen({super.key, required this.providerId});
 
@@ -41,7 +85,9 @@ class BookingPaymentScreen extends ConsumerWidget {
 
   /// Wallet shown for this platform.
   static PaymentMethod walletFor(TargetPlatform platform) =>
-      platform == TargetPlatform.iOS || platform == TargetPlatform.macOS ? PaymentMethod.applePay : PaymentMethod.googlePay;
+      platform == TargetPlatform.iOS || platform == TargetPlatform.macOS
+      ? PaymentMethod.applePay
+      : PaymentMethod.googlePay;
 
   Future<void> _confirm(BuildContext context, WidgetRef ref) async {
     HapticFeedback.mediumImpact();
@@ -60,8 +106,8 @@ class BookingPaymentScreen extends ConsumerWidget {
       context.goNamed(AppRoute.bookingConfirmed.name, pathParameters: {'bookingId': booking.id}, extra: booking);
       return;
     }
-    final error = ref.read(checkoutControllerProvider(providerId)).error;
-    if (error != null) await _handleFailure(context, ref, BookingFailure.from(error));
+    final failure = ref.read(checkoutControllerProvider(providerId)).failure;
+    if (failure != null) await _handleFailure(context, ref, failure);
   }
 
   Future<void> _handleFailure(BuildContext context, WidgetRef ref, BookingFailure failure) async {
@@ -75,7 +121,7 @@ class BookingPaymentScreen extends ConsumerWidget {
           title: 'That time is no longer available',
           message: failure.code == BookingFailureCode.slotUnavailable
               ? 'Someone else booked it moments ago, or the provider just changed their availability. '
-                  "Everything else you've chosen is saved."
+                    "Everything else you've chosen is saved."
               : failure.message,
           action: 'Choose another time',
         );
@@ -93,10 +139,10 @@ class BookingPaymentScreen extends ConsumerWidget {
         ref.invalidate(providerServicesProvider(providerId));
         if (go && context.mounted) popBookingFlowTo(context, AppRoute.selectServices);
       case BookingFailureCode.outsideServiceArea ||
-            BookingFailureCode.mobileUnavailable ||
-            BookingFailureCode.studioUnavailable ||
-            BookingFailureCode.addressInvalid ||
-            BookingFailureCode.serviceAreaUnavailable:
+          BookingFailureCode.mobileUnavailable ||
+          BookingFailureCode.studioUnavailable ||
+          BookingFailureCode.addressInvalid ||
+          BookingFailureCode.serviceAreaUnavailable:
         final go = await _explain(
           context,
           icon: Icons.wrong_location_outlined,
@@ -128,6 +174,16 @@ class BookingPaymentScreen extends ConsumerWidget {
           action: 'View my bookings',
         );
         if (go && context.mounted) context.goNamed(AppRoute.bookings.name);
+      case BookingFailureCode.paymentMethodUnavailable || BookingFailureCode.cardTooFarAhead:
+        await _explain(
+          context,
+          icon: Icons.credit_card_off_outlined,
+          title: 'Choose another way to pay',
+          message: failure.message,
+          action: 'OK',
+        );
+        // The provider's settings may have just changed: refresh them.
+        ref.invalidate(bookingSettingsProvider(providerId));
       default:
         if (context.mounted) context.showAppSnackBar(failure.message, isError: true);
     }
@@ -209,64 +265,103 @@ class BookingPaymentScreen extends ConsumerWidget {
     final draft = ref.watch(bookingDraftProvider(providerId));
     final settings = ref.watch(bookingSettingsProvider(providerId)).value;
     final provider = ref.watch(publicProviderProfileProvider(providerId)).value;
-    final submitting = ref.watch(checkoutControllerProvider(providerId)).isLoading;
+    final config = ref.watch(remoteAppConfigProvider).value ?? const RemoteAppConfig();
+    final checkout = ref.watch(checkoutControllerProvider(providerId));
     final providerName = provider == null ? 'the provider' : providerDisplayName(provider);
-    // Until settings load, assume a request: the server decides either way,
-    // and cash (the only live method) always is one.
-    final requiresApproval = settings == null || BookingTerms.of(settings, draft.paymentMethod).requiresApproval;
-    final ready = selection.isNotEmpty && draft.hasSlot && draft.hasLocation;
+    final total = Formatters.audCents(selection.totalCents);
+
+    final choices = PaymentChoices.of(
+      settings,
+      startsAt: draft.slot?.startsAt,
+      cardMaxAdvanceDays: config.cardMaxAdvanceDays,
+      now: DateTime.now(),
+    );
+    // A provider who only takes one way of paying gets it pre-selected.
+    final fallback = settings == null ? null : choices.fallbackFor(draft.paymentMethod);
+    if (fallback != null && !checkout.busy) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) ref.read(bookingDraftProvider(providerId).notifier).selectPaymentMethod(fallback);
+      });
+    }
+    final method = draft.paymentMethod;
+    final payNow = !method.isCash;
+    // Until settings load, assume a request: the server decides either way.
+    final requiresApproval = settings == null || BookingTerms.of(settings, method).requiresApproval;
+    final ready = selection.isNotEmpty && draft.hasSlot && draft.hasLocation && choices.allows(method);
     final wallet = walletFor(defaultTargetPlatform);
 
-    void comingSoon(String what) => context.showComingSoon(what);
+    final actionLabel = switch ((payNow, requiresApproval)) {
+      (false, _) => 'Send request',
+      (true, true) => 'Hold $total & send request',
+      (true, false) => 'Pay $total',
+    };
+
+    void select(PaymentMethod method) =>
+        ref.read(bookingDraftProvider(providerId).notifier).selectPaymentMethod(method);
 
     return PopScope(
-      // Don't let a half-sent booking be abandoned mid-request.
-      canPop: !submitting,
+      // Don't let a half-sent booking or an open payment be abandoned mid-way.
+      canPop: !checkout.busy,
       child: BookingFlowScaffold(
         step: BookingStep.payment,
         title: 'Payment',
         subtitle: provider == null ? null : providerName,
         footer: BookingFooter(
-          actionLabel: requiresApproval ? 'Send request' : 'Confirm booking',
+          actionLabel: actionLabel,
           icon: Icons.lock_outline_rounded,
-          busy: submitting,
-          onAction: ready && draft.paymentMethod.isAvailable ? () => _confirm(context, ref) : null,
-          summary: BookingFooterSummary(caption: 'Pay on the day', value: Formatters.audCents(selection.totalCents)),
+          busy: checkout.busy,
+          onAction: ready ? () => _confirm(context, ref) : null,
+          summary: BookingFooterSummary(
+            caption: !payNow ? 'Pay on the day' : (requiresApproval ? 'Held on your card' : 'Pay now'),
+            value: total,
+          ),
         ),
         body: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
           children: [
             Text(
               'How would you like to pay?',
-              style: TextStyle(fontSize: 22, height: 1.25, fontWeight: FontWeight.w800, letterSpacing: -0.3, color: scheme.onSurface),
+              style: TextStyle(
+                fontSize: 22,
+                height: 1.25,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.3,
+                color: scheme.onSurface,
+              ),
             ),
             const SizedBox(height: 18),
+            const BookingSectionLabel('Pay now in the app'),
+            PaymentOptionTile(
+              icon: Icons.credit_card_rounded,
+              title: 'Card or ${wallet.label}',
+              subtitle: choices.cardTooFarAhead
+                  ? 'Available for appointments up to ${config.cardMaxAdvanceDays} days ahead'
+                  : !choices.card
+                  ? "$providerName doesn't take payment in the app yet"
+                  : requiresApproval
+                  ? 'Held on your card, charged only if $providerName accepts'
+                  : 'Visa, Mastercard and Amex, paid securely now',
+              selected: payNow,
+              available: choices.card,
+              unavailableLabel: 'Unavailable',
+              onTap: () {
+                if (choices.card) select(PaymentMethod.card);
+              },
+            ),
+            const SizedBox(height: 22),
             const BookingSectionLabel('Pay at your appointment'),
             PaymentOptionTile(
               icon: Icons.payments_outlined,
               title: 'Pay in cash',
-              subtitle: 'Pay $providerName in person when you arrive',
-              selected: draft.paymentMethod == PaymentMethod.cash,
-              onTap: () => ref.read(bookingDraftProvider(providerId).notifier).selectPaymentMethod(PaymentMethod.cash),
-            ),
-            const SizedBox(height: 22),
-            const BookingSectionLabel('Pay in the app'),
-            PaymentOptionTile(
-              icon: Icons.credit_card_rounded,
-              title: PaymentMethod.card.label,
-              subtitle: 'Visa, Mastercard and Amex',
-              selected: false,
-              available: false,
-              onTap: () => comingSoon('Card payments'),
-            ),
-            const SizedBox(height: 10),
-            PaymentOptionTile(
-              icon: wallet == PaymentMethod.applePay ? Icons.apple_rounded : Icons.account_balance_wallet_outlined,
-              title: wallet.label,
-              subtitle: 'Fast, secure checkout with your phone',
-              selected: false,
-              available: false,
-              onTap: () => comingSoon(wallet.label),
+              subtitle: choices.cash
+                  ? 'Pay $providerName in person when you arrive'
+                  : '$providerName only takes payment in the app',
+              selected: !payNow,
+              available: choices.cash,
+              unavailableLabel: 'Unavailable',
+              onTap: () {
+                if (choices.cash) select(PaymentMethod.cash);
+              },
             ),
             const SizedBox(height: 10),
             PaymentOptionTile(
@@ -275,51 +370,113 @@ class BookingPaymentScreen extends ConsumerWidget {
               subtitle: 'Pay in 4 interest-free instalments',
               selected: false,
               available: false,
-              onTap: () => comingSoon('Afterpay'),
+              onTap: () => context.showComingSoon('Afterpay'),
             ),
-            const SizedBox(height: 22),
-            BookingSectionCard(
-              child: Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(color: AppTheme.success.withValues(alpha: 0.12), shape: BoxShape.circle),
-                    child: const Icon(Icons.verified_user_outlined, color: AppTheme.success, size: 22),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Nothing is charged now',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: scheme.onSurface),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Your payment shows as pending until you pay $providerName '
-                          '${Formatters.audCents(selection.totalCents)} in cash on the day. '
-                          'Cash bookings have no booking or cancellation fees.',
-                          style: TextStyle(fontSize: 13.5, height: 1.4, color: scheme.onSurface.withValues(alpha: 0.6)),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+            if (checkout.paymentMessage != null) ...[
+              const SizedBox(height: 18),
+              BookingNotice(
+                icon: Icons.error_outline_rounded,
+                color: AppTheme.destructive,
+                title: "Your payment didn't go through",
+                body: '${checkout.paymentMessage} You haven\'t been charged.',
               ),
+            ],
+            const SizedBox(height: 22),
+            _PaymentExplainer(
+              payNow: payNow,
+              requiresApproval: requiresApproval,
+              providerName: providerName,
+              total: total,
+              holdMinutes: config.checkoutHoldMinutes,
             ),
             const SizedBox(height: 16),
             Text(
-              requiresApproval
-                  ? "By sending this request you agree to $providerName's cancellation policy. "
-                      'Your booking is confirmed once they accept it.'
-                  : "By confirming you agree to $providerName's cancellation policy.",
+              [
+                requiresApproval
+                    ? "By sending this request you agree to $providerName's cancellation policy. "
+                          'Your booking is confirmed once they accept it.'
+                    : "By confirming you agree to $providerName's cancellation policy.",
+                if (payNow)
+                  'Payments are processed by Stripe. If your debit card shows two networks (such as eftpos and Visa), '
+                      'your payment may be processed on either.',
+              ].join(' '),
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 12.5, height: 1.45, color: scheme.onSurface.withValues(alpha: 0.5)),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// What happens to the client's money with the chosen way to pay.
+class _PaymentExplainer extends StatelessWidget {
+  const _PaymentExplainer({
+    required this.payNow,
+    required this.requiresApproval,
+    required this.providerName,
+    required this.total,
+    required this.holdMinutes,
+  });
+
+  final bool payNow;
+  final bool requiresApproval;
+  final String providerName;
+  final String total;
+  final int holdMinutes;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    final (title, body) = switch ((payNow, requiresApproval)) {
+      (false, _) => (
+        'Nothing is charged now',
+        'Your payment shows as pending until you pay $providerName $total in cash on the day. '
+            'Cash bookings have no booking or cancellation fees.',
+      ),
+      (true, true) => (
+        'Nothing is charged until they accept',
+        '$total is held on your card while $providerName looks at your request. If they decline or '
+            "don't reply in time, the hold is released.",
+      ),
+      (true, false) => (
+        'Secure payment',
+        "You'll pay $total now and the time is yours straight away. We hold it for you for $holdMinutes "
+            'minutes while you pay.',
+      ),
+    };
+    return BookingSectionCard(
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(color: AppTheme.success.withValues(alpha: 0.12), shape: BoxShape.circle),
+            child: Icon(
+              payNow ? Icons.lock_outline_rounded : Icons.verified_user_outlined,
+              color: AppTheme.success,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: scheme.onSurface),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  body,
+                  style: TextStyle(fontSize: 13.5, height: 1.4, color: scheme.onSurface.withValues(alpha: 0.6)),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

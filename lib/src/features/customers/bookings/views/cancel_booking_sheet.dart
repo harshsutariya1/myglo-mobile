@@ -163,7 +163,9 @@ class _CancelBookingSheetState extends ConsumerState<_CancelBookingSheet> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Free to cancel. Nothing is owed.',
+                        pending && booking.paymentStatus == PaymentStatus.authorized
+                            ? 'Free to withdraw. The hold on your card is released.'
+                            : 'Free to cancel. Nothing is owed.',
                         style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: scheme.onSurface),
                       ),
                     ),

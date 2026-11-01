@@ -63,7 +63,11 @@ _Booking _$BookingFromJson(Map<String, dynamic> json) => _Booking(
   totalCents: (json['total_cents'] as num).toInt(),
   currency: json['currency'] as String? ?? 'AUD',
   paymentMethod: $enumDecode(_$PaymentMethodEnumMap, json['payment_method']),
-  paymentStatus: $enumDecode(_$PaymentStatusEnumMap, json['payment_status']),
+  paymentStatus: $enumDecode(
+    _$PaymentStatusEnumMap,
+    json['payment_status'],
+    unknownValue: PaymentStatus.unknown,
+  ),
   requiresApproval: json['requires_approval'] as bool,
   cancellationWindowHours: (json['cancellation_window_hours'] as num).toInt(),
   cancellationFeePercent: (json['cancellation_fee_percent'] as num).toInt(),
@@ -94,6 +98,16 @@ _Booking _$BookingFromJson(Map<String, dynamic> json) => _Booking(
   platformFeeCents: (json['platform_fee_cents'] as num?)?.toInt(),
   reviewId: json['review_id'] as String?,
   reviewRating: (json['review_rating'] as num?)?.toInt(),
+  holdExpiresAt: json['hold_expires_at'] == null
+      ? null
+      : DateTime.parse(json['hold_expires_at'] as String),
+  respondBy: json['respond_by'] == null
+      ? null
+      : DateTime.parse(json['respond_by'] as String),
+  cardBrand: json['card_brand'] as String?,
+  cardLast4: json['card_last4'] as String?,
+  wallet: json['wallet'] as String?,
+  amountRefundedCents: (json['amount_refunded_cents'] as num?)?.toInt() ?? 0,
 );
 
 Map<String, dynamic> _$BookingToJson(_Booking instance) => <String, dynamic>{
@@ -144,9 +158,17 @@ Map<String, dynamic> _$BookingToJson(_Booking instance) => <String, dynamic>{
   'platform_fee_cents': instance.platformFeeCents,
   'review_id': instance.reviewId,
   'review_rating': instance.reviewRating,
+  'hold_expires_at': instance.holdExpiresAt?.toIso8601String(),
+  'respond_by': instance.respondBy?.toIso8601String(),
+  'card_brand': instance.cardBrand,
+  'card_last4': instance.cardLast4,
+  'wallet': instance.wallet,
+  'amount_refunded_cents': instance.amountRefundedCents,
 };
 
 const _$BookingStatusEnumMap = {
+  BookingStatus.awaitingPayment: 'awaiting_payment',
+  BookingStatus.checkoutExpired: 'checkout_expired',
   BookingStatus.pending: 'pending',
   BookingStatus.confirmed: 'confirmed',
   BookingStatus.declined: 'declined',
@@ -171,9 +193,14 @@ const _$PaymentMethodEnumMap = {
 
 const _$PaymentStatusEnumMap = {
   PaymentStatus.pending: 'pending',
+  PaymentStatus.requiresPayment: 'requires_payment',
+  PaymentStatus.authorized: 'authorized',
   PaymentStatus.paid: 'paid',
+  PaymentStatus.partiallyRefunded: 'partially_refunded',
   PaymentStatus.refunded: 'refunded',
   PaymentStatus.voided: 'void',
+  PaymentStatus.failed: 'failed',
+  PaymentStatus.unknown: 'unknown',
 };
 
 const _$CancelledByEnumMap = {

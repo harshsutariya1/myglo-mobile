@@ -18,6 +18,7 @@ import { json, UUID } from '../_shared/http.ts';
 import { captureException } from '../_shared/sentry.ts';
 import { RpcError, serviceRpc, supabaseConfigured } from '../_shared/supabase.ts';
 import { sendAdminAlert } from './admin_alert.ts';
+import { cancelPaymentIntent, capturePayment, refundPayment, reverseTransfer, transfer } from './payments.ts';
 import { Job, JobHandler, JobResult, retry, succeeded } from './types.ts';
 
 const FN = 'jobs-worker';
@@ -28,6 +29,11 @@ const TIME_BUDGET_MS = 45_000;
 const HANDLERS: Record<string, JobHandler> = {
   noop: () => Promise.resolve(succeeded()),
   admin_alert: sendAdminAlert,
+  cancel_payment_intent: cancelPaymentIntent,
+  capture_payment: capturePayment,
+  refund_payment: refundPayment,
+  transfer,
+  reverse_transfer: reverseTransfer,
 };
 
 Deno.serve(async (req: Request) => {

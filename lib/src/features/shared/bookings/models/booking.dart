@@ -68,7 +68,7 @@ abstract class Booking with _$Booking {
     @JsonKey(name: 'total_cents') required int totalCents,
     @Default('AUD') String currency,
     @JsonKey(name: 'payment_method') required PaymentMethod paymentMethod,
-    @JsonKey(name: 'payment_status') required PaymentStatus paymentStatus,
+    @JsonKey(name: 'payment_status', unknownEnumValue: PaymentStatus.unknown) required PaymentStatus paymentStatus,
     @JsonKey(name: 'requires_approval') required bool requiresApproval,
     @JsonKey(name: 'cancellation_window_hours') required int cancellationWindowHours,
     @JsonKey(name: 'cancellation_fee_percent') required int cancellationFeePercent,
@@ -92,6 +92,20 @@ abstract class Booking with _$Booking {
     /// The client's review of this booking, if they left one.
     @JsonKey(name: 'review_id') String? reviewId,
     @JsonKey(name: 'review_rating') int? reviewRating,
+
+    /// Paid in the app: until when the time is held while the client pays.
+    @JsonKey(name: 'hold_expires_at') DateTime? holdExpiresAt,
+
+    /// When an unanswered request lapses (its start time for cash requests;
+    /// earlier for card requests, before the hold on the card can lapse).
+    @JsonKey(name: 'respond_by') DateTime? respondBy,
+
+    /// The card that paid, e.g. `visa` and `4242`, and the wallet it was in
+    /// (`apple_pay`, `google_pay`), once the payment went through.
+    @JsonKey(name: 'card_brand') String? cardBrand,
+    @JsonKey(name: 'card_last4') String? cardLast4,
+    String? wallet,
+    @JsonKey(name: 'amount_refunded_cents') @Default(0) int amountRefundedCents,
   }) = _Booking;
 
   factory Booking.fromJson(Map<String, dynamic> json) => _$BookingFromJson(json);
@@ -100,6 +114,32 @@ abstract class Booking with _$Booking {
   String get servicesSummary => items.isEmpty ? 'Appointment' : items.map((item) => item.name).join(', ');
 
   bool get isMobile => locationType == BookingLocationType.client;
+
+  /// Paid (or being paid) in the app rather than in cash.
+  bool get paidInApp => !paymentMethod.isCash;
+
+  /// When an unanswered request lapses, as a wall clock in the provider's
+  /// time zone (like [startsAtLocal]).
+  DateTime get respondByLocal => respondBy == null ? startsAtLocal : BookingTime.wallClockOf(respondBy!, timeZone);
+
+  /// `Apple Pay · Visa •• 4242`, or null before a card was used.
+  String? get cardSummary {
+    final brand = switch (cardBrand) {
+      null || '' || 'unknown' => null,
+      'amex' => 'Amex',
+      'mastercard' => 'Mastercard',
+      'eftpos_au' => 'eftpos',
+      final other => '${other[0].toUpperCase()}${other.substring(1)}',
+    };
+    final card = [brand, if (cardLast4 != null) '•• $cardLast4'].whereType<String>().join(' ');
+    final via = switch (wallet) {
+      'apple_pay' => 'Apple Pay',
+      'google_pay' => 'Google Pay',
+      _ => null,
+    };
+    final parts = [via, if (card.isNotEmpty) card].whereType<String>();
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
 
   /// The provider's UTC offset at the time of the appointment.
   Duration get utcOffset => BookingTime.offsetBetween(startsAt, startsAtLocal);

@@ -12,7 +12,7 @@ import '../../../../core/utils/network_error.dart';
 /// Sentry and rethrown unchanged, so connectivity errors still reach the
 /// offline handling.
 Never throwBookingError(Object error, StackTrace stackTrace, {required String tag, required String action}) {
-  if (error is PostgrestException) {
+  if (error is PostgrestException || error is FunctionException) {
     final failure = BookingFailure.from(error);
     if (failure.isExpected) {
       AppLogger.w('$action refused: ${failure.code.key}', tag: tag);
@@ -42,6 +42,10 @@ enum BookingFailureCode {
   phoneInvalid('phone_invalid'),
   notesTooLong('notes_too_long'),
   paymentMethodUnavailable('payment_method_unavailable'),
+  cardTooFarAhead('card_too_far_ahead'),
+  checkoutExpired('checkout_expired'),
+  checkoutNotOpen('checkout_not_open'),
+  paymentsUnavailable('payments_unavailable'),
   clientOverlap('client_overlap'),
   tooManyBookings('too_many_bookings'),
   clientsOnly('clients_only'),
@@ -91,6 +95,13 @@ class BookingFailure implements Exception {
     if (error is BookingFailure) return error;
     if (error is PostgrestException) {
       return BookingFailure(BookingFailureCode.fromKey(error.message), details: _parseDetails(error.details));
+    }
+    if (error is FunctionException) {
+      // Edge Functions answer `{ "error": "<key>" }` (see supabase/functions/payments).
+      final details = _parseDetails(error.details);
+      final code = BookingFailureCode.fromKey(details['error'] as String?);
+      if (code != BookingFailureCode.unknown) return BookingFailure(code);
+      return BookingFailure(error.status >= 500 ? BookingFailureCode.paymentsUnavailable : BookingFailureCode.unknown);
     }
     if (isConnectivityError(error)) return const BookingFailure(BookingFailureCode.offline);
     return const BookingFailure(BookingFailureCode.unknown);
@@ -149,7 +160,19 @@ class BookingFailure implements Exception {
           'Set your business location before limiting how far you travel.',
         BookingFailureCode.phoneInvalid => 'Enter a contact number with 8 to 15 digits.',
         BookingFailureCode.notesTooLong => 'Your notes are too long. Please shorten them.',
-        BookingFailureCode.paymentMethodUnavailable => 'That payment method isn\'t available yet. Please pay in cash.',
+        BookingFailureCode.paymentMethodUnavailable =>
+          "This provider doesn't take that payment method right now. Please choose another way to pay.",
+        BookingFailureCode.cardTooFarAhead => switch (_number('max_days')) {
+            final days? =>
+              'You can pay in the app for appointments up to ${days.toInt()} days ahead. Pay in cash, or choose an earlier date.',
+            null => 'That date is too far ahead to pay in the app. Pay in cash, or choose an earlier date.',
+          },
+        BookingFailureCode.checkoutExpired =>
+          "The time we held for you ran out before the payment went through, so you haven't been charged. "
+              'Please try again.',
+        BookingFailureCode.checkoutNotOpen => 'This booking has already been paid for.',
+        BookingFailureCode.paymentsUnavailable =>
+          "Payments aren't working right now, so you haven't been charged. Please try again in a moment.",
         BookingFailureCode.clientOverlap => 'You already have a booking at this time.',
         BookingFailureCode.tooManyBookings =>
           'You have the most upcoming bookings allowed with this provider. Cancel one to book another.',

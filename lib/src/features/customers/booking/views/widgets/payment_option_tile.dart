@@ -5,8 +5,9 @@ import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/widgets/soon_badge.dart';
 import 'selectable_service_tile.dart' show SelectionCheck;
 
-/// One way to pay. Methods that aren't live yet are drawn faded with a
-/// "Coming soon" pill and can't be selected.
+/// One way to pay. Methods that can't be chosen (not live yet, or not
+/// offered by this provider for this booking) are drawn faded with a pill
+/// saying so, and can't be selected.
 class PaymentOptionTile extends StatelessWidget {
   const PaymentOptionTile({
     super.key,
@@ -16,6 +17,7 @@ class PaymentOptionTile extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.available = true,
+    this.unavailableLabel = 'Coming soon',
   });
 
   final IconData icon;
@@ -24,7 +26,10 @@ class PaymentOptionTile extends StatelessWidget {
   final bool selected;
   final bool available;
 
-  /// Selects the method, or explains it isn't available yet.
+  /// The pill shown when [available] is false.
+  final String unavailableLabel;
+
+  /// Selects the method, or explains why it can't be chosen.
   final VoidCallback onTap;
 
   @override
@@ -37,7 +42,7 @@ class PaymentOptionTile extends StatelessWidget {
       button: available,
       selected: selected,
       enabled: available,
-      label: '$title. $subtitle${available ? '' : '. Coming soon'}',
+      label: '$title. $subtitle${available ? '' : '. $unavailableLabel'}',
       excludeSemantics: true,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
@@ -91,7 +96,7 @@ class PaymentOptionTile extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  if (available) SelectionCheck(selected: selected, size: 24) else const SoonBadge(label: 'Coming soon'),
+                  if (available) SelectionCheck(selected: selected, size: 24) else SoonBadge(label: unavailableLabel),
                 ],
               ),
             ),

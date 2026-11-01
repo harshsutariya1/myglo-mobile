@@ -7,7 +7,6 @@ import '../../../../../core/utils/formatters.dart';
 import '../../../../../core/widgets/skeleton/skeletons.dart';
 import '../../../../shared/authentication/models/profile_model.dart';
 import '../../../../shared/bookings/controllers/booking_controllers.dart';
-import '../../../../shared/bookings/models/booking_enums.dart';
 import '../../../../shared/bookings/models/booking_time.dart';
 import '../../../../shared/bookings/models/cancellation_policy.dart';
 import '../../../../shared/bookings/models/working_hours.dart';
@@ -281,7 +280,7 @@ class _CancellationPolicy extends ConsumerWidget {
         subtitle: CancellationPolicy.profileTerms(
           windowHours: settings.cancellationWindowHours,
           inAppFeePercent: settings.cancellationFeePercent,
-          inAppPaymentsLive: PaymentMethod.values.any((method) => method.isAvailable && !method.isCash),
+          inAppPaymentsLive: settings.takesCard,
         ),
       ),
       AsyncData() => const _InfoCard(

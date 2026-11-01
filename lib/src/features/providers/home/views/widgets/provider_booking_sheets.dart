@@ -163,19 +163,21 @@ class _ProviderBookingActionSheetState extends ConsumerState<_ProviderBookingAct
                 ),
                 child: CheckboxListTile(
                   value: _cashReceived,
-                  onChanged: _busy || _booking.paymentStatus != PaymentStatus.pending
+                  onChanged: _busy || !cash || _booking.paymentStatus != PaymentStatus.pending
                       ? null
                       : (value) => setState(() => _cashReceived = value ?? false),
                   controlAffinity: ListTileControlAffinity.leading,
                   activeColor: AppTheme.success,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   title: Text(
-                    _booking.paymentStatus == PaymentStatus.paid
-                        ? 'Payment already recorded'
-                        : "I've received ${Formatters.audCents(_booking.totalCents)}${cash ? ' in cash' : ''}",
+                    !cash
+                        ? 'Paid in the app'
+                        : _booking.paymentStatus == PaymentStatus.paid
+                            ? 'Payment already recorded'
+                            : "I've received ${Formatters.audCents(_booking.totalCents)} in cash",
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: scheme.onSurface),
                   ),
-                  subtitle: _booking.paymentStatus == PaymentStatus.pending
+                  subtitle: cash && _booking.paymentStatus == PaymentStatus.pending
                       ? Text(
                           _cashReceived
                               ? 'The booking will show as paid.'

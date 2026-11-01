@@ -77,5 +77,9 @@ class BookingDraftController extends Notifier<BookingDraft> {
     if (state.paymentMethod != method) _update(state.copyWith(paymentMethod: method));
   }
 
+  /// Starts a new booking attempt with the same choices (the last one's
+  /// checkout ran out or was given up).
+  void renewAttempt() => _update(state);
+
   void _update(BookingDraft next) => state = next.copyWith(attemptId: _uuid.v4());
 }

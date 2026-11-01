@@ -6,6 +6,7 @@ import 'package:myglo/src/core/location/geo_point.dart';
 import 'package:myglo/src/core/utils/formatters.dart';
 import 'package:myglo/src/features/customers/booking/controllers/booking_draft_controller.dart';
 import 'package:myglo/src/features/customers/booking/controllers/service_selection_controller.dart';
+import 'package:myglo/src/features/customers/booking/views/booking_payment_screen.dart';
 import 'package:myglo/src/features/providers/schedule/views/widgets/booking_rules_section.dart';
 import 'package:myglo/src/features/shared/bookings/models/available_slot.dart';
 import 'package:myglo/src/features/shared/bookings/models/booking.dart';
@@ -384,6 +385,93 @@ void main() {
       expect(booking.address?.suburb, 'Southport');
       expect(booking.platformFeeCents, isNull);
     });
+
+    Map<String, dynamic> cardJson(Map<String, dynamic> extra) => {
+          ...sampleBooking().toJson(),
+          'payment_method': 'card',
+          ...extra,
+        };
+
+    test('reads a card request held on the card, with its deadline', () {
+      final booking = Booking.fromJson(cardJson({
+        'status': 'pending',
+        'payment_status': 'authorized',
+        'respond_by': '2026-10-05T03:00:00+00:00',
+        'card_brand': 'visa',
+        'card_last4': '4242',
+        'wallet': 'apple_pay',
+      }));
+      expect(booking.paidInApp, isTrue);
+      expect(booking.paymentStatus, PaymentStatus.authorized);
+      expect(booking.cardSummary, 'Apple Pay · Visa •• 4242');
+      // Gold Coast time: AEST, UTC+10 all year.
+      expect(Formatters.dateTimeShort(booking.respondByLocal), Formatters.dateTimeShort(DateTime(2026, 10, 5, 13)));
+      expect(paymentStatusLabel(booking.paymentMethod, booking.paymentStatus), 'Card held');
+    });
+
+    test('unpaid checkouts and future payment statuses parse safely', () {
+      expect(Booking.fromJson(cardJson({'status': 'awaiting_payment', 'payment_status': 'requires_payment'})).status,
+          BookingStatus.awaitingPayment);
+      final closed = Booking.fromJson(cardJson({'status': 'checkout_expired', 'payment_status': 'something_new'}));
+      expect(closed.status.isCheckout, isTrue);
+      expect(closed.status.isActive, isFalse);
+      expect(closed.paymentStatus, PaymentStatus.unknown);
+      expect(sampleBooking(paymentMethod: PaymentMethod.card).cardSummary, isNull);
+    });
+  });
+
+  group('Payment choices', () {
+    const cashOnly = ProviderBookingSettings(providerId: 'prov-1');
+    const cards = ProviderBookingSettings(providerId: 'prov-1', cardReady: true);
+    final now = DateTime.utc(2026, 11, 1);
+    final soon = now.add(const Duration(days: 3));
+
+    PaymentChoices choices(ProviderBookingSettings? settings, {DateTime? startsAt}) =>
+        PaymentChoices.of(settings, startsAt: startsAt ?? soon, cardMaxAdvanceDays: 60, now: now);
+
+    test('card only once the provider can take it', () {
+      expect(choices(cashOnly).allows(PaymentMethod.card), isFalse);
+      expect(choices(cashOnly).allows(PaymentMethod.cash), isTrue);
+      expect(choices(cards).allows(PaymentMethod.card), isTrue);
+      expect(choices(null).allows(PaymentMethod.card), isFalse);
+    });
+
+    test('card-only providers fall back to card; wallets are never chosen directly', () {
+      final cardOnly = choices(cards.copyWith(acceptsCash: false));
+      expect(cardOnly.allows(PaymentMethod.cash), isFalse);
+      expect(cardOnly.fallbackFor(PaymentMethod.cash), PaymentMethod.card);
+      expect(cardOnly.allows(PaymentMethod.applePay), isFalse);
+    });
+
+    test('no card beyond the hold window', () {
+      final far = choices(cards, startsAt: now.add(const Duration(days: 61)));
+      expect(far.card, isFalse);
+      expect(far.cardTooFarAhead, isTrue);
+      expect(far.fallbackFor(PaymentMethod.card), PaymentMethod.cash);
+    });
+  });
+
+  group('Card checkout failures', () {
+    BookingFailureCode code(int status, Object? details) =>
+        BookingFailure.from(FunctionException(status: status, details: details)).code;
+
+    test('payments function errors map to booking failures', () {
+      expect(code(409, {'error': 'checkout_expired'}), BookingFailureCode.checkoutExpired);
+      expect(code(409, {'error': 'checkout_not_open'}), BookingFailureCode.checkoutNotOpen);
+      expect(code(404, {'error': 'booking_not_found'}), BookingFailureCode.bookingNotFound);
+      expect(code(502, {'error': 'payments_unavailable'}), BookingFailureCode.paymentsUnavailable);
+      expect(code(503, null), BookingFailureCode.paymentsUnavailable);
+      expect(code(400, 'not json'), BookingFailureCode.unknown);
+    });
+
+    test('a card too far ahead says how far is allowed', () {
+      final failure = BookingFailure.from(const PostgrestException(
+        message: 'card_too_far_ahead',
+        details: '{"max_days": 60}',
+      ));
+      expect(failure.code, BookingFailureCode.cardTooFarAhead);
+      expect(failure.message, contains('up to 60 days ahead'));
+    });
   });
 
   group('Booking terms', () {
@@ -412,13 +500,13 @@ void main() {
       );
     });
 
-    test('only cash can be chosen until in-app payments launch', () {
+    test('clients choose cash or card; wallets go through the card sheet, Afterpay comes later', () {
       expect(
         [
           for (final method in PaymentMethod.values)
-            if (method.isAvailable) method,
+            if (method.isOffered) method,
         ],
-        [PaymentMethod.cash],
+        [PaymentMethod.cash, PaymentMethod.card],
       );
     });
   });
