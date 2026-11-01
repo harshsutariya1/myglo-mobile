@@ -108,6 +108,9 @@ _Booking _$BookingFromJson(Map<String, dynamic> json) => _Booking(
   cardLast4: json['card_last4'] as String?,
   wallet: json['wallet'] as String?,
   amountRefundedCents: (json['amount_refunded_cents'] as num?)?.toInt() ?? 0,
+  refundPendingCents: (json['refund_pending_cents'] as num?)?.toInt() ?? 0,
+  settlementStatus: json['settlement_status'] as String?,
+  payoutCents: (json['payout_cents'] as num?)?.toInt(),
 );
 
 Map<String, dynamic> _$BookingToJson(_Booking instance) => <String, dynamic>{
@@ -164,6 +167,9 @@ Map<String, dynamic> _$BookingToJson(_Booking instance) => <String, dynamic>{
   'card_last4': instance.cardLast4,
   'wallet': instance.wallet,
   'amount_refunded_cents': instance.amountRefundedCents,
+  'refund_pending_cents': instance.refundPendingCents,
+  'settlement_status': instance.settlementStatus,
+  'payout_cents': instance.payoutCents,
 };
 
 const _$BookingStatusEnumMap = {

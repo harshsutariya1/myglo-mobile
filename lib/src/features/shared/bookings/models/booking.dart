@@ -106,6 +106,14 @@ abstract class Booking with _$Booking {
     @JsonKey(name: 'card_last4') String? cardLast4,
     String? wallet,
     @JsonKey(name: 'amount_refunded_cents') @Default(0) int amountRefundedCents,
+
+    /// Refunds on their way back to the client's card.
+    @JsonKey(name: 'refund_pending_cents') @Default(0) int refundPendingCents,
+
+    /// The provider's share of an in-app payment and where it is (provider
+    /// only): `scheduled`, `held`, `processing`, `transferred`, `reversed`…
+    @JsonKey(name: 'settlement_status') String? settlementStatus,
+    @JsonKey(name: 'payout_cents') int? payoutCents,
   }) = _Booking;
 
   factory Booking.fromJson(Map<String, dynamic> json) => _$BookingFromJson(json);

@@ -35,6 +35,18 @@ enum NotificationKind {
 
   /// Provider: Stripe needs more details to keep card payments on.
   paymentsActionNeeded('payments_action_needed', Icons.assignment_late_outlined),
+
+  /// Client: a refund for a booking paid in the app went through.
+  paymentRefunded('payment_refunded', Icons.currency_exchange_rounded),
+
+  /// Provider: a payout left for their bank account.
+  payoutPaid('payout_paid', Icons.account_balance_outlined),
+
+  /// Provider: a payout couldn't reach their bank.
+  payoutFailed('payout_failed', Icons.money_off_csred_outlined),
+
+  /// Provider: a client disputed a payment with their bank.
+  bookingDisputed('booking_disputed', Icons.gavel_rounded),
   unknown('unknown', Icons.notifications_none_rounded);
 
   const NotificationKind(this.key, this.icon);
@@ -45,16 +57,18 @@ enum NotificationKind {
   static NotificationKind fromKey(String? key) =>
       values.firstWhere((kind) => kind.key == key, orElse: () => unknown);
 
-  /// About the provider's card payments set-up rather than a booking.
-  bool get isAboutPayments => this == paymentsReady || this == paymentsActionNeeded;
+  /// About the provider's card payments and payouts rather than a booking.
+  bool get isAboutPayments =>
+      this == paymentsReady || this == paymentsActionNeeded || this == payoutPaid || this == payoutFailed;
 
   Color color(ColorScheme scheme) => switch (this) {
         bookingNew || bookingConfirmed || bookingCompleted => AppTheme.success,
         bookingRequest || bookingRequestReminder || bookingRequested => AppTheme.warning,
         bookingDeclined || bookingCancelled || bookingNoShow => AppTheme.destructive,
         bookingReminder || reviewReply => scheme.primary,
-        paymentsReady => AppTheme.success,
-        paymentsActionNeeded => AppTheme.warning,
+        paymentsReady || payoutPaid || paymentRefunded => AppTheme.success,
+        paymentsActionNeeded || bookingDisputed => AppTheme.warning,
+        payoutFailed => AppTheme.destructive,
         reviewReceived || reviewUpdated || reviewThanks => AppTheme.warning,
         bookingExpired || unknown => scheme.onSurface.withValues(alpha: 0.55),
       };

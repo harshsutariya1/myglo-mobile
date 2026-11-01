@@ -41,6 +41,13 @@ enum AdminFailureCode {
   notFound('not_found'),
   invalidRequest('invalid_request'),
 
+  /// A refund larger than what's left to refund.
+  invalidAmount('invalid_amount'),
+  bookingNotCancellable('booking_not_cancellable'),
+  settlementNotHoldable('settlement_not_holdable'),
+  settlementNotHeld('settlement_not_held'),
+  jobNotFailed('job_not_failed'),
+
   /// The request never reached the server (or its reply never came back).
   offline('offline'),
   unknown('unknown');
@@ -101,6 +108,11 @@ class AdminFailure implements Exception {
         AdminFailureCode.cityExists => 'A city with that name and state already exists.',
         AdminFailureCode.notFound => "That record doesn't exist any more.",
         AdminFailureCode.invalidRequest => "That request wasn't valid.",
+        AdminFailureCode.invalidAmount => "That's more than is left to refund on this booking.",
+        AdminFailureCode.bookingNotCancellable => 'Only upcoming bookings and requests can be cancelled.',
+        AdminFailureCode.settlementNotHoldable => "The provider's share has already been paid or settled.",
+        AdminFailureCode.settlementNotHeld => "The provider's share isn't on hold.",
+        AdminFailureCode.jobNotFailed => 'That job is no longer failed; it may already have been retried.',
         AdminFailureCode.offline => "You're offline. Check your connection and try again.",
         AdminFailureCode.unknown => 'Something went wrong. Please try again.',
       };

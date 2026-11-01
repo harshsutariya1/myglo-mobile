@@ -26,6 +26,7 @@ import '../../features/providers/provider_profiles/views/screens/settings_screen
 import '../../features/providers/provider_profiles/views/screens/cover_photos_screen.dart';
 import '../../features/providers/provider_profiles/views/screens/edit_provider_profile_screen.dart';
 import '../../features/providers/location/views/business_location_screen.dart';
+import '../../features/providers/payments/views/financials_screen.dart';
 import '../../features/providers/payments/views/payments_setup_screen.dart';
 import '../../features/customers/explore/views/provider_search_screen.dart';
 import '../../features/customers/explore/views/providers_map_screen.dart';
@@ -49,6 +50,8 @@ import '../../features/shared/notifications/views/notifications_screen.dart';
 import '../../features/admin/controllers/admin_controllers.dart' show AuditFilter;
 import '../../features/admin/models/admin_models.dart';
 import '../../features/admin/views/admin_home_screen.dart';
+import '../../features/admin/views/admin_payment_detail_screen.dart';
+import '../../features/admin/views/admin_payments_screen.dart';
 import '../../features/admin/views/admin_people_screen.dart';
 import '../../features/admin/views/admin_section_placeholder.dart';
 import '../../features/admin/views/admin_security_screen.dart';
@@ -115,6 +118,7 @@ enum AppRoute {
   providerContacts(path: '/business/contacts'),
   // Card payments and payouts (Stripe), full-screen.
   providerPayments(path: '/business/payments'),
+  providerEarnings(path: 'earnings'),
   // Admin accounts only (see isAdminOnlyPath). Two-factor comes first; the
   // rest lives in the admin shell.
   adminVerify(path: '/admin-verify'),
@@ -122,6 +126,7 @@ enum AppRoute {
   adminPeople(path: '/admin/people'),
   adminUser(path: ':userId'),
   adminPayments(path: '/admin/payments'),
+  adminPayment(path: 'booking/:bookingId'),
   adminModeration(path: '/admin/moderation'),
   adminSettings(path: '/admin/settings'),
   adminPlatformSettings(path: 'platform'),
@@ -309,6 +314,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoute.providerPayments.path,
         name: AppRoute.providerPayments.name,
         builder: (context, state) => const PaymentsSetupScreen(),
+        routes: [
+          GoRoute(
+            path: AppRoute.providerEarnings.path,
+            name: AppRoute.providerEarnings.name,
+            builder: (context, state) => const FinancialsScreen(),
+          ),
+        ],
       ),
       GoRoute(
         path: AppRoute.providerSearch.path,
@@ -348,11 +360,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoute.adminPayments.path,
             name: AppRoute.adminPayments.name,
-            builder: (context, state) => const AdminSectionPlaceholder(
-              title: 'Payments',
-              icon: Icons.payments_outlined,
-              message: 'Card payments, refunds, payouts and disputes appear here once card payments are switched on.',
-            ),
+            builder: (context, state) => const AdminPaymentsScreen(),
+            routes: [
+              GoRoute(
+                path: AppRoute.adminPayment.path,
+                name: AppRoute.adminPayment.name,
+                builder: (context, state) => AdminPaymentDetailScreen(bookingId: state.pathParameters['bookingId']!),
+              ),
+            ],
           ),
           GoRoute(
             path: AppRoute.adminModeration.path,

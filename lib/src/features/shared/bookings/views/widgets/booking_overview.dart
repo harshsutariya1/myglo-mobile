@@ -138,6 +138,21 @@ class BookingPriceCard extends StatelessWidget {
           : 'Your card payment didn\'t go through. Myglo will be in touch.',
       _ => null,
     };
+    final refundOnItsWay = booking.refundPendingCents > 0
+        ? '${Formatters.audCents(booking.refundPendingCents)} refund on its way to ${forProvider ? 'the client' : 'your card'}.'
+        : null;
+    final payout = Formatters.audCents(booking.payoutCents ?? 0);
+    final share = !forProvider || booking.payoutCents == null
+        ? null
+        : switch (booking.settlementStatus) {
+            'scheduled' || 'processing' => "You'll receive $payout.",
+            'held' => 'Your $payout is on hold.',
+            'transferred' => '$payout paid to your Stripe balance.',
+            'reversed' => 'Your share was taken back.',
+            'failed' => 'Your $payout is delayed. Myglo is on it.',
+            _ => null,
+          };
+    final footnote = [refundOnItsWay ?? note, share].whereType<String>().join(' ');
     return BookingSectionCard(
       child: PriceBreakdown(
         lines: [
@@ -145,7 +160,7 @@ class BookingPriceCard extends StatelessWidget {
             (label: item.name, detail: Formatters.duration(item.durationMinutes), cents: item.priceCents),
         ],
         totalCents: booking.totalCents,
-        footnote: note,
+        footnote: footnote.isEmpty ? null : footnote,
         platformFeeCents: forProvider ? booking.platformFeeCents ?? 0 : null,
         // Myglo takes no commission on cash bookings.
         noPlatformFeeLabel: cash ? 'None on cash' : 'Free',

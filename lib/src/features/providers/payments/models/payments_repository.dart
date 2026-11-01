@@ -5,6 +5,7 @@ import '../../../../core/utils/app_logger.dart';
 import '../../../../core/utils/network_error.dart';
 import '../../../shared/authentication/models/auth_repository.dart';
 import 'payments_setup.dart';
+import 'provider_financials.dart';
 
 final paymentsRepositoryProvider = Provider<PaymentsRepository>(
   (ref) => PaymentsRepository(ref.watch(supabaseClientProvider)),
@@ -63,6 +64,21 @@ class PaymentsRepository {
       return PaymentsSetup.fromJson(Map<String, dynamic>.from(row as Map));
     } catch (e, st) {
       AppLogger.e('Loading payments set-up failed', tag: _tag, error: e, stackTrace: st);
+      rethrow;
+    }
+  }
+
+  /// The provider's money between two of their local dates (inclusive).
+  Future<ProviderFinancials> getFinancials({required DateTime from, required DateTime to}) async {
+    String day(DateTime d) => '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+    final sw = Stopwatch()..start();
+    try {
+      final row = await _client.rpc('get_provider_financials', params: {'p_from': day(from), 'p_to': day(to)});
+      sw.stop();
+      AppLogger.api('rpc.get_provider_financials', duration: sw.elapsed);
+      return ProviderFinancials.fromJson(Map<String, dynamic>.from(row as Map));
+    } catch (e, st) {
+      AppLogger.e('Loading financials failed', tag: _tag, error: e, stackTrace: st);
       rethrow;
     }
   }

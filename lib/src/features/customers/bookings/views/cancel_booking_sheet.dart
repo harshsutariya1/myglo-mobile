@@ -84,6 +84,9 @@ class _CancelBookingSheetState extends ConsumerState<_CancelBookingSheet> {
     final scheme = context.colorScheme;
     final booking = widget.booking;
     final fee = booking.lateFeeCents;
+    // Paid in the app: what comes back to the client's card.
+    final paid = booking.paidInApp && booking.paymentStatus == PaymentStatus.paid;
+    final refund = paid ? booking.totalCents - booking.amountRefundedCents - (_late ? fee : 0) : 0;
     final pending = booking.status == BookingStatus.pending;
     final canSubmit = !_busy && (!_late || _acknowledged);
 
@@ -130,21 +133,27 @@ class _CancelBookingSheetState extends ConsumerState<_CancelBookingSheet> {
                     Text(
                       'Free cancellation ended ${Formatters.dateTimeShort(booking.startsAtLocal.subtract(Duration(hours: booking.cancellationWindowHours)))} '
                       '(${booking.cancellationWindowHours} hours before the appointment). '
-                      '${fee > 0 ? 'A late-cancellation fee of ${Formatters.audCents(fee)} (${booking.lateFeePercent}%) '
-                          'will be owed to ${booking.providerName}.' : '${booking.providerName} will see it marked as a late cancellation${booking.paymentMethod.isCash ? ". There's no fee on cash bookings" : ''}.'}',
+                      '${fee > 0 ? (paid ? '${booking.providerName} keeps a late-cancellation fee of ${Formatters.audCents(fee)} '
+                              '(${booking.lateFeePercent}%)${refund > 0 ? ' and ${Formatters.audCents(refund)} is refunded to your card' : ''}.'
+                          : 'A late-cancellation fee of ${Formatters.audCents(fee)} (${booking.lateFeePercent}%) '
+                              'will be owed to ${booking.providerName}.') : '${booking.providerName} will see it marked as a late cancellation${booking.paymentMethod.isCash ? ". There's no fee on cash bookings" : refund > 0 ? ', and ${Formatters.audCents(refund)} is refunded to your card' : ''}.'}',
                       style: TextStyle(fontSize: 13.5, height: 1.45, color: scheme.onSurface.withValues(alpha: 0.75)),
                     ),
                     const SizedBox(height: 6),
-                    CheckboxListTile(
-                      value: _acknowledged,
-                      onChanged: _busy ? null : (value) => setState(() => _acknowledged = value ?? false),
-                      contentPadding: EdgeInsets.zero,
-                      controlAffinity: ListTileControlAffinity.leading,
-                      activeColor: AppTheme.destructive,
-                      dense: true,
-                      title: Text(
-                        fee > 0 ? 'I understand the fee and want to cancel' : 'I understand and want to cancel',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: scheme.onSurface),
+                    // Its own Material, so the tile's ink shows on the tinted box.
+                    Material(
+                      type: MaterialType.transparency,
+                      child: CheckboxListTile(
+                        value: _acknowledged,
+                        onChanged: _busy ? null : (value) => setState(() => _acknowledged = value ?? false),
+                        contentPadding: EdgeInsets.zero,
+                        controlAffinity: ListTileControlAffinity.leading,
+                        activeColor: AppTheme.destructive,
+                        dense: true,
+                        title: Text(
+                          fee > 0 ? 'I understand the fee and want to cancel' : 'I understand and want to cancel',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: scheme.onSurface),
+                        ),
                       ),
                     ),
                   ],
@@ -165,7 +174,9 @@ class _CancelBookingSheetState extends ConsumerState<_CancelBookingSheet> {
                       child: Text(
                         pending && booking.paymentStatus == PaymentStatus.authorized
                             ? 'Free to withdraw. The hold on your card is released.'
-                            : 'Free to cancel. Nothing is owed.',
+                            : refund > 0
+                                ? "Free to cancel. You'll get a full refund of ${Formatters.audCents(refund)}."
+                                : 'Free to cancel. Nothing is owed.',
                         style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: scheme.onSurface),
                       ),
                     ),

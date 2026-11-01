@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/routing/app_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/snackbar_utils.dart';
@@ -85,6 +87,19 @@ class _PaymentsSetupScreenState extends ConsumerState<PaymentsSetupScreen> with 
                   onSetUp: () => _openStripe(dashboard: false),
                   onDashboard: () => _openStripe(dashboard: true),
                 ),
+                if (value.status.canTakeCards) ...[
+                  const SizedBox(height: 12),
+                  Card(
+                    margin: EdgeInsets.zero,
+                    child: ListTile(
+                      leading: const Icon(Icons.insights_rounded),
+                      title: const Text('Earnings'),
+                      subtitle: const Text('What you earned, your share of each booking and your payouts'),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => context.pushNamed(AppRoute.providerEarnings.name),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 24),
                 _FeeCard(setup: value),
                 const SizedBox(height: 16),

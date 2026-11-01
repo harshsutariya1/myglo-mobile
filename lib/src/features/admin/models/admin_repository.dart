@@ -5,6 +5,7 @@ import '../../../core/utils/app_logger.dart';
 import '../../shared/authentication/models/auth_repository.dart';
 import 'admin_failure.dart';
 import 'admin_models.dart';
+import 'admin_payments.dart';
 
 final adminRepositoryProvider = Provider<AdminRepository>(
   (ref) => AdminRepository(ref.watch(supabaseClientProvider)),
@@ -109,6 +110,51 @@ class AdminRepository {
 
   Future<void> reorderServiceCities(List<String> cityIds) =>
       _rpc('admin_reorder_service_cities', params: {'p_city_ids': cityIds});
+
+  Future<AdminPaymentsOverview> paymentsOverview() async =>
+      AdminPaymentsOverview.fromJson(Map<String, dynamic>.from(await _rpc('admin_payments_overview') as Map));
+
+  /// Bookings paid in the app, newest first. [filter]: `held`, `failed`,
+  /// `disputed`, `refunded`, or null for all.
+  Future<List<AdminPaymentSummary>> listPayments({String? filter, String? query, int limit = 30, int offset = 0}) async {
+    final rows = await _rpc('admin_list_payments', params: {
+      'p_filter': filter,
+      'p_query': (query?.trim().isEmpty ?? true) ? null : query!.trim(),
+      'p_limit': limit,
+      'p_offset': offset,
+    });
+    return [for (final row in rows as List) AdminPaymentSummary.fromJson(Map<String, dynamic>.from(row as Map))];
+  }
+
+  Future<AdminBookingPayment> getBookingPayment(String bookingId) async => AdminBookingPayment.fromJson(
+        Map<String, dynamic>.from(
+          await _rpc('admin_get_booking_payment', params: {'p_booking_id': bookingId}, detail: bookingId) as Map,
+        ),
+      );
+
+  /// Refunds [amountCents]; with [recover], takes the provider's part back
+  /// if they were already paid. Needs a fresh two-factor code.
+  Future<void> refundBooking(String bookingId, {required int amountCents, required String reason, bool recover = true}) =>
+      _rpc('admin_refund_booking', params: {
+        'p_booking_id': bookingId,
+        'p_amount_cents': amountCents,
+        'p_reason': reason,
+        'p_recover': recover,
+      }, detail: bookingId);
+
+  /// Cancels on Myglo's behalf with a full refund. Needs a fresh two-factor code.
+  Future<void> cancelBooking(String bookingId, {required String reason}) =>
+      _rpc('admin_cancel_booking', params: {'p_booking_id': bookingId, 'p_reason': reason}, detail: bookingId);
+
+  /// Holds (or lets go of) the provider's share. Needs a fresh two-factor code.
+  Future<void> setSettlementHold(String bookingId, {required bool hold, required String reason}) => _rpc(
+        'admin_set_settlement_hold',
+        params: {'p_booking_id': bookingId, 'p_hold': hold, 'p_reason': reason},
+        detail: bookingId,
+      );
+
+  Future<void> retryJob(String jobId, {required String reason}) =>
+      _rpc('admin_retry_job', params: {'p_job_id': jobId, 'p_reason': reason}, detail: jobId);
 
   Future<dynamic> _rpc(String fn, {Map<String, dynamic>? params, String? detail}) async {
     final sw = Stopwatch()..start();

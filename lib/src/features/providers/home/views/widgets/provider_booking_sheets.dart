@@ -156,11 +156,10 @@ class _ProviderBookingActionSheetState extends ConsumerState<_ProviderBookingAct
                 style: TextStyle(fontSize: 14.5, height: 1.45, color: scheme.onSurface.withValues(alpha: 0.78)),
               ),
             if (widget.action == ProviderBookingAction.complete)
-              Container(
-                decoration: BoxDecoration(
-                  color: AppTheme.success.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(16),
-                ),
+              Material(
+                color: AppTheme.success.withValues(alpha: 0.08),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                clipBehavior: Clip.antiAlias,
                 child: CheckboxListTile(
                   value: _cashReceived,
                   onChanged: _busy || !cash || _booking.paymentStatus != PaymentStatus.pending

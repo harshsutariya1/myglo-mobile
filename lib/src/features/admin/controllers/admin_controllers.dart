@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/admin_mfa.dart';
 import '../models/admin_models.dart';
+import '../models/admin_payments.dart';
 import '../models/admin_repository.dart';
 
 final adminStatusProvider = FutureProvider.autoDispose<AdminStatus>(
@@ -144,6 +145,68 @@ class AuditLog extends AsyncNotifier<PagedList<AuditEntry>> {
             limit: pageSize,
             targetType: filter.targetType,
             targetId: filter.targetId,
+          );
+      if (!ref.mounted) return;
+      state = AsyncData(PagedList(items: [...current.items, ...page], hasMore: page.length == pageSize));
+    } catch (e) {
+      if (ref.mounted) state = AsyncData(current.copyWith(loadingMore: false, loadMoreError: e));
+    }
+  }
+}
+
+final adminPaymentsOverviewProvider = FutureProvider.autoDispose<AdminPaymentsOverview>(
+  (ref) => ref.watch(adminRepositoryProvider).paymentsOverview(),
+);
+
+final adminBookingPaymentProvider = FutureProvider.autoDispose.family<AdminBookingPayment, String>(
+  (ref, bookingId) => ref.watch(adminRepositoryProvider).getBookingPayment(bookingId),
+);
+
+/// A payments search: a filter (`held`, `failed`, `disputed`, `refunded`)
+/// and free text.
+class AdminPaymentsQuery {
+  const AdminPaymentsQuery({this.filter, this.text = ''});
+
+  final String? filter;
+  final String text;
+
+  @override
+  bool operator ==(Object other) => other is AdminPaymentsQuery && other.filter == filter && other.text == text;
+
+  @override
+  int get hashCode => Object.hash(filter, text);
+}
+
+final adminPaymentsProvider =
+    AsyncNotifierProvider.autoDispose.family<AdminPaymentsList, PagedList<AdminPaymentSummary>, AdminPaymentsQuery>(
+  AdminPaymentsList.new,
+);
+
+class AdminPaymentsList extends AsyncNotifier<PagedList<AdminPaymentSummary>> {
+  AdminPaymentsList(this.query);
+
+  final AdminPaymentsQuery query;
+
+  static const pageSize = 30;
+
+  @override
+  Future<PagedList<AdminPaymentSummary>> build() async {
+    final page = await ref
+        .read(adminRepositoryProvider)
+        .listPayments(filter: query.filter, query: query.text, limit: pageSize);
+    return PagedList(items: page, hasMore: page.length == pageSize);
+  }
+
+  Future<void> loadMore() async {
+    final current = state.value;
+    if (current == null || !current.hasMore || current.loadingMore) return;
+    state = AsyncData(current.copyWith(loadingMore: true));
+    try {
+      final page = await ref.read(adminRepositoryProvider).listPayments(
+            filter: query.filter,
+            query: query.text,
+            limit: pageSize,
+            offset: current.items.length,
           );
       if (!ref.mounted) return;
       state = AsyncData(PagedList(items: [...current.items, ...page], hasMore: page.length == pageSize));

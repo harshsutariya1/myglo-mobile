@@ -24,8 +24,8 @@ class _ServiceCitiesScreenState extends ConsumerState<ServiceCitiesScreen> {
 
   Future<void> _reorder(List<AdminServiceCity> cities, int from, int to) async {
     final reordered = [...cities];
-    final moved = reordered.removeAt(from);
-    reordered.insert(to > from ? to - 1 : to, moved);
+    // onReorderItem's target index already accounts for the removed item.
+    reordered.insert(to, reordered.removeAt(from));
     setState(() => _optimistic = reordered);
     await runAdminAction(
       context,
@@ -82,7 +82,7 @@ class _ServiceCitiesScreenState extends ConsumerState<ServiceCitiesScreen> {
             return ReorderableListView.builder(
               padding: const EdgeInsets.fromLTRB(0, 8, 0, 96),
               itemCount: list.length,
-              onReorder: (from, to) => _reorder(list, from, to),
+              onReorderItem: (from, to) => _reorder(list, from, to),
               header: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                 child: Text(
