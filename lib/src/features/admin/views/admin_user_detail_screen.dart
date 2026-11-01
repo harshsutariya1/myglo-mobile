@@ -6,8 +6,12 @@ import 'package:go_router/go_router.dart';
 import '../../../core/routing/app_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/snackbar_utils.dart';
+import '../controllers/admin_actions.dart';
 import '../controllers/admin_controllers.dart';
 import '../models/admin_models.dart';
+import '../models/admin_moderation.dart';
+import '../models/admin_repository.dart';
 import 'widgets/admin_widgets.dart';
 
 /// One client or provider, as its own page (phones).
@@ -94,6 +98,7 @@ class _Detail extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 18),
+        _ModerationSection(user: user),
         AdminSection(
           title: 'Account',
           children: [
@@ -173,6 +178,170 @@ class _Detail extends StatelessWidget {
           label: const Text('Admin history for this account'),
         ),
       ],
+    );
+  }
+}
+
+/// Suspension and (for providers) booking blocks, with the reports that
+/// concern the account.
+class _ModerationSection extends ConsumerWidget {
+  const _ModerationSection({required this.user});
+
+  final AdminUserDetail user;
+
+  void _refresh(WidgetRef ref) {
+    ref.invalidate(adminModerationStateProvider(user.userId));
+    ref.invalidate(adminUserProvider(user.userId));
+  }
+
+  Future<void> _suspend(BuildContext context, WidgetRef ref, AdminModerationState state) async {
+    final reason = await askAdminReason(
+      context,
+      title: 'Suspend ${user.title}',
+      summary: "They're signed out and can't sign in, book, post or change anything until the suspension is lifted."
+          '${user.isProvider ? ' They also drop out of search and the map.' : ''}',
+    );
+    if (reason == null || !context.mounted) return;
+    var cancelUpcoming = false;
+    if (state.upcomingBookings > 0) {
+      final choice = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text('${state.upcomingBookings} upcoming ${state.upcomingBookings == 1 ? 'booking' : 'bookings'}'),
+          content: const Text(
+            'Cancel them on Myglo\'s behalf? Clients paid in the app are refunded in full and both sides are told. '
+            'Kept bookings stay as they are.',
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Back')),
+            TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Keep them')),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              style: FilledButton.styleFrom(backgroundColor: AppTheme.destructive),
+              child: const Text('Cancel & refund'),
+            ),
+          ],
+        ),
+      );
+      if (choice == null || !context.mounted) return;
+      cancelUpcoming = choice;
+    }
+    final cancelled = await runAdminAction(
+      context,
+      ref,
+      sensitive: true,
+      action: () => ref
+          .read(adminRepositoryProvider)
+          .setSuspension(user.userId, suspended: true, reason: reason, cancelUpcoming: cancelUpcoming),
+    );
+    if (cancelled != null && context.mounted) {
+      context.showAppSnackBar(
+        cancelled > 0 ? 'Account suspended · $cancelled ${cancelled == 1 ? 'booking' : 'bookings'} cancelled' : 'Account suspended',
+      );
+    }
+    _refresh(ref);
+  }
+
+  Future<void> _unsuspend(BuildContext context, WidgetRef ref) async {
+    final reason = await askAdminReason(
+      context,
+      title: 'Lift the suspension',
+      summary: '${user.title} can sign in and use Myglo again. Cancelled bookings stay cancelled.',
+    );
+    if (reason == null || !context.mounted) return;
+    await runAdminAction(
+      context,
+      ref,
+      sensitive: true,
+      action: () => ref.read(adminRepositoryProvider).setSuspension(user.userId, suspended: false, reason: reason),
+      successMessage: 'Suspension lifted',
+    );
+    _refresh(ref);
+  }
+
+  Future<void> _setBlocked(BuildContext context, WidgetRef ref, {required bool blocked}) async {
+    final reason = await askAdminReason(
+      context,
+      title: blocked ? 'Stop new bookings' : 'Allow bookings again',
+      summary: blocked
+          ? 'Clients can no longer book ${user.title}, and they drop out of search and the map. '
+              'Existing bookings go ahead, and they can still use the app.'
+          : 'Clients can find and book ${user.title} again.',
+    );
+    if (reason == null || !context.mounted) return;
+    await runAdminAction(
+      context,
+      ref,
+      sensitive: true,
+      action: () => ref.read(adminRepositoryProvider).setBookingsBlocked(user.userId, blocked: blocked, reason: reason),
+      successMessage: blocked ? 'New bookings stopped' : 'Bookings allowed again',
+    );
+    _refresh(ref);
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = context.colorScheme;
+    final async = ref.watch(adminModerationStateProvider(user.userId));
+    return AdminSection(
+      title: 'Moderation',
+      children: switch (async) {
+        AsyncData(value: final state) => [
+            if (state.isSuspended) ...[
+              AdminInfoRow(
+                label: 'Suspended',
+                value: 'Since ${adminDateTime(state.suspendedAt!)}',
+                valueColor: AppTheme.destructive,
+              ),
+              AdminInfoRow(label: 'Reason', value: state.suspendedReason ?? '—'),
+            ] else
+              const AdminInfoRow(label: 'Account', value: 'Active', valueColor: AppTheme.success),
+            if (user.isProvider)
+              state.bookingsBlocked
+                  ? AdminInfoRow(
+                      label: 'New bookings',
+                      value: 'Stopped ${adminDate(state.bookingsBlockedAt!)} · ${state.bookingsBlockedReason ?? ''}',
+                      valueColor: AppTheme.warning,
+                    )
+                  : const AdminInfoRow(label: 'New bookings', value: 'Allowed'),
+            AdminInfoRow(label: 'Open reports about them', value: '${state.openReportsAbout}'),
+            AdminInfoRow(label: 'Reports they sent', value: '${state.reportsMade}'),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (state.isSuspended)
+                  OutlinedButton.icon(
+                    onPressed: () => _unsuspend(context, ref),
+                    icon: const Icon(Icons.lock_open_rounded),
+                    label: const Text('Lift suspension'),
+                  )
+                else
+                  OutlinedButton.icon(
+                    onPressed: () => _suspend(context, ref, state),
+                    style: OutlinedButton.styleFrom(foregroundColor: AppTheme.destructive),
+                    icon: const Icon(Icons.block_rounded),
+                    label: const Text('Suspend account'),
+                  ),
+                if (user.isProvider && !state.isSuspended)
+                  OutlinedButton.icon(
+                    onPressed: () => _setBlocked(context, ref, blocked: !state.bookingsBlocked),
+                    icon: Icon(state.bookingsBlocked ? Icons.event_available_outlined : Icons.event_busy_outlined),
+                    label: Text(state.bookingsBlocked ? 'Allow bookings' : 'Stop new bookings'),
+                  ),
+              ],
+            ),
+          ],
+        AsyncError() => [
+            Text("Couldn't load moderation details.", style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6))),
+            TextButton(
+              onPressed: () => ref.invalidate(adminModerationStateProvider(user.userId)),
+              child: const Text('Try again'),
+            ),
+          ],
+        _ => [const Padding(padding: EdgeInsets.all(8), child: LinearProgressIndicator())],
+      },
     );
   }
 }

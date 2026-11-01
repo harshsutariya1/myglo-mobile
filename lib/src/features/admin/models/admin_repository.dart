@@ -3,8 +3,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/utils/app_logger.dart';
 import '../../shared/authentication/models/auth_repository.dart';
+import '../../shared/reports/models/report.dart';
 import 'admin_failure.dart';
 import 'admin_models.dart';
+import 'admin_moderation.dart';
 import 'admin_payments.dart';
 
 final adminRepositoryProvider = Provider<AdminRepository>(
@@ -155,6 +157,61 @@ class AdminRepository {
 
   Future<void> retryJob(String jobId, {required String reason}) =>
       _rpc('admin_retry_job', params: {'p_job_id': jobId, 'p_reason': reason}, detail: jobId);
+
+  /// Reports newest first. [status]: `open`, `resolved`, `dismissed`, or
+  /// null for all.
+  Future<List<AdminReport>> listReports({String? status = 'open', int limit = 30, int offset = 0}) async {
+    final rows = await _rpc('admin_list_reports', params: {'p_status': status, 'p_limit': limit, 'p_offset': offset});
+    return [for (final row in rows as List) AdminReport.fromJson(Map<String, dynamic>.from(row as Map))];
+  }
+
+  /// Closes a report as `resolved` or `dismissed`. A booking with no other
+  /// open reports gets its provider's share released.
+  Future<void> resolveReport(String reportId, {required bool dismiss, required String note}) => _rpc(
+        'admin_resolve_report',
+        params: {'p_report_id': reportId, 'p_status': dismiss ? 'dismissed' : 'resolved', 'p_note': note},
+        detail: reportId,
+      );
+
+  /// Hides (or shows again) a post, comment or review. Needs a fresh
+  /// two-factor code.
+  Future<void> setContentHidden(ReportTarget target, String id, {required bool hidden, required String reason}) => _rpc(
+        'admin_set_content_hidden',
+        params: {'p_target_type': target.key, 'p_target_id': id, 'p_hidden': hidden, 'p_reason': reason},
+        detail: '${target.key}=$id',
+      );
+
+  Future<AdminModerationState> getModerationState(String userId) async => AdminModerationState.fromJson(
+        Map<String, dynamic>.from(
+          await _rpc('admin_get_moderation_state', params: {'p_user_id': userId}, detail: userId) as Map,
+        ),
+      );
+
+  /// Suspends an account (or lifts it), optionally cancelling and fully
+  /// refunding its upcoming bookings. Returns how many were cancelled.
+  /// Needs a fresh two-factor code.
+  Future<int> setSuspension(
+    String userId, {
+    required bool suspended,
+    required String reason,
+    bool cancelUpcoming = false,
+  }) async {
+    final cancelled = await _rpc('admin_set_suspension', params: {
+      'p_user_id': userId,
+      'p_suspended': suspended,
+      'p_reason': reason,
+      'p_cancel_upcoming': cancelUpcoming,
+    }, detail: userId);
+    return cancelled is num ? cancelled.toInt() : 0;
+  }
+
+  /// Stops (or lets again) clients booking a provider. Needs a fresh
+  /// two-factor code.
+  Future<void> setBookingsBlocked(String providerId, {required bool blocked, required String reason}) => _rpc(
+        'admin_set_bookings_blocked',
+        params: {'p_provider_id': providerId, 'p_blocked': blocked, 'p_reason': reason},
+        detail: providerId,
+      );
 
   Future<dynamic> _rpc(String fn, {Map<String, dynamic>? params, String? detail}) async {
     final sw = Stopwatch()..start();

@@ -176,6 +176,13 @@ abstract class Booking with _$Booking {
   /// Started already, so the provider can mark it done or a no-show.
   bool hasStarted(DateTime now) => !startsAt.isAfter(now);
 
+  /// Whether the client can report a problem with the appointment: from its
+  /// start until [windowHours] after it ends (the server checks the same).
+  bool canReportProblem(DateTime now, {required int windowHours}) =>
+      (status == BookingStatus.confirmed || status == BookingStatus.completed || status == BookingStatus.noShow) &&
+      hasStarted(now) &&
+      !now.isAfter(endsAt.add(Duration(hours: windowHours)));
+
   /// Completed and still linked to its provider, so the client can review it
   /// (the server checks the same).
   bool get canReview => status == BookingStatus.completed && providerId != null;

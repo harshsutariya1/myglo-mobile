@@ -7,11 +7,16 @@ import '../utils/app_logger.dart';
 /// on the server (`get_app_config`). The server enforces every one of them;
 /// the app only uses them to explain things before the client hits a limit.
 class RemoteAppConfig {
-  const RemoteAppConfig({this.cardMaxAdvanceDays = defaultCardMaxAdvanceDays, this.checkoutHoldMinutes = 15});
+  const RemoteAppConfig({
+    this.cardMaxAdvanceDays = defaultCardMaxAdvanceDays,
+    this.checkoutHoldMinutes = 15,
+    this.reportWindowHours = defaultReportWindowHours,
+  });
 
   factory RemoteAppConfig.fromJson(Map<String, dynamic> json) => RemoteAppConfig(
     cardMaxAdvanceDays: (json['card_max_advance_days'] as num?)?.toInt() ?? defaultCardMaxAdvanceDays,
     checkoutHoldMinutes: (json['checkout_hold_minutes'] as num?)?.toInt() ?? 15,
+    reportWindowHours: (json['report_window_hours'] as num?)?.toInt() ?? defaultReportWindowHours,
   );
 
   /// The server's default (Stripe holds card funds for at most 90 days).
@@ -22,6 +27,12 @@ class RemoteAppConfig {
 
   /// How long an unpaid card checkout holds the time.
   final int checkoutHoldMinutes;
+
+  /// The server's default report window.
+  static const int defaultReportWindowHours = 24;
+
+  /// How long after an appointment ends the client can report a problem.
+  final int reportWindowHours;
 }
 
 /// The admin-set platform settings, loaded once per session. Falls back to

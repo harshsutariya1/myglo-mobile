@@ -18,6 +18,7 @@ import { json, UUID } from '../_shared/http.ts';
 import { captureException } from '../_shared/sentry.ts';
 import { RpcError, serviceRpc, supabaseConfigured } from '../_shared/supabase.ts';
 import { sendAdminAlert } from './admin_alert.ts';
+import { applyAuthBan } from './auth_ban.ts';
 import { cancelPaymentIntent, capturePayment, refundPayment, reverseTransfer, transfer } from './payments.ts';
 import { Job, JobHandler, JobResult, retry, succeeded } from './types.ts';
 
@@ -34,6 +35,7 @@ const HANDLERS: Record<string, JobHandler> = {
   refund_payment: refundPayment,
   transfer,
   reverse_transfer: reverseTransfer,
+  auth_ban: applyAuthBan,
 };
 
 Deno.serve(async (req: Request) => {

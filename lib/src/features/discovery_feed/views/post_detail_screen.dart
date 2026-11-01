@@ -18,6 +18,8 @@ import '../../providers/provider_profiles/models/service_model.dart';
 import '../../shared/authentication/controllers/user_profile_provider.dart';
 import '../../shared/authentication/models/profile_model.dart';
 import '../../shared/authentication/models/user_role.dart';
+import '../../shared/reports/models/report.dart';
+import '../../shared/reports/views/report_sheet.dart';
 import '../../shared/reviews/views/widgets/rating_summary.dart';
 import '../../shared/services/views/widgets/service_details_sheet.dart';
 import '../controllers/delete_post_controller.dart';
@@ -166,7 +168,10 @@ class PostDetailScreen extends ConsumerWidget {
                   _ActionTile(
                     icon: Icons.flag_outlined,
                     label: 'Report post',
-                    onTap: () => comingSoon('Reporting posts'),
+                    onTap: () {
+                      Navigator.of(sheetContext).pop();
+                      showReportSheet(context, target: ReportTarget.post, targetId: post.id);
+                    },
                   ),
                 if (isOwner)
                   _ActionTile(

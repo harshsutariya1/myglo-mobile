@@ -14,9 +14,12 @@ class AuthErrorMessages {
   static const String offline =
       'No connection. Please check your internet and try again.';
   static const String generic = 'Something went wrong. Please try again.';
+  static const String suspended =
+      'This account has been suspended. Contact Myglo support if you think this is a mistake.';
 
   static String forVerification(Object error) {
     if (error is AuthException) {
+      if (_isBanned(error)) return suspended;
       final message = error.message.toLowerCase();
       if (error.code == 'otp_expired' ||
           error.code == 'otp_disabled' ||
@@ -33,12 +36,16 @@ class AuthErrorMessages {
 
   static String forSending(Object error) {
     if (error is AuthException) {
+      if (_isBanned(error)) return suspended;
       if (_isRateLimit(error)) return rateLimited;
       return error.message;
     }
     if (isConnectivityError(error)) return offline;
     return generic;
   }
+
+  /// Suspended by Myglo's team (an Auth ban).
+  static bool _isBanned(AuthException error) => error.code == 'user_banned';
 
   static bool _isRateLimit(AuthException error) =>
       error.statusCode == '429' ||

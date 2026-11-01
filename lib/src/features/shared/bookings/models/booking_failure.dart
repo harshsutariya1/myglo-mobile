@@ -63,6 +63,7 @@ enum BookingFailureCode {
   workingHoursOverlap('working_hours_overlap'),
   workingHoursInvalid('working_hours_invalid'),
   invalidRequest('invalid_request'),
+  accountSuspended('account_suspended'),
 
   /// The request never reached the server (or its reply never came back).
   offline('offline'),
@@ -191,6 +192,8 @@ class BookingFailure implements Exception {
           "It's now inside the cancellation window. Please review the late-cancellation terms.",
         BookingFailureCode.workingHoursOverlap => 'Two time ranges on the same day overlap. Please adjust them.',
         BookingFailureCode.workingHoursInvalid => 'Some of those hours aren\'t valid. Please check each day.',
+        BookingFailureCode.accountSuspended =>
+          'Your account is suspended. Contact Myglo support if you think this is a mistake.',
         BookingFailureCode.offline =>
           "You appear to be offline. Check your connection and try again.",
         BookingFailureCode.invalidRequest || BookingFailureCode.unknown =>

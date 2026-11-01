@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
@@ -50,10 +48,10 @@ import '../../features/shared/notifications/views/notifications_screen.dart';
 import '../../features/admin/controllers/admin_controllers.dart' show AuditFilter;
 import '../../features/admin/models/admin_models.dart';
 import '../../features/admin/views/admin_home_screen.dart';
+import '../../features/admin/views/admin_moderation_screen.dart';
 import '../../features/admin/views/admin_payment_detail_screen.dart';
 import '../../features/admin/views/admin_payments_screen.dart';
 import '../../features/admin/views/admin_people_screen.dart';
-import '../../features/admin/views/admin_section_placeholder.dart';
 import '../../features/admin/views/admin_security_screen.dart';
 import '../../features/admin/views/admin_settings_screen.dart';
 import '../../features/admin/views/admin_shell.dart';
@@ -372,11 +370,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoute.adminModeration.path,
             name: AppRoute.adminModeration.name,
-            builder: (context, state) => const AdminSectionPlaceholder(
-              title: 'Moderation',
-              icon: Icons.shield_outlined,
-              message: 'Reports from clients, hidden reviews, comments and posts, and account suspensions appear here.',
-            ),
+            builder: (context, state) => const AdminModerationScreen(),
           ),
           GoRoute(
             path: AppRoute.adminSettings.path,

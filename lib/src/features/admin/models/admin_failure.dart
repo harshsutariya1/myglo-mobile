@@ -47,6 +47,7 @@ enum AdminFailureCode {
   settlementNotHoldable('settlement_not_holdable'),
   settlementNotHeld('settlement_not_held'),
   jobNotFailed('job_not_failed'),
+  reportClosed('report_closed'),
 
   /// The request never reached the server (or its reply never came back).
   offline('offline'),
@@ -113,6 +114,7 @@ class AdminFailure implements Exception {
         AdminFailureCode.settlementNotHoldable => "The provider's share has already been paid or settled.",
         AdminFailureCode.settlementNotHeld => "The provider's share isn't on hold.",
         AdminFailureCode.jobNotFailed => 'That job is no longer failed; it may already have been retried.',
+        AdminFailureCode.reportClosed => 'Another admin has already closed this report.',
         AdminFailureCode.offline => "You're offline. Check your connection and try again.",
         AdminFailureCode.unknown => 'Something went wrong. Please try again.',
       };

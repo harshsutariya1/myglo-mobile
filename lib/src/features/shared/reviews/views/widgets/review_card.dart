@@ -1,17 +1,23 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/utils/formatters.dart';
 import '../../../../../core/widgets/skeleton/skeletons.dart';
 import '../../../../discovery_feed/views/shared_post_screen.dart';
+import '../../../authentication/controllers/user_profile_provider.dart';
 import '../../../bookings/views/widgets/booking_card.dart' show PersonAvatar;
+import '../../../reports/models/report.dart';
+import '../../../reports/views/report_sheet.dart';
 import '../../models/review.dart';
 import 'star_rating.dart';
 
+enum _ReviewAction { report }
+
 /// One review: who wrote it, the stars, when, which services, the text and
-/// photos, and the provider's reply.
-class ReviewCard extends StatelessWidget {
+/// photos, and the provider's reply. Anyone but its author can report it.
+class ReviewCard extends ConsumerWidget {
   const ReviewCard({
     super.key,
     required this.review,
@@ -43,10 +49,12 @@ class ReviewCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
     final muted = scheme.onSurface.withValues(alpha: 0.55);
     final when = Formatters.relativeTime(review.createdAt);
+    final viewerId = ref.watch(userProfileProvider.select((profile) => profile.value?.rawUser.id));
+    final canReport = viewerId != null && viewerId != review.clientId;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -87,8 +95,38 @@ class ReviewCard extends StatelessWidget {
               message: 'From a completed Myglo booking',
               child: Icon(Icons.verified_rounded, size: 18, color: scheme.secondary.withValues(alpha: 0.8)),
             ),
+            if (canReport)
+              PopupMenuButton<_ReviewAction>(
+                tooltip: 'More',
+                icon: Icon(Icons.more_horiz_rounded, size: 20, color: muted),
+                padding: EdgeInsets.zero,
+                onSelected: (_) => showReportSheet(context, target: ReportTarget.review, targetId: review.id),
+                itemBuilder: (_) => const [PopupMenuItem(value: _ReviewAction.report, child: Text('Report review'))],
+              ),
           ],
         ),
+        if (review.isHidden) ...[
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppTheme.warning.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.visibility_off_outlined, size: 16, color: AppTheme.warning),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    "Hidden by Myglo. Only you can see this review, and it doesn't count towards the rating.",
+                    style: TextStyle(fontSize: 12.5, height: 1.35, color: scheme.onSurface),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         if (showServices && review.serviceNames.isNotEmpty) ...[
           const SizedBox(height: 8),
           Text(

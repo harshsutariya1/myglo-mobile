@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/config/remote_app_config.dart';
 import '../../../../core/routing/app_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/skeleton/skeletons.dart';
@@ -13,6 +14,8 @@ import '../../../shared/bookings/models/cancellation_policy.dart';
 import '../../../shared/bookings/views/widgets/booking_overview.dart';
 import '../../../shared/bookings/views/widgets/booking_status_banner.dart';
 import '../../../shared/bookings/views/widgets/booking_summary.dart';
+import '../../../shared/reports/models/report.dart';
+import '../../../shared/reports/views/report_sheet.dart';
 import '../../../shared/reviews/views/widgets/booking_review_section.dart';
 import '../../provider_profile/controllers/public_provider_profile_controller.dart';
 import '../../provider_profile/views/widgets/provider_action_sheets.dart';
@@ -51,12 +54,23 @@ class ClientBookingDetailScreen extends ConsumerWidget {
     }
   }
 
+  Future<void> _report(BuildContext context, Booking booking) => showReportSheet(
+        context,
+        target: ReportTarget.booking,
+        targetId: booking.id,
+        note: booking.paidInApp
+            ? "You paid in the app, so Myglo holds or recovers the provider's payment while we look into it."
+            : null,
+      );
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
     final async = ref.watch(bookingDetailsProvider(bookingId));
     final booking = async.value;
     final now = DateTime.now();
+    final reportWindowHours =
+        ref.watch(remoteAppConfigProvider).value?.reportWindowHours ?? RemoteAppConfig.defaultReportWindowHours;
 
     return Scaffold(
       backgroundColor: scheme.surface,
@@ -136,6 +150,19 @@ class ClientBookingDetailScreen extends ConsumerWidget {
                         ),
                       ),
                     ],
+                  ),
+                ],
+                if (booking.canReportProblem(now, windowHours: reportWindowHours)) ...[
+                  const SizedBox(height: 6),
+                  TextButton.icon(
+                    onPressed: () => _report(context, booking),
+                    icon: const Icon(Icons.flag_outlined, size: 18),
+                    label: const Text('Report a problem'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: scheme.onSurface.withValues(alpha: 0.75),
+                      minimumSize: const Size(0, 48),
+                      textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                    ),
                   ),
                 ],
                 if (booking.canCancel(now)) ...[

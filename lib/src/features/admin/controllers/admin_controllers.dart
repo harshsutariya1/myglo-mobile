@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/admin_mfa.dart';
 import '../models/admin_models.dart';
+import '../models/admin_moderation.dart';
 import '../models/admin_payments.dart';
 import '../models/admin_repository.dart';
 
@@ -208,6 +209,43 @@ class AdminPaymentsList extends AsyncNotifier<PagedList<AdminPaymentSummary>> {
             limit: pageSize,
             offset: current.items.length,
           );
+      if (!ref.mounted) return;
+      state = AsyncData(PagedList(items: [...current.items, ...page], hasMore: page.length == pageSize));
+    } catch (e) {
+      if (ref.mounted) state = AsyncData(current.copyWith(loadingMore: false, loadMoreError: e));
+    }
+  }
+}
+
+final adminModerationStateProvider = FutureProvider.autoDispose.family<AdminModerationState, String>(
+  (ref, userId) => ref.watch(adminRepositoryProvider).getModerationState(userId),
+);
+
+/// The moderation queue for one status (`open`, `resolved`, `dismissed`).
+final adminReportsProvider =
+    AsyncNotifierProvider.autoDispose.family<AdminReportsList, PagedList<AdminReport>, String>(AdminReportsList.new);
+
+class AdminReportsList extends AsyncNotifier<PagedList<AdminReport>> {
+  AdminReportsList(this.status);
+
+  final String status;
+
+  static const pageSize = 30;
+
+  @override
+  Future<PagedList<AdminReport>> build() async {
+    final page = await ref.read(adminRepositoryProvider).listReports(status: status, limit: pageSize);
+    return PagedList(items: page, hasMore: page.length == pageSize);
+  }
+
+  Future<void> loadMore() async {
+    final current = state.value;
+    if (current == null || !current.hasMore || current.loadingMore) return;
+    state = AsyncData(current.copyWith(loadingMore: true));
+    try {
+      final page = await ref
+          .read(adminRepositoryProvider)
+          .listReports(status: status, limit: pageSize, offset: current.items.length);
       if (!ref.mounted) return;
       state = AsyncData(PagedList(items: [...current.items, ...page], hasMore: page.length == pageSize));
     } catch (e) {

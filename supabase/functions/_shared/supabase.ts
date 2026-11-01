@@ -38,6 +38,26 @@ export function serviceRpc<T = unknown>(fn: string, params: Record<string, unkno
   return rpc<T>(fn, params, SERVICE_ROLE_KEY, `Bearer ${SERVICE_ROLE_KEY}`);
 }
 
+/**
+ * Updates an Auth user through the Auth admin API (service role), e.g. to
+ * set `ban_duration`. Returns the HTTP status; 404 means the user is gone.
+ */
+export async function updateAuthUser(userId: string, attributes: Record<string, unknown>): Promise<number> {
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${encodeURIComponent(userId)}`, {
+    method: 'PUT',
+    headers: {
+      apikey: SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(attributes),
+    signal: AbortSignal.timeout(RPC_TIMEOUT_MS),
+  });
+  // Drain the body so the connection is released.
+  await response.text();
+  return response.status;
+}
+
 /** Runs `fn` as the user whose `Authorization: Bearer <jwt>` header is given. */
 export function userRpc<T = unknown>(
   authorization: string,

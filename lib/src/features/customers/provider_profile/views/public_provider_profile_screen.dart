@@ -13,6 +13,8 @@ import '../../../shared/authentication/controllers/user_profile_provider.dart';
 import '../../../shared/authentication/models/profile_model.dart';
 import '../../../shared/bookings/controllers/booking_controllers.dart';
 import '../../../shared/cover_photos/views/cover_carousel.dart';
+import '../../../shared/reports/models/report.dart';
+import '../../../shared/reports/views/report_sheet.dart';
 import '../../../shared/reviews/controllers/reviews_controllers.dart';
 import '../../../shared/reviews/views/reviews_screen.dart';
 import '../../favourites/views/favourite_button.dart';
@@ -130,6 +132,7 @@ class _PublicProviderProfileScreenState extends ConsumerState<PublicProviderProf
     final clientPoint = ref.watch(
       userProfileProvider.select((p) => p.value?.profile.coordinates?.coordinates),
     );
+    final viewerId = ref.watch(userProfileProvider.select((p) => p.value?.rawUser.id));
     final distanceKm = Geo.distanceKm(clientPoint, profileAsync.value?.coordinates?.coordinates);
     final bookingSettings = ref.watch(bookingSettingsProvider(_id)).value;
     // Mobile-only providers usually work from home: show that they travel,
@@ -197,9 +200,25 @@ class _PublicProviderProfileScreenState extends ConsumerState<PublicProviderProf
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.fromLTRB(8, 8, 0, 8),
                     child: FavouriteButton(providerId: provider.id, providerName: providerDisplayName(provider)),
                   ),
+                  if (viewerId != null && viewerId != provider.id)
+                    Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.4), shape: BoxShape.circle),
+                        child: PopupMenuButton<_ProfileAction>(
+                          tooltip: 'More',
+                          icon: const Icon(Icons.more_horiz_rounded, color: Colors.white, size: 20),
+                          onSelected: (_) =>
+                              showReportSheet(context, target: ReportTarget.provider, targetId: provider.id),
+                          itemBuilder: (_) => const [
+                            PopupMenuItem(value: _ProfileAction.report, child: Text('Report provider')),
+                          ],
+                        ),
+                      ),
+                    ),
                 ],
               ],
               flexibleSpace: FlexibleSpaceBar(
@@ -298,6 +317,8 @@ class _PublicProviderProfileScreenState extends ConsumerState<PublicProviderProf
     );
   }
 }
+
+enum _ProfileAction { report }
 
 class _TabBarHeader extends SliverPersistentHeaderDelegate {
   const _TabBarHeader({required this.tabBar, required this.background});

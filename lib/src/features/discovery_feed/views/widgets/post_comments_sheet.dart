@@ -10,6 +10,8 @@ import '../../../../core/widgets/snackbar_utils.dart';
 import '../../../customers/provider_profile/views/widgets/section_states.dart';
 import '../../../shared/authentication/controllers/user_profile_provider.dart';
 import '../../../shared/bookings/views/widgets/booking_card.dart' show PersonAvatar;
+import '../../../shared/reports/models/report.dart';
+import '../../../shared/reports/views/report_sheet.dart';
 import '../../controllers/post_comments_controller.dart';
 import '../../controllers/post_engagement_controller.dart';
 import '../../models/comment_failure.dart';
@@ -158,10 +160,14 @@ class _PostCommentsSheetState extends ConsumerState<PostCommentsSheet> {
                     }
                     final comment = value.items[index];
                     final canDelete = !comment.pending && (comment.authorId == viewerId || isPostOwner);
+                    final canReport = !comment.pending && viewerId != null && comment.authorId != viewerId;
                     return _CommentTile(
                       comment: comment,
                       isPostAuthor: comment.authorId == _post.authorId,
                       onDelete: canDelete ? () => _delete(comment) : null,
+                      onReport: canReport
+                          ? () => showReportSheet(context, target: ReportTarget.comment, targetId: comment.id)
+                          : null,
                     );
                   },
                 ),
@@ -209,14 +215,19 @@ class _PostCommentsSheetState extends ConsumerState<PostCommentsSheet> {
   }
 }
 
+enum _CommentAction { report, delete }
+
 class _CommentTile extends StatelessWidget {
-  const _CommentTile({required this.comment, required this.isPostAuthor, required this.onDelete});
+  const _CommentTile({required this.comment, required this.isPostAuthor, required this.onDelete, this.onReport});
 
   final PostComment comment;
   final bool isPostAuthor;
 
   /// Null when the viewer can't remove it.
   final VoidCallback? onDelete;
+
+  /// Null for the viewer's own comments.
+  final VoidCallback? onReport;
 
   @override
   Widget build(BuildContext context) {
@@ -256,7 +267,20 @@ class _CommentTile extends StatelessWidget {
               ],
             ),
           ),
-          if (onDelete != null)
+          if (onReport != null)
+            PopupMenuButton<_CommentAction>(
+              tooltip: 'More',
+              icon: Icon(Icons.more_horiz_rounded, size: 19, color: muted),
+              onSelected: (action) => switch (action) {
+                _CommentAction.report => onReport!(),
+                _CommentAction.delete => onDelete?.call(),
+              },
+              itemBuilder: (_) => [
+                const PopupMenuItem(value: _CommentAction.report, child: Text('Report comment')),
+                if (onDelete != null) const PopupMenuItem(value: _CommentAction.delete, child: Text('Delete comment')),
+              ],
+            )
+          else if (onDelete != null)
             IconButton(
               tooltip: 'Delete comment',
               onPressed: onDelete,

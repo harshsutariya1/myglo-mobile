@@ -21,6 +21,7 @@ class Review {
     this.reply,
     this.repliedAt,
     this.editedAt,
+    this.isHidden = false,
   });
 
   final String id;
@@ -52,6 +53,10 @@ class Review {
   final DateTime? editedAt;
   final DateTime createdAt;
 
+  /// Hidden by Myglo's team: only its author still sees it (labelled), and
+  /// it no longer counts towards the provider's rating.
+  final bool isHidden;
+
   bool get isEdited => editedAt != null;
 
   bool get hasReply => (reply ?? '').trim().isNotEmpty;
@@ -73,6 +78,7 @@ class Review {
         repliedAt: _time(json['replied_at']),
         editedAt: _time(json['edited_at']),
         createdAt: DateTime.parse(json['created_at'] as String),
+        isHidden: json['is_hidden'] as bool? ?? false,
       );
 
   static String? _text(Object? value) {
