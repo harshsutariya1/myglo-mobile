@@ -25,4 +25,15 @@ class SessionActions {
     }
     await _ref.read(authRepositoryProvider).signOut();
   }
+
+  /// Clears this phone after the account was deleted on the server: the
+  /// push token, then the session, locally only (the server side is gone).
+  Future<void> signOutAfterAccountDeletion() async {
+    try {
+      await _ref.read(pushNotificationsProvider.notifier).forgetTokenAfterAccountDeletion().timeout(_unlinkTimeout);
+    } catch (e, st) {
+      AppLogger.w('Clearing the push token after account deletion did not finish', tag: 'Session', error: e, stackTrace: st);
+    }
+    await _ref.read(authRepositoryProvider).signOutLocally();
+  }
 }

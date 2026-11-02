@@ -193,6 +193,13 @@ class SettingsScreen extends ConsumerWidget {
                 soon: true,
                 onTap: () => soon('Biometric login'),
               ),
+              SettingsTile(
+                icon: Icons.person_remove_outlined,
+                title: 'Delete account',
+                subtitle: 'Close your business profile and payouts account',
+                iconColor: AppTheme.destructive,
+                onTap: () => context.pushNamed(AppRoute.deleteAccount.name),
+              ),
             ],
           ),
           SettingsSection(

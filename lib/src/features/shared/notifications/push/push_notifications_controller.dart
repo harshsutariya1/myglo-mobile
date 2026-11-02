@@ -122,6 +122,14 @@ class PushNotificationsController extends AsyncNotifier<PushStatus> {
     await _messaging.deleteToken();
   }
 
+  /// Forgets this phone's token after the account was deleted. The server
+  /// already dropped its token rows with the account, so only the device
+  /// side is left.
+  Future<void> forgetTokenAfterAccountDeletion() async {
+    if (!_messaging.isSupported) return;
+    await _messaging.deleteToken();
+  }
+
   SharedPreferences get _prefs => ref.read(sharedPreferencesProvider);
 
   Future<PushStatus> _resolve() async {

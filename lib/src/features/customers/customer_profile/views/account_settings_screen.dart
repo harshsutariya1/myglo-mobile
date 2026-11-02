@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../core/routing/app_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/app_logger.dart';
 import '../../../../core/widgets/snackbar_utils.dart';
@@ -49,6 +51,13 @@ class AccountSettingsScreen extends ConsumerWidget {
               icon: Icons.logout,
               isDestructive: true,
               onTap: () => _showLogoutDialog(context, ref),
+            ),
+            Divider(color: Colors.grey.shade300, height: 1),
+            ProfileMenuTile(
+              title: 'Delete Account',
+              icon: Icons.person_remove_outlined,
+              isDestructive: true,
+              onTap: () => context.pushNamed(AppRoute.deleteAccount.name),
             ),
           ],
         ),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
+import '../../features/shared/account_deletion/views/delete_account_screen.dart';
 import '../../features/shared/authentication/models/auth_repository.dart';
 import '../../features/shared/authentication/views/screens/email_auth_screen.dart';
 import '../../features/shared/authentication/views/screens/email_confirmation_screen.dart';
@@ -101,6 +102,8 @@ enum AppRoute {
   providerBookingDetail(path: '/appointments/:bookingId'),
   notifications(path: '/notifications'),
   settings(path: 'settings'),
+  // Clients and providers alike, full-screen over their settings.
+  deleteAccount(path: '/account/delete'),
   // Client discovery, full-screen over the home tab.
   providerSearch(path: '/search'),
   providersMap(path: '/map'),
@@ -273,6 +276,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoute.notifications.path,
         name: AppRoute.notifications.name,
         builder: (context, state) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        path: AppRoute.deleteAccount.path,
+        name: AppRoute.deleteAccount.name,
+        builder: (context, state) => const DeleteAccountScreen(),
       ),
       GoRoute(
         path: AppRoute.workingHours.path,

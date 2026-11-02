@@ -96,6 +96,7 @@ const _destinations = [
   AppRoute.serviceArea,
   AppRoute.workingHours,
   AppRoute.timeOff,
+  AppRoute.deleteAccount,
 ];
 
 Future<(_MockAuthRepository, _FakeSettingsActions)> _pump(
@@ -294,6 +295,14 @@ void main() {
     await _tapRow(tester, 'Public profile');
 
     expect(find.text('opened editProviderProfile'), findsOneWidget);
+  });
+
+  testWidgets('delete account opens the deletion screen', (tester) async {
+    await _pump(tester);
+
+    await _tapRow(tester, 'Delete account');
+
+    expect(find.text('opened deleteAccount'), findsOneWidget);
   });
 
   testWidgets('cover photos show how many are set and open the editor', (tester) async {

@@ -31,6 +31,19 @@ class AuthRepository {
     }
   }
 
+  /// Forgets the session on this device without telling the server, for an
+  /// account that no longer exists there.
+  Future<void> signOutLocally() async {
+    final currentUserId = _client.auth.currentUser?.id;
+    try {
+      await _client.auth.signOut(scope: SignOutScope.local);
+      AppLogger.auth('Signed out locally', userId: currentUserId);
+    } on AuthException catch (e) {
+      // The server no longer knows the session; the local one is cleared anyway.
+      AppLogger.w('Local sign-out: ${e.message}', tag: 'Auth');
+    }
+  }
+
   Future<AuthResponse> signInWithPassword({
     required String email,
     required String password,

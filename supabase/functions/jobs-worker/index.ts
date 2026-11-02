@@ -1,5 +1,6 @@
 // Runs queued background jobs (private.jobs): Stripe payment, refund and
-// transfer calls, Auth admin calls and admin alert emails.
+// transfer calls, Auth admin calls, admin alert emails, and the clean-up
+// after an account is deleted (its files and Stripe account).
 //
 // The database calls this function through pg_net right after a job is
 // queued, and the myglo-jobs-sweep cron job calls it every minute for retries
@@ -17,6 +18,7 @@
 import { json, UUID } from '../_shared/http.ts';
 import { captureException } from '../_shared/sentry.ts';
 import { RpcError, serviceRpc, supabaseConfigured } from '../_shared/supabase.ts';
+import { closeConnectAccount, purgeUserStorage } from './account_cleanup.ts';
 import { sendAdminAlert } from './admin_alert.ts';
 import { applyAuthBan } from './auth_ban.ts';
 import { cancelPaymentIntent, capturePayment, refundPayment, reverseTransfer, transfer } from './payments.ts';
@@ -36,6 +38,8 @@ const HANDLERS: Record<string, JobHandler> = {
   transfer,
   reverse_transfer: reverseTransfer,
   auth_ban: applyAuthBan,
+  purge_user_storage: purgeUserStorage,
+  close_connect_account: closeConnectAccount,
 };
 
 Deno.serve(async (req: Request) => {
