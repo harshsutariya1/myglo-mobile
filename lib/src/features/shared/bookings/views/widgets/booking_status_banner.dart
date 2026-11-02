@@ -50,6 +50,15 @@ class BookingStatusBanner extends StatelessWidget {
                     ? "$total is held on your card, not charged, while they review it. We'll notify you when they respond."
                     : "Your time is held while they review it. We'll notify you when they respond.",
               );
+      case BookingStatus.confirmed when booking.hasEnded(now):
+        return forProvider
+            ? (
+                title: 'Appointment finished',
+                message: card
+                    ? "Mark it as completed so you're paid, or as a no-show if $client didn't come."
+                    : "Mark it as completed and record the cash payment, or as a no-show if $client didn't come.",
+              )
+            : (title: 'Appointment finished', message: 'Thanks for visiting $provider. We hope you loved it.');
       case BookingStatus.confirmed when booking.hasStarted(now):
         return forProvider
             ? (

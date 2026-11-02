@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:myglo/src/core/theme/app_theme.dart';
+import 'package:myglo/src/core/utils/formatters.dart';
 import 'package:myglo/src/features/providers/home/views/provider_booking_detail_screen.dart';
 import 'package:myglo/src/features/providers/home/views/provider_home_screen.dart';
 import 'package:myglo/src/features/providers/provider_profiles/controllers/provider_services_controller.dart';
@@ -209,6 +210,41 @@ void main() {
       expect(find.text('Booking confirmed. Michelle Zhang has been notified.'), findsOneWidget);
     });
 
+    testWidgets('a request shows its reply deadline, not its start time', (tester) async {
+      final request = _tomorrow(status: BookingStatus.pending);
+      final withDeadline = request.copyWith(respondBy: request.startsAt.subtract(const Duration(hours: 6)));
+      _FakeList.data = {
+        BookingListScope.requests: [withDeadline],
+      };
+      await _pump(tester, const ProviderHomeScreen(), _common(actions: _FakeActions()));
+
+      await tester.tap(find.text('Requests'));
+      await tester.pumpAndSettle();
+      expect(find.text('Respond before ${Formatters.dateTimeShort(withDeadline.respondByLocal)}'), findsOneWidget);
+      expect(find.text('Respond before ${Formatters.dateTimeShort(withDeadline.startsAtLocal)}'), findsNothing);
+    });
+
+    testWidgets('the decline sheet opens above the tab bar', (tester) async {
+      _FakeList.data = {
+        BookingListScope.requests: [_tomorrow(status: BookingStatus.pending)],
+      };
+      // A nested navigator stands in for the provider tab shell.
+      await _pump(
+        tester,
+        Navigator(onGenerateRoute: (_) => MaterialPageRoute<void>(builder: (_) => const ProviderHomeScreen())),
+        _common(actions: _FakeActions()),
+      );
+
+      await tester.tap(find.text('Requests'));
+      await tester.pumpAndSettle();
+      await _scrollTo(tester, find.widgetWithText(OutlinedButton, 'Decline'));
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Decline'));
+      await tester.pumpAndSettle();
+
+      final root = tester.state<NavigatorState>(find.byType(Navigator).first);
+      expect(Navigator.of(tester.element(find.text('Decline request?'))), root);
+    });
+
     testWidgets('paused bookings can be resumed from the banner', (tester) async {
       final schedule = _FakeScheduleActions();
       await _pump(
@@ -292,6 +328,7 @@ void main() {
       final booking = sampleBooking(startsAt: DateTime.now().toUtc().subtract(const Duration(minutes: 30)));
       final actions = await pumpDetail(tester, booking);
 
+      expect(find.text('Appointment in progress'), findsOneWidget);
       await _scrollTo(tester, find.text('Mark as completed'));
       expect(find.text("Michelle Zhang didn't show up"), findsOneWidget);
       await tester.tap(find.text('Mark as completed'));
@@ -302,6 +339,15 @@ void main() {
       await tester.tap(find.descendant(of: sheet, matching: find.widgetWithText(FilledButton, 'Mark as completed')));
       await tester.pumpAndSettle();
       expect(actions.calls, ['complete ${booking.id} paid=true']);
+    });
+
+    testWidgets('an appointment that has ended reads as finished, not in progress', (tester) async {
+      // Sample bookings last 90 minutes, so this one ended an hour ago.
+      await pumpDetail(tester, sampleBooking(startsAt: DateTime.now().toUtc().subtract(const Duration(hours: 2, minutes: 30))));
+
+      expect(find.text('Appointment finished'), findsOneWidget);
+      expect(find.text('Appointment in progress'), findsNothing);
+      expect(find.textContaining("as a no-show if Michelle Zhang didn't come"), findsOneWidget);
     });
 
     testWidgets('an unpaid completed appointment can record the cash later', (tester) async {

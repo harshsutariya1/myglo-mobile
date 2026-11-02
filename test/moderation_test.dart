@@ -146,6 +146,9 @@ void main() {
       await tester.pump();
       expect(send().onPressed, isNotNull);
 
+      // Typing scrolls Send report into view, so scroll back up to the reasons.
+      await tester.ensureVisible(find.text('Spam'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Spam'));
       await tester.pump();
       await tester.ensureVisible(find.text('Send report'));
@@ -178,6 +181,29 @@ void main() {
 
       expect(find.text(const ReportFailure(ReportFailureCode.windowClosed).message), findsOneWidget);
       expect(find.text('Report a problem'), findsOneWidget);
+    });
+
+    testWidgets('open above a tab bar and put the keyboard away on a tap elsewhere', (tester) async {
+      // A nested navigator stands in for the app's tab shell.
+      await tester.pumpWidget(_app(
+        Navigator(onGenerateRoute: (_) => MaterialPageRoute<void>(builder: (_) => const _Opener(target: ReportTarget.booking))),
+        overrides: [reportsRepositoryProvider.overrideWithValue(_FakeReports())],
+      ));
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      final root = tester.state<NavigatorState>(find.byType(Navigator).first);
+      expect(Navigator.of(tester.element(find.text('Report a problem'))), root);
+
+      await tester.showKeyboard(find.byType(TextField));
+      await tester.pumpAndSettle();
+      expect(tester.testTextInput.isVisible, isTrue);
+      // Focusing the field scrolls Send report into view.
+      final screenHeight = tester.view.physicalSize.height / tester.view.devicePixelRatio;
+      expect(tester.getRect(find.text('Send report')).bottom, lessThanOrEqualTo(screenHeight));
+      await tester.tap(find.text('Something else'));
+      await tester.pump();
+      expect(tester.testTextInput.isVisible, isFalse);
     });
   });
 

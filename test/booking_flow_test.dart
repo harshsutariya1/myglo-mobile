@@ -474,6 +474,15 @@ void main() {
       expect(find.text('Pending approval'), findsOneWidget);
     });
 
+    testWidgets('a booking declined since it was made shows no success check', (tester) async {
+      await pumpConfirmation(tester, sampleBooking(status: BookingStatus.declined));
+
+      expect(find.text('Booking declined'), findsOneWidget);
+      expect(find.byIcon(Icons.check_rounded), findsNothing);
+      // The badge and the status pill both use the declined icon.
+      expect(find.byIcon(Icons.block_rounded), findsNWidgets(2));
+    });
+
     testWidgets('Add to calendar sends the appointment to the calendar', (tester) async {
       final booking = sampleBooking();
       final calendar = await pumpConfirmation(tester, booking);

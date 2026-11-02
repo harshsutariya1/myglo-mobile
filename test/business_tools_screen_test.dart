@@ -189,7 +189,18 @@ void main() {
       final stats = BusinessStats.fromJson(const {'period_start': '2026-02-01'});
       expect(stats.completedBookings, 0);
       expect(stats.cashCollectedCents, 0);
+      expect(stats.cardEarnedCents, 0);
       expect(stats.timeZone, 'Australia/Brisbane');
+    });
+
+    test('earned adds card earnings after the fee to cash', () {
+      final stats = BusinessStats.fromJson(const {
+        'period_start': '2026-11-01',
+        'cash_collected_cents': 3000,
+        'card_earned_cents': 5000,
+      });
+      expect(stats.cardEarnedCents, 5000);
+      expect(stats.earnedCents, 8000);
     });
 
     test('refetch when one of the provider\'s bookings changes', () async {
@@ -213,12 +224,26 @@ void main() {
   });
 
   group('Business Tools overview', () {
+    testWidgets('a card-only provider sees what they earned in the app', (tester) async {
+      final cardOnly = BusinessStats.fromJson(const {
+        'period_start': '2026-11-01',
+        'completed_bookings': 1,
+        'cash_collected_cents': 0,
+        'card_earned_cents': 5000,
+      });
+      await _pump(tester, _overrides(_FakeRepository(cardOnly)));
+
+      expect(find.text('Earned'), findsOneWidget);
+      expect(find.text(r'$50'), findsOneWidget);
+      expect(find.text('Cash collected'), findsNothing);
+    });
+
     testWidgets("shows this month's real numbers instead of mock figures", (tester) async {
       await _pump(tester, _overrides(_FakeRepository(_october)));
 
       expect(find.text('October 2026'), findsOneWidget);
       expect(find.text(r'$1,240.50'), findsOneWidget);
-      expect(find.text('Cash collected'), findsOneWidget);
+      expect(find.text('Earned'), findsOneWidget);
       expect(find.text('7'), findsOneWidget);
       expect(find.text('Completed bookings'), findsOneWidget);
       // The old hard-coded figures are gone.
@@ -254,7 +279,7 @@ void main() {
 
       // Two for this month's numbers, one for the client count.
       expect(find.byType(SkeletonText), findsNWidgets(3));
-      expect(find.text('Cash collected'), findsOneWidget);
+      expect(find.text('Earned'), findsOneWidget);
       expect(find.text('October 2026'), findsNothing);
 
       pending.complete(_october);

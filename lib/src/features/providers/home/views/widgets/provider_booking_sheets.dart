@@ -21,6 +21,9 @@ Future<Booking?> showProviderBookingActionSheet(
 }) {
   return showModalBottomSheet<Booking>(
     context: context,
+    // Above the provider shell's bottom bar, which otherwise covers the
+    // sheet's buttons when it opens from a tab.
+    useRootNavigator: true,
     isScrollControlled: true,
     useSafeArea: true,
     showDragHandle: true,
@@ -139,6 +142,7 @@ class _ProviderBookingActionSheetState extends ConsumerState<_ProviderBookingAct
     return Padding(
       padding: EdgeInsets.fromLTRB(24, 0, 24, 20 + MediaQuery.viewInsetsOf(context).bottom),
       child: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -196,6 +200,10 @@ class _ProviderBookingActionSheetState extends ConsumerState<_ProviderBookingAct
                 minLines: 2,
                 autofocus: _needsReason,
                 textCapitalization: TextCapitalization.sentences,
+                // Scrolls the buttons under the field into view with the
+                // keyboard up; tapping elsewhere puts the keyboard away.
+                scrollPadding: const EdgeInsets.fromLTRB(20, 20, 20, 160),
+                onTapOutside: (_) => FocusScope.of(context).unfocus(),
                 decoration: InputDecoration(
                   labelText: _needsReason
                       ? 'Reason for ${_booking.clientName}'

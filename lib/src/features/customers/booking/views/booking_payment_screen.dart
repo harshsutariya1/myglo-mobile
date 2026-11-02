@@ -312,7 +312,8 @@ class BookingPaymentScreen extends ConsumerWidget {
           busy: checkout.busy,
           onAction: ready ? () => _confirm(context, ref) : null,
           summary: BookingFooterSummary(
-            caption: !payNow ? 'Pay on the day' : (requiresApproval ? 'Held on your card' : 'Pay now'),
+            // Short: the hold button beside it is wide.
+            caption: !payNow ? 'Pay on the day' : (requiresApproval ? 'Card hold' : 'Pay now'),
             value: total,
           ),
         ),

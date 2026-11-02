@@ -176,6 +176,9 @@ abstract class Booking with _$Booking {
   /// Started already, so the provider can mark it done or a no-show.
   bool hasStarted(DateTime now) => !startsAt.isAfter(now);
 
+  /// Its end time has passed.
+  bool hasEnded(DateTime now) => !endsAt.isAfter(now);
+
   /// Whether the client can report a problem with the appointment: from its
   /// start until [windowHours] after it ends (the server checks the same).
   bool canReportProblem(DateTime now, {required int windowHours}) =>

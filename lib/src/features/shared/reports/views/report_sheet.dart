@@ -22,6 +22,8 @@ Future<bool> showReportSheet(
 }) async {
   final sent = await showModalBottomSheet<bool>(
     context: context,
+    // Above the tab shell's bottom bar when reporting from a tab.
+    useRootNavigator: true,
     isScrollControlled: true,
     useSafeArea: true,
     showDragHandle: true,
@@ -93,6 +95,7 @@ class _ReportSheetState extends ConsumerState<ReportSheet> {
     return Padding(
       padding: EdgeInsets.fromLTRB(24, 0, 24, 20 + MediaQuery.viewInsetsOf(context).bottom),
       child: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -147,6 +150,10 @@ class _ReportSheetState extends ConsumerState<ReportSheet> {
               maxLines: 4,
               minLines: 2,
               textCapitalization: TextCapitalization.sentences,
+              // Scrolls Send report into view with the keyboard up; tapping
+              // elsewhere puts the keyboard away.
+              scrollPadding: const EdgeInsets.fromLTRB(20, 20, 20, 160),
+              onTapOutside: (_) => FocusScope.of(context).unfocus(),
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
                 labelText: _reason == ReportReason.other ? 'What happened?' : 'More details (optional)',

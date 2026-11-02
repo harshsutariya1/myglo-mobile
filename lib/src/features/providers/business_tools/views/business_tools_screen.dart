@@ -259,9 +259,9 @@ class _RatingValue extends StatelessWidget {
   }
 }
 
-/// This month's cash collected and completed bookings: skeletons while
-/// loading, an inline error with retry, then the numbers. A refresh keeps
-/// the last numbers on screen until new ones arrive.
+/// This month's earnings (cash plus card after Myglo's fee) and completed
+/// bookings: skeletons while loading, an inline error with retry, then the
+/// numbers. A refresh keeps the last numbers on screen until new ones arrive.
 class _MonthStats extends ConsumerWidget {
   const _MonthStats();
 
@@ -284,7 +284,7 @@ class _MonthStats extends ConsumerWidget {
       return const Row(
         children: [
           Expanded(
-            child: _StatCard(title: 'Cash collected', icon: Icons.attach_money, value: placeholder, highlight: true),
+            child: _StatCard(title: 'Earned', icon: Icons.attach_money, value: placeholder, highlight: true),
           ),
           SizedBox(width: 16),
           Expanded(child: _StatCard(title: 'Completed bookings', icon: Icons.calendar_month, value: placeholder)),
@@ -296,10 +296,10 @@ class _MonthStats extends ConsumerWidget {
       children: [
         Expanded(
           child: _StatCard(
-            title: 'Cash collected',
+            title: 'Earned',
             icon: Icons.attach_money,
             highlight: true,
-            value: _StatValue(Formatters.audCents(stats.cashCollectedCents), highlight: true),
+            value: _StatValue(Formatters.audCents(stats.earnedCents), highlight: true),
           ),
         ),
         const SizedBox(width: 16),

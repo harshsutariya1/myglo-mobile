@@ -12,6 +12,7 @@ import '../../../shared/bookings/controllers/booking_controllers.dart';
 import '../../../shared/bookings/models/booking.dart';
 import '../../../shared/bookings/models/booking_enums.dart';
 import '../../../shared/bookings/views/widgets/booking_overview.dart';
+import '../../../shared/bookings/views/widgets/booking_pills.dart';
 import '../../../shared/bookings/views/widgets/booking_summary.dart';
 import '../../../shared/notifications/push/push_prompt_card.dart';
 import '../../provider_profile/views/widgets/section_states.dart';
@@ -144,7 +145,7 @@ class _Confirmation extends StatelessWidget {
               Center(
                 child: confirming
                     ? const SizedBox.square(dimension: 128, child: Center(child: CircularProgressIndicator()))
-                    : _SuccessBadge(pending: pending || booking.status.isCheckout),
+                    : _StatusBadge(status: booking.status),
               ),
               const SizedBox(height: 22),
               Semantics(
@@ -225,17 +226,19 @@ class _Confirmation extends StatelessWidget {
   }
 }
 
-/// Animated check (or hourglass for requests) with soft rings.
-class _SuccessBadge extends StatefulWidget {
-  const _SuccessBadge({required this.pending});
+/// Animated badge with soft rings: a check once booked, an hourglass while a
+/// request waits, or the status's own icon and colour when the booking
+/// changed since it was made (declined, cancelled, expired, not paid).
+class _StatusBadge extends StatefulWidget {
+  const _StatusBadge({required this.status});
 
-  final bool pending;
+  final BookingStatus status;
 
   @override
-  State<_SuccessBadge> createState() => _SuccessBadgeState();
+  State<_StatusBadge> createState() => _StatusBadgeState();
 }
 
-class _SuccessBadgeState extends State<_SuccessBadge> with SingleTickerProviderStateMixin {
+class _StatusBadgeState extends State<_StatusBadge> with SingleTickerProviderStateMixin {
   late final AnimationController _controller =
       AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
 
@@ -258,6 +261,13 @@ class _SuccessBadgeState extends State<_SuccessBadge> with SingleTickerProviderS
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
+    final style = bookingStatusStyle(widget.status, scheme);
+    final (colors, icon) = switch (widget.status) {
+      BookingStatus.confirmed || BookingStatus.completed => ([scheme.primary, scheme.secondary], Icons.check_rounded),
+      BookingStatus.pending ||
+      BookingStatus.awaitingPayment => ([AppTheme.warning, AppTheme.burntOrange], Icons.hourglass_top_rounded),
+      _ => ([style.color, Color.lerp(style.color, Colors.black, 0.25)!], style.icon),
+    };
     return ExcludeSemantics(
       child: AnimatedBuilder(
         animation: _controller,
@@ -275,7 +285,7 @@ class _SuccessBadgeState extends State<_SuccessBadge> with SingleTickerProviderS
                     child: Container(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: scheme.primary.withValues(alpha: alpha * ring),
+                        color: colors.first.withValues(alpha: alpha * ring),
                       ),
                     ),
                   ),
@@ -289,20 +299,18 @@ class _SuccessBadgeState extends State<_SuccessBadge> with SingleTickerProviderS
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: widget.pending
-                            ? [AppTheme.warning, AppTheme.burntOrange]
-                            : [scheme.primary, scheme.secondary],
+                        colors: colors,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: (widget.pending ? AppTheme.warning : scheme.primary).withValues(alpha: 0.4),
+                          color: colors.first.withValues(alpha: 0.4),
                           blurRadius: 24,
                           offset: const Offset(0, 10),
                         ),
                       ],
                     ),
                     child: Icon(
-                      widget.pending ? Icons.hourglass_top_rounded : Icons.check_rounded,
+                      icon,
                       size: 64,
                       color: Colors.white,
                     ),
