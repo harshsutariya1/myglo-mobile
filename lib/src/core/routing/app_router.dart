@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show ValueKey;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
@@ -426,7 +427,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoute.providerHome.path,
             name: AppRoute.providerHome.name,
-            builder: (context, state) => const ProviderHomeScreen(),
+            builder: (context, state) {
+              final tab = ProviderHomeTab.fromQuery(state.uri.queryParameters['tab']);
+              // Keyed by tab so a link to another list switches to it.
+              return ProviderHomeScreen(key: ValueKey(tab), initialTab: tab);
+            },
           ),
           GoRoute(
             path: AppRoute.discover.path,

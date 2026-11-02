@@ -21,18 +21,36 @@ import '../../schedule/controllers/provider_schedule_controller.dart';
 import 'widgets/booking_setup_card.dart';
 import 'widgets/provider_booking_sheets.dart';
 
+/// The provider's appointment lists, in segment order. [query] is the
+/// `tab` value that opens the screen on that list (e.g. from Business Tools).
+enum ProviderHomeTab {
+  upcoming('upcoming'),
+  requests('requests'),
+  past('past');
+
+  const ProviderHomeTab(this.query);
+
+  final String query;
+
+  static ProviderHomeTab fromQuery(String? value) =>
+      values.firstWhere((tab) => tab.query == value, orElse: () => upcoming);
+}
+
 /// The provider's appointments: confirmed upcoming bookings (by day),
 /// requests waiting for an answer, and past bookings. Everything is live:
 /// new bookings and client cancellations appear without a refresh.
 class ProviderHomeScreen extends ConsumerStatefulWidget {
-  const ProviderHomeScreen({super.key});
+  const ProviderHomeScreen({super.key, this.initialTab = ProviderHomeTab.upcoming});
+
+  /// The list shown first.
+  final ProviderHomeTab initialTab;
 
   @override
   ConsumerState<ProviderHomeScreen> createState() => _ProviderHomeScreenState();
 }
 
 class _ProviderHomeScreenState extends ConsumerState<ProviderHomeScreen> {
-  int _tab = 0;
+  late int _tab = widget.initialTab.index;
 
   static const _upcoming = (party: BookingParty.provider, scope: BookingListScope.confirmed);
   static const _requests = (party: BookingParty.provider, scope: BookingListScope.requests);

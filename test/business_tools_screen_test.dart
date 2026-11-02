@@ -8,17 +8,26 @@ import 'package:go_router/go_router.dart';
 import 'package:myglo/src/core/routing/app_router.dart';
 import 'package:myglo/src/core/theme/app_theme.dart';
 import 'package:myglo/src/core/widgets/skeleton/skeletons.dart';
-import 'package:myglo/src/core/widgets/soon_badge.dart';
 import 'package:myglo/src/features/providers/business_tools/controllers/business_stats_controller.dart';
 import 'package:myglo/src/features/providers/business_tools/controllers/contacts_controllers.dart';
 import 'package:myglo/src/features/providers/business_tools/models/business_stats.dart';
 import 'package:myglo/src/features/providers/business_tools/models/business_stats_repository.dart';
 import 'package:myglo/src/features/providers/business_tools/models/contacts_repository.dart';
 import 'package:myglo/src/features/providers/business_tools/views/business_tools_screen.dart';
+import 'package:myglo/src/features/providers/business_tools/views/widgets/business_attention.dart';
+import 'package:myglo/src/features/providers/business_tools/views/widgets/business_manage.dart';
+import 'package:myglo/src/features/providers/payments/controllers/payments_controllers.dart';
+import 'package:myglo/src/features/providers/payments/models/payments_setup.dart';
+import 'package:myglo/src/features/providers/provider_profiles/controllers/provider_services_controller.dart';
+import 'package:myglo/src/features/providers/provider_profiles/models/service_model.dart';
+import 'package:myglo/src/features/providers/schedule/controllers/provider_schedule_controller.dart';
+import 'package:myglo/src/features/providers/schedule/models/time_off.dart';
 import 'package:myglo/src/features/shared/authentication/controllers/user_profile_provider.dart';
 import 'package:myglo/src/features/shared/authentication/models/profile_model.dart';
 import 'package:myglo/src/features/shared/authentication/models/user_role.dart';
 import 'package:myglo/src/features/shared/bookings/controllers/booking_controllers.dart';
+import 'package:myglo/src/features/shared/bookings/models/booking_settings.dart';
+import 'package:myglo/src/features/shared/bookings/models/working_hours.dart';
 import 'package:myglo/src/features/shared/notifications/controllers/notifications_controller.dart';
 import 'package:myglo/src/features/shared/reviews/controllers/reviews_controllers.dart';
 import 'package:myglo/src/features/shared/reviews/models/review.dart';
@@ -98,29 +107,81 @@ class _FakeContacts implements ContactsRepository {
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(invocation.memberName.toString());
 }
 
-final _october = BusinessStats.fromJson(const {
-  'period_start': '2026-10-01',
+/// Serves a fixed payments set-up.
+class _FakeSetup extends PaymentsSetupController {
+  _FakeSetup(this.setup);
+
+  final PaymentsSetup setup;
+
+  @override
+  Future<PaymentsSetup> build() async => setup;
+}
+
+const _active = PaymentsSetup(status: PaymentsSetupStatus.active, payoutsEnabled: true);
+
+final _november = BusinessStats.fromJson(const {
+  'period_start': '2026-11-01',
   'time_zone': 'Australia/Brisbane',
   'completed_bookings': 7,
-  'cash_collected_cents': 124050,
+  'cash_collected_cents': 24050,
+  'card_earned_cents': 100000,
+  'previous_completed_bookings': 5,
+  'previous_earned_cents': 98000,
+  'upcoming_week_bookings': 3,
 });
 
-List<Override> _overrides(BusinessStatsRepository repository, {Stream<int>? bookingChanges}) => [
+final _service = ServiceModel(
+  id: 'svc-1',
+  providerId: 'prov-1',
+  name: 'Lash lift',
+  description: '',
+  price: 85,
+  durationMinutes: 70,
+  createdAt: DateTime.utc(2026, 9, 1),
+);
+
+/// Monday to Friday, 9 to 5.
+final _weekdays = WeeklySchedule([
+  for (var day = 1; day <= 5; day++) WorkingHoursRange(weekday: day, opensMinutes: 540, closesMinutes: 1020),
+]);
+
+List<Override> _overrides(
+  BusinessStatsRepository repository, {
+  Stream<int>? bookingChanges,
+  PaymentsSetup setup = _active,
+  ProviderBookingSettings settings = const ProviderBookingSettings(providerId: 'prov-1'),
+  List<ServiceModel>? services,
+  WeeklySchedule? hours,
+  List<TimeOffBlock> timeOff = const [],
+}) =>
+    [
       userProfileProvider.overrideWith(
         (ref) async => AppUserProfile(
           rawUser: _providerUser,
           role: UserRole.provider,
-          profile: const ProfileModel(id: 'prov-1', role: UserRole.provider, providerName: 'Glow Studio'),
+          profile: const ProfileModel(
+            id: 'prov-1',
+            role: UserRole.provider,
+            providerName: 'Glow Studio',
+            addressText: '1 Cavill Ave, Surfers Paradise QLD 4217',
+            coordinates: LocationCoordinates(type: 'Point', coordinates: [153.43, -28.0]),
+          ),
         ),
       ),
       notificationsProvider.overrideWith(_EmptyInbox.new),
       bookingChangesProvider.overrideWith((ref) => bookingChanges ?? const Stream.empty()),
       businessStatsRepositoryProvider.overrideWithValue(repository),
       contactsRepositoryProvider.overrideWithValue(_FakeContacts(23)),
+      paymentsSetupProvider.overrideWith(() => _FakeSetup(setup)),
+      bookingSettingsProvider.overrideWith((ref, id) => Stream.value(settings)),
+      providerServicesProvider('prov-1').overrideWith((ref) async => services ?? [_service]),
+      workingHoursProvider.overrideWith((ref, id) async => hours ?? _weekdays),
+      ownTimeOffProvider.overrideWith((ref) async => timeOff),
     ];
 
 /// Hosts the screen in a router with the routes it links to.
 Future<GoRouter> _pump(WidgetTester tester, List<Override> overrides, {bool settle = true}) async {
+  Widget page(String label) => Scaffold(body: Text(label));
   final router = GoRouter(
     initialLocation: AppRoute.businessTools.path,
     routes: [
@@ -130,19 +191,40 @@ Future<GoRouter> _pump(WidgetTester tester, List<Override> overrides, {bool sett
         builder: (context, state) => const BusinessToolsScreen(),
       ),
       GoRoute(
+        path: AppRoute.providerHome.path,
+        name: AppRoute.providerHome.name,
+        builder: (context, state) => page('Home tab ${state.uri.queryParameters['tab'] ?? 'upcoming'}'),
+      ),
+      GoRoute(
         path: AppRoute.providerProfile.path,
         name: AppRoute.providerProfile.name,
-        builder: (context, state) => const Text('Profile tab'),
+        builder: (context, state) => page('Profile tab'),
+        routes: [
+          GoRoute(
+            path: AppRoute.settings.path,
+            name: AppRoute.settings.name,
+            builder: (context, state) => page('Settings screen'),
+          ),
+        ],
       ),
+      for (final (route, label) in [
+        (AppRoute.workingHours, 'Working hours screen'),
+        (AppRoute.timeOff, 'Time off screen'),
+        (AppRoute.serviceArea, 'Service area screen'),
+        (AppRoute.providerContacts, 'Contacts screen'),
+      ])
+        GoRoute(path: route.path, name: route.name, builder: (context, state) => page(label)),
       GoRoute(
-        path: AppRoute.workingHours.path,
-        name: AppRoute.workingHours.name,
-        builder: (context, state) => const Text('Working hours'),
-      ),
-      GoRoute(
-        path: AppRoute.providerContacts.path,
-        name: AppRoute.providerContacts.name,
-        builder: (context, state) => const Text('Contacts screen'),
+        path: AppRoute.providerPayments.path,
+        name: AppRoute.providerPayments.name,
+        builder: (context, state) => page('Payments screen'),
+        routes: [
+          GoRoute(
+            path: AppRoute.providerEarnings.path,
+            name: AppRoute.providerEarnings.name,
+            builder: (context, state) => page('Earnings screen'),
+          ),
+        ],
       ),
     ],
   );
@@ -170,7 +252,7 @@ Future<GoRouter> _pump(WidgetTester tester, List<Override> overrides, {bool sett
 }
 
 Future<void> _tapVisible(WidgetTester tester, Finder finder) async {
-  await tester.ensureVisible(finder);
+  await tester.scrollUntilVisible(finder, 200, scrollable: find.byType(Scrollable).first);
   await tester.pumpAndSettle();
   await tester.tap(finder);
   await tester.pumpAndSettle();
@@ -179,34 +261,50 @@ Future<void> _tapVisible(WidgetTester tester, Finder finder) async {
 void main() {
   group('BusinessStats', () {
     test('reads the RPC row, including bigint totals sent as numbers', () {
-      expect(_october.periodStart, DateTime.utc(2026, 10, 1));
-      expect(_october.timeZone, 'Australia/Brisbane');
-      expect(_october.completedBookings, 7);
-      expect(_october.cashCollectedCents, 124050);
+      expect(_november.periodStart, DateTime.utc(2026, 11, 1));
+      expect(_november.previousPeriodStart, DateTime.utc(2026, 10, 1));
+      expect(_november.timeZone, 'Australia/Brisbane');
+      expect(_november.completedBookings, 7);
+      expect(_november.cashCollectedCents, 24050);
+      expect(_november.earnedCents, 124050);
+      expect(_november.previousCompletedBookings, 5);
+      expect(_november.upcomingWeekBookings, 3);
     });
 
-    test('treats missing totals as zero', () {
+    test('treats missing figures as zero', () {
       final stats = BusinessStats.fromJson(const {'period_start': '2026-02-01'});
       expect(stats.completedBookings, 0);
-      expect(stats.cashCollectedCents, 0);
-      expect(stats.cardEarnedCents, 0);
+      expect(stats.earnedCents, 0);
+      expect(stats.previousEarnedCents, 0);
+      expect(stats.pendingRequests, 0);
+      expect(stats.nextReplyBy, isNull);
+      expect(stats.nextReplyByLocal, isNull);
+      expect(stats.reviewsAwaitingReply, 0);
+      expect(stats.onItsWayCents, 0);
       expect(stats.timeZone, 'Australia/Brisbane');
     });
 
-    test('earned adds card earnings after the fee to cash', () {
+    test('reads the reply deadline as an instant and shows it on the provider\'s clock', () {
       final stats = BusinessStats.fromJson(const {
         'period_start': '2026-11-01',
-        'cash_collected_cents': 3000,
-        'card_earned_cents': 5000,
+        'time_zone': 'Australia/Brisbane',
+        'pending_requests': 2,
+        'next_reply_by': '2026-11-08T09:49:00+00:00',
       });
-      expect(stats.cardEarnedCents, 5000);
-      expect(stats.earnedCents, 8000);
+      expect(stats.nextReplyBy, DateTime.utc(2026, 11, 8, 9, 49));
+      // Brisbane is UTC+10 all year.
+      expect(stats.nextReplyByLocal, DateTime.utc(2026, 11, 8, 19, 49));
     });
 
-    test('refetch when one of the provider\'s bookings changes', () async {
+    test('last month rolls back over the new year', () {
+      final january = BusinessStats.fromJson(const {'period_start': '2027-01-01'});
+      expect(january.previousPeriodStart, DateTime.utc(2026, 12, 1));
+    });
+
+    test("refetch when one of the provider's bookings changes", () async {
       final changes = StreamController<int>();
       addTearDown(changes.close);
-      final repository = _FakeRepository(_october);
+      final repository = _FakeRepository(_november);
       final container = ProviderContainer.test(
         retry: (_, _) => null,
         overrides: _overrides(repository, bookingChanges: changes.stream),
@@ -223,45 +321,133 @@ void main() {
     });
   });
 
-  group('Business Tools overview', () {
-    testWidgets('a card-only provider sees what they earned in the app', (tester) async {
-      final cardOnly = BusinessStats.fromJson(const {
-        'period_start': '2026-11-01',
-        'completed_bookings': 1,
-        'cash_collected_cents': 0,
-        'card_earned_cents': 5000,
-      });
-      await _pump(tester, _overrides(_FakeRepository(cardOnly)));
-
-      expect(find.text('Earned'), findsOneWidget);
-      expect(find.text(r'$50'), findsOneWidget);
-      expect(find.text('Cash collected'), findsNothing);
+  group('Summaries', () {
+    test('working hours', () {
+      expect(workingHoursSummary(null), isNull);
+      expect(workingHoursSummary(WeeklySchedule(const [])), "Not set. Clients can't book you yet");
+      expect(workingHoursSummary(_weekdays), 'Open 5 days a week');
+      expect(
+        workingHoursSummary(WeeklySchedule(const [WorkingHoursRange(weekday: 6, opensMinutes: 540, closesMinutes: 720)])),
+        'Open 1 day a week',
+      );
+      expect(
+        workingHoursSummary(WeeklySchedule([
+          for (var day = 1; day <= 7; day++) WorkingHoursRange(weekday: day, opensMinutes: 540, closesMinutes: 1020),
+        ])),
+        'Open every day',
+      );
     });
 
-    testWidgets("shows this month's real numbers instead of mock figures", (tester) async {
-      await _pump(tester, _overrides(_FakeRepository(_october)));
+    test('time off, in the provider\'s time zone', () {
+      final now = DateTime.utc(2026, 11, 2, 1);
+      TimeOffBlock block(String id, DateTime start, DateTime end) => TimeOffBlock(id: id, startsAt: start, endsAt: end);
 
-      expect(find.text('October 2026'), findsOneWidget);
+      expect(timeOffSummary(null, timeZone: 'Australia/Brisbane', now: now), isNull);
+      expect(timeOffSummary(const [], timeZone: 'Australia/Brisbane', now: now), 'No time off planned');
+      // Starts 14:00 UTC on Fri 13 Nov, which is Sat 14 Nov in Brisbane.
+      final saturday = block('a', DateTime.utc(2026, 11, 13, 14), DateTime.utc(2026, 11, 14, 14));
+      final later = block('b', DateTime.utc(2026, 12, 1), DateTime.utc(2026, 12, 2));
+      expect(timeOffSummary([later, saturday], timeZone: 'Australia/Brisbane', now: now), 'Next: Sat 14 Nov · 2 planned');
+      final current = block('c', DateTime.utc(2026, 11, 1), DateTime.utc(2026, 11, 3, 8));
+      expect(timeOffSummary([current], timeZone: 'Australia/Brisbane', now: now), 'Off now, back Tue 3 Nov, 6:00 pm');
+    });
+
+    test('booking rules', () {
+      expect(bookingRulesSummary(null), isNull);
+      expect(
+        bookingRulesSummary(const ProviderBookingSettings(providerId: 'p')),
+        'Clients book instantly · free to cancel until 24 h before',
+      );
+      expect(
+        bookingRulesSummary(const ProviderBookingSettings(providerId: 'p', requiresApproval: true, cancellationWindowHours: 0)),
+        'You approve each booking · free to cancel any time',
+      );
+    });
+
+    test('services and payments', () {
+      expect(servicesSummary(null), isNull);
+      expect(servicesSummary(const []), 'Add your first service');
+      expect(servicesSummary([_service]), '1 service');
+      expect(servicesSummary([_service, _service]), '2 services');
+
+      expect(paymentsSummary(null), isNull);
+      expect(paymentsSummary(_active), 'Card payments on · paid out every Monday');
+      expect(paymentsSummary(const PaymentsSetup()), 'Not set up. Clients pay in cash');
+      expect(paymentsSummary(const PaymentsSetup(status: PaymentsSetupStatus.restricted)), 'Paused: Stripe needs details from you');
+    });
+
+    test('card payments only ask for attention when the provider has something to do', () {
+      const cardOff = ProviderBookingSettings(providerId: 'p', acceptsCard: false);
+      expect(paymentsAttention(null, null), isNull);
+      expect(paymentsAttention(_active, null), isNull);
+      expect(paymentsAttention(const PaymentsSetup(status: PaymentsSetupStatus.verifying), null), isNull);
+      expect(paymentsAttention(const PaymentsSetup(), null)?.title, 'Take card payments');
+      // A provider who turned card payments off isn't nagged to set them up.
+      expect(paymentsAttention(const PaymentsSetup(), cardOff), isNull);
+      final due = paymentsAttention(
+        PaymentsSetup(status: PaymentsSetupStatus.actionNeeded, requirementsDeadline: DateTime.utc(2026, 11, 20, 14)),
+        null,
+      );
+      expect(due?.title, 'Stripe needs more details');
+      expect(due?.subtitle, 'Send them by Sat 21 Nov to keep taking card payments');
+      expect(paymentsAttention(const PaymentsSetup(status: PaymentsSetupStatus.restricted), cardOff)?.title,
+          'Card payments are paused');
+    });
+  });
+
+  group('This month', () {
+    testWidgets('shows earnings split by card and cash, with last month beside them', (tester) async {
+      await _pump(tester, _overrides(_FakeRepository(_november)));
+
+      expect(find.text('My business'), findsOneWidget);
+      expect(find.text('NOVEMBER 2026'), findsNothing); // The month label isn't shouted.
+      expect(find.text('November 2026'), findsOneWidget);
       expect(find.text(r'$1,240.50'), findsOneWidget);
-      expect(find.text('Earned'), findsOneWidget);
+      expect(find.text('Earned in November'), findsOneWidget);
+      expect(find.text('In the app'), findsOneWidget);
+      expect(find.text(r'$1,000'), findsOneWidget);
+      expect(find.text('Cash'), findsOneWidget);
+      expect(find.text(r'$240.50'), findsOneWidget);
+      expect(find.text('October'), findsOneWidget);
+      expect(find.text(r'$980'), findsOneWidget);
+      // Nothing is waiting for a transfer.
+      expect(find.textContaining('on its way'), findsNothing);
+    });
+
+    testWidgets('mentions card money still on its way and opens Earnings', (tester) async {
+      final stats = BusinessStats.fromJson(const {
+        'period_start': '2026-11-01',
+        'card_earned_cents': 5000,
+        'on_its_way_cents': 5000,
+      });
+      await _pump(tester, _overrides(_FakeRepository(stats)));
+
+      expect(find.text(r'$50 on its way to your Stripe balance'), findsOneWidget);
+      await tester.tap(find.text('Earned in November'));
+      await tester.pumpAndSettle();
+      expect(find.text('Earnings screen'), findsOneWidget);
+    });
+
+    testWidgets('completed bookings compare with last month, and the week ahead opens appointments', (tester) async {
+      await _pump(tester, _overrides(_FakeRepository(_november)));
+
       expect(find.text('7'), findsOneWidget);
       expect(find.text('Completed bookings'), findsOneWidget);
-      // The old hard-coded figures are gone.
-      for (final mock in [r'$1,240', '24', '156', '4.8 ★']) {
-        expect(find.text(mock), findsNothing);
-      }
+      expect(find.text('October: 5'), findsOneWidget);
+      expect(find.text('3'), findsOneWidget);
+      expect(find.bySemanticsLabel('Coming up in the next 7 days: 3 confirmed appointments'), findsOneWidget);
+
+      await _tapVisible(tester, find.text('Coming up'));
+      expect(find.text('Home tab upcoming'), findsOneWidget);
     });
 
     testWidgets('a month with nothing yet reads as zero', (tester) async {
-      final empty = BusinessStats.fromJson(const {
-        'period_start': '2026-10-01',
-        'completed_bookings': 0,
-        'cash_collected_cents': 0,
-      });
+      final empty = BusinessStats.fromJson(const {'period_start': '2026-11-01'});
       await _pump(tester, _overrides(_FakeRepository(empty)));
 
-      expect(find.text(r'$0'), findsOneWidget);
-      expect(find.text('0'), findsOneWidget);
+      expect(find.text(r'$0'), findsNWidgets(4)); // Earned, in the app, cash, last month.
+      expect(find.text('0'), findsNWidgets(2));
+      expect(find.text('October: 0'), findsOneWidget);
     });
 
     testWidgets('shows skeletons while the numbers load', (tester) async {
@@ -270,19 +456,19 @@ void main() {
       await _pump(
         tester,
         [
-          ..._overrides(_FakeRepository(_october)),
+          ..._overrides(_FakeRepository(_november)),
           businessStatsProvider.overrideWith((ref) => pending.future),
           providerContactCountProvider.overrideWith((ref) => pendingCount.future),
         ],
         settle: false,
       );
 
-      // Two for this month's numbers, one for the client count.
-      expect(find.byType(SkeletonText), findsNWidgets(3));
-      expect(find.text('Earned'), findsOneWidget);
-      expect(find.text('October 2026'), findsNothing);
+      // Earned, completed, the week ahead and the client count.
+      expect(find.byType(SkeletonText), findsNWidgets(4));
+      expect(find.text('Earned this month'), findsOneWidget);
+      expect(find.text('November 2026'), findsNothing);
 
-      pending.complete(_october);
+      pending.complete(_november);
       pendingCount.complete(23);
       await tester.pumpAndSettle();
       expect(find.byType(SkeletonText), findsNothing);
@@ -290,7 +476,7 @@ void main() {
     });
 
     testWidgets('a failed load shows an inline error that can be retried', (tester) async {
-      final repository = _FakeRepository(_october, failures: 1);
+      final repository = _FakeRepository(_november, failures: 1);
       await _pump(tester, _overrides(repository));
 
       expect(find.text("Your numbers didn't load"), findsOneWidget);
@@ -303,22 +489,17 @@ void main() {
       expect(find.text(r'$1,240.50'), findsOneWidget);
     });
 
-    testWidgets('rating and review count share one live card, and profile views are gone', (tester) async {
+    testWidgets('rating and review count share one live card that opens the reviews', (tester) async {
       await _pump(tester, [
-        ..._overrides(_FakeRepository(_october)),
+        ..._overrides(_FakeRepository(_november)),
         providerReviewSummaryProvider('prov-1').overrideWith(
           (ref) async => const ReviewSummary(count: 12, average: 4.75, starCounts: [0, 0, 1, 1, 10]),
         ),
         reviewsRepositoryProvider.overrideWithValue(_FakeReviews()),
       ]);
 
-      expect(find.text('Profile views'), findsNothing);
-      expect(find.byType(SoonBadge), findsNothing); // Payments & payouts is live.
       expect(find.text('4.8'), findsOneWidget);
       expect(find.text('(12)'), findsOneWidget);
-      // The two separate cards are gone.
-      expect(find.text('Rating'), findsNothing);
-      expect(find.text('Reviews'), findsNothing);
       expect(find.bySemanticsLabel('Rating 4.8 from 12 reviews'), findsOneWidget);
 
       await _tapVisible(tester, find.text('Rating & reviews'));
@@ -330,18 +511,16 @@ void main() {
 
     testWidgets('a provider nobody has reviewed yet reads as new', (tester) async {
       await _pump(tester, [
-        ..._overrides(_FakeRepository(_october)),
+        ..._overrides(_FakeRepository(_november)),
         providerReviewSummaryProvider('prov-1').overrideWith((ref) async => ReviewSummary.empty),
       ]);
 
       expect(find.text('New'), findsOneWidget);
-      expect(find.text('Rating & reviews'), findsOneWidget);
     });
 
     testWidgets('the contacts card counts clients and opens the contacts list', (tester) async {
-      await _pump(tester, _overrides(_FakeRepository(_october)));
+      await _pump(tester, _overrides(_FakeRepository(_november)));
 
-      expect(find.text('Contacts'), findsOneWidget);
       expect(find.text('23'), findsOneWidget);
       expect(find.bySemanticsLabel('Contacts: 23 clients'), findsOneWidget);
 
@@ -354,43 +533,106 @@ void main() {
       addTearDown(changes.close);
       var calls = 0;
       await _pump(tester, [
-        ..._overrides(_FakeRepository(_october), bookingChanges: changes.stream),
+        ..._overrides(_FakeRepository(_november), bookingChanges: changes.stream),
         providerContactCountProvider.overrideWith((ref) async {
           ref.watch(bookingChangesProvider);
           return ++calls;
         }),
       ]);
-      expect(find.text('1'), findsOneWidget);
+      expect(find.bySemanticsLabel('Contacts: 1 client'), findsOneWidget);
 
       changes.add(1);
       await tester.pumpAndSettle();
-      expect(find.text('2'), findsOneWidget);
+      expect(find.bySemanticsLabel('Contacts: 2 clients'), findsOneWidget);
     });
   });
 
-  group('Quick actions', () {
-    testWidgets('Services & Pricing opens the profile tab with the services list', (tester) async {
-      final router = await _pump(tester, _overrides(_FakeRepository(_october)));
+  group('Needs your attention', () {
+    testWidgets('is hidden when there is nothing to do', (tester) async {
+      await _pump(tester, _overrides(_FakeRepository(_november)));
 
-      await _tapVisible(tester, find.text('Services & Pricing'));
-      expect(find.text('Profile tab'), findsOneWidget);
-      expect(router.routeInformationProvider.value.uri.path, AppRoute.providerProfile.path);
+      expect(find.text('NEEDS YOUR ATTENTION'), findsNothing);
     });
 
-    testWidgets('Payments & payouts is live, not marked Soon', (tester) async {
-      await _pump(tester, _overrides(_FakeRepository(_october)));
+    testWidgets('lists waiting requests, unanswered reviews and card payments to set up', (tester) async {
+      final stats = BusinessStats.fromJson(const {
+        'period_start': '2026-11-01',
+        'time_zone': 'Australia/Brisbane',
+        'pending_requests': 2,
+        'next_reply_by': '2026-11-08T09:49:00+00:00',
+        'reviews_awaiting_reply': 1,
+      });
+      await _pump(tester, _overrides(_FakeRepository(stats), setup: const PaymentsSetup()));
 
-      final tile = find.ancestor(of: find.text('Payments & payouts'), matching: find.byType(InkWell));
-      expect(find.descendant(of: tile, matching: find.byType(SoonBadge)), findsNothing);
-      expect(find.descendant(of: tile, matching: find.byIcon(Icons.chevron_right)), findsOneWidget);
-      expect(find.text('Financials'), findsNothing);
+      expect(find.text('NEEDS YOUR ATTENTION'), findsOneWidget);
+      expect(find.text('2 requests waiting'), findsOneWidget);
+      expect(find.text('Reply by Sun 8 Nov, 7:49 pm, or it expires'), findsOneWidget);
+      expect(find.text('1 review to reply to'), findsOneWidget);
+      expect(find.text('Take card payments'), findsOneWidget);
+
+      await tester.tap(find.text('2 requests waiting'));
+      await tester.pumpAndSettle();
+      // Opens appointments on the Requests list.
+      expect(find.text('Home tab requests'), findsOneWidget);
     });
 
-    testWidgets('Manage Schedule still opens working hours', (tester) async {
-      await _pump(tester, _overrides(_FakeRepository(_october)));
+    testWidgets('the card payments row opens Payments & payouts', (tester) async {
+      await _pump(
+        tester,
+        _overrides(
+          _FakeRepository(_november),
+          setup: const PaymentsSetup(status: PaymentsSetupStatus.restricted),
+        ),
+      );
 
-      await _tapVisible(tester, find.text('Manage Schedule'));
-      expect(find.text('Working hours'), findsOneWidget);
+      await tester.tap(find.text('Card payments are paused'));
+      await tester.pumpAndSettle();
+      expect(find.text('Payments screen'), findsOneWidget);
+    });
+
+    testWidgets('flags paused bookings and unfinished set-up', (tester) async {
+      await _pump(
+        tester,
+        _overrides(
+          _FakeRepository(_november),
+          settings: const ProviderBookingSettings(providerId: 'prov-1', acceptsBookings: false),
+          services: const [],
+        ),
+      );
+
+      expect(find.text('New bookings are paused'), findsOneWidget);
+      expect(find.text('Finish setting up'), findsOneWidget);
+      expect(find.textContaining('2 of 3 done'), findsOneWidget);
+    });
+  });
+
+  group('Manage', () {
+    testWidgets('each tool shows where it stands', (tester) async {
+      await _pump(tester, _overrides(_FakeRepository(_november)));
+
+      await tester.scrollUntilVisible(find.text('Earnings'), 200, scrollable: find.byType(Scrollable).first);
+      expect(find.text('Open 5 days a week'), findsOneWidget);
+      expect(find.text('No time off planned'), findsOneWidget);
+      expect(find.text('Clients book instantly · free to cancel until 24 h before'), findsOneWidget);
+      expect(find.text('1 service'), findsOneWidget);
+      expect(find.text('At your studio'), findsOneWidget);
+      expect(find.text('Card payments on · paid out every Monday'), findsOneWidget);
+    });
+
+    testWidgets('rows open their tools', (tester) async {
+      for (final (row, screen) in [
+        ('Working hours', 'Working hours screen'),
+        ('Time off', 'Time off screen'),
+        ('Booking rules', 'Settings screen'),
+        ('Services & pricing', 'Profile tab'),
+        ('Where you work', 'Service area screen'),
+        ('Payments & payouts', 'Payments screen'),
+        ('Earnings', 'Earnings screen'),
+      ]) {
+        await _pump(tester, _overrides(_FakeRepository(_november)));
+        await _tapVisible(tester, find.text(row));
+        expect(find.text(screen), findsOneWidget, reason: row);
+      }
     });
   });
 }

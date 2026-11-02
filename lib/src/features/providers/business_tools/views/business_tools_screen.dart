@@ -1,34 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../../../core/routing/app_router.dart';
+import '../../../../core/constants/app_assets.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/utils/formatters.dart';
-import '../../../../core/widgets/skeleton/skeletons.dart';
-import '../../../customers/provider_profile/views/widgets/provider_profile_header.dart' show providerDisplayName;
-import '../../../customers/provider_profile/views/widgets/section_states.dart';
 import '../../../shared/authentication/controllers/user_profile_provider.dart';
 import '../../../shared/notifications/views/notification_bell.dart';
 import '../../../shared/reviews/controllers/reviews_controllers.dart';
-import '../../../shared/reviews/views/reviews_screen.dart';
+import '../../payments/controllers/payments_controllers.dart';
+import '../../provider_profiles/controllers/provider_services_controller.dart';
+import '../../schedule/controllers/provider_schedule_controller.dart';
 import '../controllers/business_stats_controller.dart';
 import '../controllers/contacts_controllers.dart';
+import 'widgets/business_attention.dart';
+import 'widgets/business_manage.dart';
+import 'widgets/business_overview.dart';
 
-/// The provider's business overview: this month's real numbers (cash
-/// collected, completed bookings), their rating and reviews, their contacts
-/// (every client who has booked) and shortcuts to the tools that manage the
-/// business.
+/// The provider's business hub: what needs their attention, this month's
+/// numbers (earnings, completed bookings, the week ahead, rating, clients)
+/// and the tools that run the business, each showing where it stands.
 class BusinessToolsScreen extends ConsumerWidget {
   const BusinessToolsScreen({super.key});
-
-  static const _valueStyle = TextStyle(fontSize: 24, fontWeight: FontWeight.bold);
 
   Future<void> _refresh(WidgetRef ref) async {
     ref.invalidate(businessStatsProvider);
     final providerId = ref.read(userProfileProvider).value?.rawUser.id;
-    if (providerId != null) ref.invalidate(providerReviewSummaryProvider(providerId));
+    if (providerId != null) {
+      ref.invalidate(providerReviewSummaryProvider(providerId));
+      ref.invalidate(providerServicesProvider(providerId));
+    }
     ref.invalidate(providerContactCountProvider);
+    ref.invalidate(paymentsSetupProvider);
+    ref.invalidate(ownWorkingHoursProvider);
+    ref.invalidate(ownTimeOffProvider);
     try {
       await ref.read(businessStatsProvider.future);
     } catch (_) {
@@ -38,93 +41,23 @@ class BusinessToolsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final period = ref.watch(businessStatsProvider.select((s) => s.value?.periodStart));
-
+    final scheme = context.colorScheme;
     return Scaffold(
-      backgroundColor: context.colorScheme.surface,
-      appBar: AppBar(
-        backgroundColor: context.colorScheme.surface,
-        elevation: 0,
-        title: Text(
-          'Business Tools',
-          style: TextStyle(
-            color: context.colorScheme.onSurface,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        actions: const [NotificationBell(size: 24)],
-      ),
-      body: RefreshIndicator(
-        color: context.colorScheme.primary,
-        onRefresh: () => _refresh(ref),
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Overview',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: context.colorScheme.onSurface,
-                      ),
-                    ),
-                  ),
-                  if (period != null)
-                    Text(
-                      Formatters.monthYear(period),
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              const _MonthStats(),
-              const SizedBox(height: 16),
-              const _ClientStats(),
-              const SizedBox(height: 32),
-              Text(
-                'Quick Actions',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: context.colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: 16),
-              _ActionItem(
-                title: 'Manage Schedule',
-                subtitle: 'Update your availability and working hours',
-                icon: Icons.schedule,
-                onTap: () => context.pushNamed(AppRoute.workingHours.name),
-              ),
-              const SizedBox(height: 16),
-              _ActionItem(
-                title: 'Services & Pricing',
-                subtitle: 'Add or modify your service offerings',
-                icon: Icons.design_services,
-                // The profile tab opens on its Services list, where services
-                // are added, edited and priced.
-                onTap: () => context.goNamed(AppRoute.providerProfile.name),
-              ),
-              const SizedBox(height: 16),
-              _ActionItem(
-                title: 'Payments & payouts',
-                subtitle: 'Take card payments, bank details and payouts',
-                icon: Icons.account_balance_wallet,
-                onTap: () => context.pushNamed(AppRoute.providerPayments.name),
-              ),
-              const SizedBox(height: 100), // Bottom navigation bar padding
+      backgroundColor: scheme.surface,
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          color: scheme.primary,
+          onRefresh: () => _refresh(ref),
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            // Room at the bottom for the floating tab bar.
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+            children: const [
+              _Header(),
+              BusinessAttention(),
+              BusinessMonthOverview(),
+              BusinessManageSections(),
             ],
           ),
         ),
@@ -133,377 +66,44 @@ class BusinessToolsScreen extends ConsumerWidget {
   }
 }
 
-/// The provider's rating and review count (all time) in one card, which
-/// opens their reviews (where they can reply), beside their client count,
-/// which opens their contacts.
-class _ClientStats extends ConsumerWidget {
-  const _ClientStats();
-
-  static const _placeholder = Shimmer(child: SkeletonText(style: BusinessToolsScreen._valueStyle, widthFactor: 0.5));
-
-  void _openReviews(BuildContext context, WidgetRef ref) {
-    final profile = ref.read(userProfileProvider).value;
-    if (profile == null) return;
-    Navigator.of(context, rootNavigator: true).push(
-      MaterialPageRoute<void>(
-        builder: (_) => ReviewsScreen(
-          query: (providerId: profile.rawUser.id, serviceId: null),
-          title: 'Your reviews',
-          providerName: providerDisplayName(profile.profile),
-          canReply: true,
-        ),
-      ),
-    );
-  }
+/// Large title with the brand underline, as on the other tabs.
+class _Header extends StatelessWidget {
+  const _Header();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final providerId = ref.watch(userProfileProvider.select((p) => p.value?.rawUser.id));
-    if (providerId == null) return const SizedBox.shrink();
-    final reviews = ref.watch(providerReviewSummaryProvider(providerId));
-    final contacts = ref.watch(providerContactCountProvider);
-
-    final Widget rating;
-    final String reviewsLabel;
-    if (reviews.value case final summary?) {
-      rating = summary.isEmpty
-          ? const _StatValue('New')
-          : _RatingValue(average: summary.average!, count: summary.count);
-      reviewsLabel = summary.isEmpty
-          ? 'Rating & reviews: no reviews yet'
-          : 'Rating ${Formatters.rating(summary.average!)} from ${Formatters.reviewCount(summary.count)}';
-    } else if (reviews.hasError) {
-      // Already reported; tapping through retries.
-      rating = const _StatValue('–');
-      reviewsLabel = "Rating & reviews: didn't load";
-    } else {
-      rating = _placeholder;
-      reviewsLabel = 'Rating & reviews: loading';
-    }
-
-    final Widget clients;
-    if (contacts.value case final count?) {
-      clients = _StatValue(Formatters.compactCount(count));
-    } else if (contacts.hasError) {
-      // Already reported; the contacts screen shows the details and a retry.
-      clients = const _StatValue('–');
-    } else {
-      clients = _placeholder;
-    }
-
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
-          child: _StatCard(
-            title: 'Rating & reviews',
-            icon: Icons.star_rounded,
-            value: rating,
-            semanticsLabel: reviewsLabel,
-            onTap: () => _openReviews(context, ref),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _StatCard(
-            title: 'Contacts',
-            icon: Icons.people_alt_outlined,
-            value: clients,
-            semanticsLabel: switch (contacts.value) {
-              final count? => 'Contacts: ${count == 1 ? '1 client' : '$count clients'}',
-              null => 'Contacts',
-            },
-            onTap: () => context.pushNamed(AppRoute.providerContacts.name),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// `4.8 ★ (12)`: the average with the review count beside it.
-class _RatingValue extends StatelessWidget {
-  const _RatingValue({required this.average, required this.count});
-
-  final double average;
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    return FittedBox(
-      fit: BoxFit.scaleDown,
-      alignment: AlignmentDirectional.centerStart,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(
-            Formatters.rating(average),
-            maxLines: 1,
-            style: BusinessToolsScreen._valueStyle.copyWith(color: context.colorScheme.onSurface),
-          ),
-          const SizedBox(width: 3),
-          const Icon(Icons.star_rounded, size: 22, color: AppTheme.warning),
-          const SizedBox(width: 6),
-          Text(
-            '(${Formatters.compactCount(count)})',
-            maxLines: 1,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: context.colorScheme.onSurface.withValues(alpha: 0.5),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// This month's earnings (cash plus card after Myglo's fee) and completed
-/// bookings: skeletons while loading, an inline error with retry, then the
-/// numbers. A refresh keeps the last numbers on screen until new ones arrive.
-class _MonthStats extends ConsumerWidget {
-  const _MonthStats();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(businessStatsProvider);
-    final stats = async.value;
-
-    if (stats == null) {
-      if (async case AsyncError(:final error)) {
-        return SectionErrorView(
-          title: "Your numbers didn't load",
-          message: describeLoadError(error, subject: "this month's numbers"),
-          onRetry: () => ref.invalidate(businessStatsProvider),
-        );
-      }
-      const placeholder = Shimmer(
-        child: SkeletonText(style: BusinessToolsScreen._valueStyle, widthFactor: 0.6),
-      );
-      return const Row(
-        children: [
-          Expanded(
-            child: _StatCard(title: 'Earned', icon: Icons.attach_money, value: placeholder, highlight: true),
-          ),
-          SizedBox(width: 16),
-          Expanded(child: _StatCard(title: 'Completed bookings', icon: Icons.calendar_month, value: placeholder)),
-        ],
-      );
-    }
-
-    return Row(
-      children: [
-        Expanded(
-          child: _StatCard(
-            title: 'Earned',
-            icon: Icons.attach_money,
-            highlight: true,
-            value: _StatValue(Formatters.audCents(stats.earnedCents), highlight: true),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _StatCard(
-            title: 'Completed bookings',
-            icon: Icons.calendar_month,
-            value: _StatValue('${stats.completedBookings}'),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _StatValue extends StatelessWidget {
-  const _StatValue(this.text, {this.highlight = false});
-
-  final String text;
-  final bool highlight;
-
-  @override
-  Widget build(BuildContext context) {
-    return FittedBox(
-      fit: BoxFit.scaleDown,
-      alignment: AlignmentDirectional.centerStart,
-      child: Text(
-        text,
-        maxLines: 1,
-        style: BusinessToolsScreen._valueStyle.copyWith(
-          color: highlight ? Colors.white : context.colorScheme.onSurface,
-        ),
-      ),
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.title,
-    required this.icon,
-    required this.value,
-    this.highlight = false,
-    this.onTap,
-    this.semanticsLabel,
-  });
-
-  final String title;
-  final IconData icon;
-
-  /// The figure, or a skeleton / "Soon" badge in its place.
-  final Widget value;
-  final bool highlight;
-  final VoidCallback? onTap;
-
-  /// Read out instead of the card's contents (for tappable cards).
-  final String? semanticsLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    final card = Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: highlight ? context.colorScheme.primary : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: highlight ? null : Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: (highlight ? context.colorScheme.primary : Colors.black).withValues(alpha: 0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: highlight ? Colors.white.withValues(alpha: 0.2) : const Color(0xFFFFF5F5),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  icon,
-                  color: highlight ? Colors.white : context.colorScheme.secondary,
-                  size: 20,
-                ),
-              ),
-              const Spacer(),
-              // Marks the cards that open something.
-              if (onTap != null)
-                Icon(
-                  Icons.arrow_outward_rounded,
-                  size: 18,
-                  color: highlight ? Colors.white.withValues(alpha: 0.8) : Colors.grey.shade400,
-                ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Same height whatever stands in for the figure, so cards in a row
-          // line up and nothing jumps when numbers arrive.
-          SizedBox(
-            height: 32,
-            child: Align(alignment: AlignmentDirectional.centerStart, child: value),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 14,
-              color: highlight ? Colors.white.withValues(alpha: 0.9) : Colors.grey.shade600,
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (onTap == null) return card;
-    final tappable = InkWell(onTap: onTap, borderRadius: BorderRadius.circular(20), child: card);
-    if (semanticsLabel == null) return tappable;
-    return Semantics(button: true, label: semanticsLabel, onTap: onTap, excludeSemantics: true, child: tappable);
-  }
-}
-
-class _ActionItem extends StatelessWidget {
-  const _ActionItem({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.onTap,
-  });
-
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 15,
-              offset: const Offset(0, 5),
-            ),
-          ],
-          border: Border.all(
-            color: Colors.grey.shade100,
-            width: 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF5F5),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(icon, color: context.colorScheme.secondary, size: 24),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Semantics(
+                  header: true,
+                  child: Text(
+                    'My business',
                     style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: context.colorScheme.onSurface,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                      color: scheme.onSurface,
+                      letterSpacing: -0.5,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade500,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+                Transform.translate(
+                  offset: const Offset(0, -4),
+                  child: Image.asset(AppAssets.underlineGraphic, width: 160, fit: BoxFit.contain),
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            Icon(Icons.chevron_right, color: Colors.grey.shade400),
-          ],
+          ),
         ),
-      ),
+        const NotificationBell(),
+      ],
     );
   }
 }

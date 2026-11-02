@@ -210,6 +210,24 @@ void main() {
       expect(find.text('Booking confirmed. Michelle Zhang has been notified.'), findsOneWidget);
     });
 
+    testWidgets('can open straight on the Requests list', (tester) async {
+      _FakeList.data = {
+        BookingListScope.confirmed: [_tomorrow()],
+        BookingListScope.requests: [_tomorrow(status: BookingStatus.pending)],
+      };
+      await _pump(
+        tester,
+        const ProviderHomeScreen(initialTab: ProviderHomeTab.requests),
+        _common(actions: _FakeActions()),
+      );
+
+      expect(find.textContaining('Respond before'), findsOneWidget);
+      expect(find.text('TOMORROW'), findsNothing);
+      expect(ProviderHomeTab.fromQuery('requests'), ProviderHomeTab.requests);
+      expect(ProviderHomeTab.fromQuery('nonsense'), ProviderHomeTab.upcoming);
+      expect(ProviderHomeTab.fromQuery(null), ProviderHomeTab.upcoming);
+    });
+
     testWidgets('a request shows its reply deadline, not its start time', (tester) async {
       final request = _tomorrow(status: BookingStatus.pending);
       final withDeadline = request.copyWith(respondBy: request.startsAt.subtract(const Duration(hours: 6)));

@@ -132,8 +132,11 @@ class Formatters {
   /// `Oct`.
   static String monthShort(DateTime date) => _months[date.month - 1];
 
+  /// `October`.
+  static String monthLong(DateTime date) => _monthNames[date.month - 1];
+
   /// `October 2026`.
-  static String monthYear(DateTime date) => '${_monthNames[date.month - 1]} ${date.year}';
+  static String monthYear(DateTime date) => '${monthLong(date)} ${date.year}';
 
   /// `Tue 7 Oct`.
   static String dateShort(DateTime date) => '${weekdayShort(date)} ${date.day} ${monthShort(date)}';
