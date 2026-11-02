@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../../core/routing/app_router.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/utils/app_logger.dart';
 import '../../../../../core/widgets/snackbar_utils.dart';
+import '../../controllers/session_actions.dart';
 import '../../models/user_role.dart';
 import '../../models/user_repository.dart';
 import '../../models/auth_repository.dart';
@@ -22,6 +24,7 @@ class RoleSelectionScreen extends ConsumerStatefulWidget {
 class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
   UserRole? _selectedRole;
   bool _isLoading = false;
+  bool _isSigningOut = false;
 
   Future<void> _submitRole() async {
     if (_selectedRole == null) return;
@@ -71,10 +74,55 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
     }
   }
 
+  /// Lets someone who signed up with the wrong email (or just wants out)
+  /// leave before choosing a role.
+  Future<void> _confirmLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Log out?'),
+        content: const Text('You can sign in again any time to finish setting up your account.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.destructive, foregroundColor: Colors.white),
+            child: const Text('Log out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _isSigningOut = true);
+    try {
+      await ref.read(sessionActionsProvider).signOut();
+      if (mounted) context.go(AppRoute.splash.path);
+    } catch (e, st) {
+      AppLogger.e('Sign out from role selection failed', tag: 'RoleSelection', error: e, stackTrace: st);
+      if (mounted) {
+        setState(() => _isSigningOut = false);
+        context.showAppSnackBar("Couldn't log you out. Please try again.", isError: true);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final busy = _isLoading || _isSigningOut;
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        actions: [
+          TextButton.icon(
+            onPressed: busy ? null : _confirmLogout,
+            icon: _isSigningOut
+                ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.logout_rounded, size: 18),
+            label: const Text('Log out'),
+            style: TextButton.styleFrom(foregroundColor: context.colorScheme.onSurface),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: SafeArea(
         child: Padding(
           padding: EdgeInsets.all(24.0),
@@ -109,10 +157,28 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
                 role: UserRole.provider,
               ),
               const Spacer(),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline_rounded, size: 18, color: context.colorScheme.onSurface.withValues(alpha: 0.55)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      RoleSelectionCopy.note,
+                      style: TextStyle(
+                        fontSize: 13,
+                        height: 1.4,
+                        color: context.colorScheme.onSurface.withValues(alpha: 0.65),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _selectedRole == null || _isLoading
+                  onPressed: _selectedRole == null || busy
                       ? null
                       : _submitRole,
                   child: _isLoading
@@ -185,4 +251,12 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
       ),
     );
   }
+}
+
+/// Copy for the role selection screen.
+class RoleSelectionCopy {
+  RoleSelectionCopy._();
+
+  static const String note =
+      "You can't change your role once you've chosen it. You can delete your account at any time in Settings.";
 }

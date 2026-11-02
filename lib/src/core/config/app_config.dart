@@ -71,6 +71,10 @@ class AppConfig {
   /// Where users reach a person (e.g. to delete a suspended account).
   static const String supportEmail = 'hello@myglo.app';
 
+  /// How long the connection must stay down before the "No Internet
+  /// Connection" sheet appears, so brief blips don't interrupt.
+  static const Duration offlineSheetDelay = Duration(seconds: 2);
+
   /// Longest comment. The database enforces the same.
   static const int commentMaxLength = 500;
 

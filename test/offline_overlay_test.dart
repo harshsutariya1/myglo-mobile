@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:myglo/src/core/config/app_config.dart';
 import 'package:myglo/src/core/services/connectivity_service.dart';
 import 'package:myglo/src/core/theme/app_theme.dart';
 import 'package:myglo/src/core/widgets/offline_overlay.dart';
@@ -85,6 +86,13 @@ Future<_FakeNetwork> _pumpApp(WidgetTester tester, TextEditingController draft) 
   return fake;
 }
 
+/// Goes offline and waits out the delay before the sheet appears.
+Future<void> _goOffline(WidgetTester tester, _FakeNetwork fake) async {
+  fake.set(NetworkStatus.offline);
+  await tester.pump(AppConfig.offlineSheetDelay);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('shows nothing while online', (tester) async {
     await _pumpApp(tester, TextEditingController());
@@ -92,11 +100,36 @@ void main() {
     expect(find.text(OfflineCopy.title), findsNothing);
   });
 
-  testWidgets('offline shows illustration, copy and Retry; online dismisses it', (tester) async {
+  testWidgets('waits before showing the sheet', (tester) async {
     final fake = await _pumpApp(tester, TextEditingController());
 
     fake.set(NetworkStatus.offline);
+    await tester.pump(AppConfig.offlineSheetDelay - const Duration(milliseconds: 100));
+    expect(find.text(OfflineCopy.title), findsNothing);
+
+    await tester.pump(const Duration(milliseconds: 100));
     await tester.pumpAndSettle();
+    expect(find.text(OfflineCopy.title), findsOneWidget);
+  });
+
+  testWidgets('a blip shorter than the delay never shows the sheet', (tester) async {
+    final fake = await _pumpApp(tester, TextEditingController());
+
+    fake.set(NetworkStatus.offline);
+    await tester.pump(const Duration(milliseconds: 800));
+    fake.set(NetworkStatus.online);
+    await tester.pump(AppConfig.offlineSheetDelay);
+    await tester.pumpAndSettle();
+
+    expect(find.text(OfflineCopy.title), findsNothing);
+    // Back still works: nothing is swallowing it.
+    expect(await tester.binding.handlePopRoute(), isFalse);
+  });
+
+  testWidgets('offline shows illustration, copy and Retry; online dismisses it', (tester) async {
+    final fake = await _pumpApp(tester, TextEditingController());
+
+    await _goOffline(tester, fake);
 
     expect(find.text('No Internet Connection'), findsOneWidget);
     expect(find.text(OfflineCopy.description), findsOneWidget);
@@ -111,8 +144,7 @@ void main() {
 
   testWidgets('Retry re-probes and reports when still offline', (tester) async {
     final fake = await _pumpApp(tester, TextEditingController());
-    fake.set(NetworkStatus.offline);
-    await tester.pumpAndSettle();
+    await _goOffline(tester, fake);
 
     await tester.tap(find.text('Retry'));
     await tester.pumpAndSettle();
@@ -146,8 +178,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Confirm booking'), findsOneWidget);
 
-    fake.set(NetworkStatus.offline);
-    await tester.pumpAndSettle();
+    await _goOffline(tester, fake);
 
     // Sheet is mounted above the dialog, and the dialog is still there.
     expect(find.text('No Internet Connection'), findsOneWidget);
@@ -172,8 +203,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Second step'), findsOneWidget);
 
-    fake.set(NetworkStatus.offline);
-    await tester.pumpAndSettle();
+    await _goOffline(tester, fake);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     expect(find.text('Second step'), findsOneWidget, reason: 'route history untouched');

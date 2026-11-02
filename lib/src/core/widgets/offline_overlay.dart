@@ -1,11 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../config/app_config.dart';
 import '../services/connectivity_service.dart';
 import '../theme/app_theme.dart';
 
 /// Shows a blocking "No Internet Connection" sheet above the whole app while
-/// the backend is unreachable.
+/// the backend is unreachable, once it has been for
+/// [AppConfig.offlineSheetDelay]. It goes away as soon as the connection is
+/// back.
 ///
 /// It is meant for `MaterialApp.router(builder: ...)`. The sheet is a sibling
 /// layered over the router rather than a pushed route, so the navigation
@@ -23,18 +28,45 @@ class OfflineOverlay extends ConsumerStatefulWidget {
 
 class _OfflineOverlayState extends ConsumerState<OfflineOverlay>
     with WidgetsBindingObserver {
+  /// Whether the sheet is up: only once the connection has stayed down for
+  /// [AppConfig.offlineSheetDelay].
+  bool _sheetVisible = false;
+  Timer? _showTimer;
+
   @override
   void initState() {
     super.initState();
     // Registered before the router's own observer, so while the sheet is up the
     // system back button is consumed here instead of popping routes underneath.
     WidgetsBinding.instance.addObserver(this);
+    ref.listenManual<NetworkStatus>(
+      networkStatusProvider,
+      (_, status) => _onStatus(status),
+      fireImmediately: true,
+    );
   }
 
   @override
   void dispose() {
+    _showTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  void _onStatus(NetworkStatus status) {
+    if (status == NetworkStatus.offline) {
+      if (_sheetVisible || _showTimer != null) return;
+      _showTimer = Timer(AppConfig.offlineSheetDelay, () {
+        _showTimer = null;
+        if (mounted && ref.read(networkStatusProvider) == NetworkStatus.offline) {
+          setState(() => _sheetVisible = true);
+        }
+      });
+    } else {
+      _showTimer?.cancel();
+      _showTimer = null;
+      if (_sheetVisible) setState(() => _sheetVisible = false);
+    }
   }
 
   @override
@@ -45,14 +77,10 @@ class _OfflineOverlayState extends ConsumerState<OfflineOverlay>
   }
 
   @override
-  Future<bool> didPopRoute() async {
-    return ref.read(networkStatusProvider) == NetworkStatus.offline;
-  }
+  Future<bool> didPopRoute() async => _sheetVisible;
 
   @override
   Widget build(BuildContext context) {
-    final isOffline = ref.watch(networkStatusProvider) == NetworkStatus.offline;
-
     // `child` keeps a fixed position in the Stack so it is never re-mounted.
     return Stack(
       children: [
@@ -64,7 +92,7 @@ class _OfflineOverlayState extends ConsumerState<OfflineOverlay>
               opacity: animation,
               child: child,
             ),
-            child: isOffline
+            child: _sheetVisible
                 ? const _OfflineSheet(key: ValueKey('offline'))
                 : const SizedBox.shrink(key: ValueKey('online')),
           ),
