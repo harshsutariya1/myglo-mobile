@@ -60,7 +60,8 @@ role, closed Stripe account and time, with no personal details.
 
 1. Migration `20261102120000_account_deletion` (applied 2026-11-02).
 2. Edge Functions: `delete-account` (new, verify JWT on) and `jobs-worker`
-   (new job kinds):
+   (new job kinds). Both deployed 2026-11-03 (`delete-account` v1,
+   `jobs-worker` v11). To redeploy:
 
    ```bash
    supabase functions deploy jobs-worker --project-ref oyveznxdnbduqgaddklr
