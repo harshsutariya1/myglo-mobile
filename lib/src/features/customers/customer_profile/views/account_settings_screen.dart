@@ -55,7 +55,7 @@ class AccountSettingsScreen extends ConsumerWidget {
             Divider(color: Colors.grey.shade300, height: 1),
             ProfileMenuTile(
               title: 'Delete Account',
-              icon: Icons.person_remove_outlined,
+              icon: Icons.person_off_outlined,
               isDestructive: true,
               onTap: () => context.pushNamed(AppRoute.deleteAccount.name),
             ),
