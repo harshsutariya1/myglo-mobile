@@ -306,7 +306,7 @@ class _RequestActionsState extends ConsumerState<_RequestActions> {
             const SizedBox(width: 6),
             Expanded(
               child: Text(
-                'Respond before ${Formatters.dateTimeShort(booking.startsAtLocal)}',
+                'Respond before ${Formatters.dateTimeShort(booking.respondByLocal)}',
                 style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: scheme.onSurface.withValues(alpha: 0.65)),
               ),
             ),

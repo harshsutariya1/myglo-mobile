@@ -72,6 +72,11 @@ Future<void> initializeApp({required void Function(SharedPreferences preferences
       // Users are identified by their opaque Supabase id only (see
       // _bindSentryUser); no IP addresses, emails or request bodies.
       options.sendDefaultPii = false;
+      // Sentry turns its own debug mode on in debug builds. On iOS that runs a
+      // duplicate-SDK scan of every loaded image, which can deadlock app start
+      // against package:objective_c's debug-only class checks (seen on the
+      // simulator with the Stripe SDK). Turn it on here only to debug Sentry.
+      options.debug = false;
       options.enableFramesTracking = true;
       // Debug runs keep everything; release builds sample to protect quota.
       options.tracesSampleRate = kReleaseMode ? AppConfig.sentryTracesSampleRate : 1.0;

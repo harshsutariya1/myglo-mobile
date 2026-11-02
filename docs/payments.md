@@ -168,7 +168,12 @@ all with API version **2026-09-30.endive**:
 |---|---|---|---|---|
 | Myglo platform | Your account | Snapshot | `https://oyveznxdnbduqgaddklr.supabase.co/functions/v1/stripe-webhook/platform` | `payment_intent.succeeded`, `payment_intent.amount_capturable_updated`, `payment_intent.payment_failed`, `payment_intent.canceled`, `payment_intent.processing`, `charge.refunded`, `charge.refund.updated`, `refund.updated`, `refund.failed`, `charge.dispute.created`, `charge.dispute.updated`, `charge.dispute.closed`, `charge.dispute.funds_withdrawn`, `charge.dispute.funds_reinstated`, `transfer.created`, `transfer.reversed`, `transfer.updated` |
 | Myglo provider payouts | Connected accounts | Snapshot | `…/stripe-webhook/connect` | `payout.created`, `payout.updated`, `payout.paid`, `payout.failed`, `payout.canceled` |
-| Myglo provider accounts | Connected accounts | Thin (v2) | `…/stripe-webhook/v2` | `v2.core.account.updated`, `v2.core.account[requirements].updated`, `v2.core.account[configuration.recipient].capability_status_updated`, `v2.core.account.closed` |
+| Myglo provider accounts | Your account | Thin (v2) | `…/stripe-webhook/v2` | `v2.core.account.updated`, `v2.core.account[requirements].updated`, `v2.core.account[configuration.recipient].capability_status_updated`, `v2.core.account.closed` |
+
+Accounts v2 sends its `v2.core.account…` events from **Your account**, even
+though they describe connected accounts. A destination set to "Connected
+accounts" never receives them, and the scope can't be changed afterwards
+(create a new destination instead).
 
 Save each signing secret (`whsec_...`) as a Supabase secret:
 `STRIPE_WEBHOOK_SECRET_PLATFORM`, `STRIPE_WEBHOOK_SECRET_CONNECT` and
