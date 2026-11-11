@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../../core/config/remote_app_config.dart';
 import '../../../../../core/routing/app_router.dart';
+import '../../../../shared/authentication/controllers/user_profile_provider.dart';
+import '../../../../shared/authentication/models/profile_model.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/utils/formatters.dart';
 import '../../../../shared/bookings/models/booking_settings.dart';
@@ -30,6 +33,10 @@ class BusinessAttention extends ConsumerWidget {
     final setup = ref.watch(paymentsSetupProvider).value;
     final settings = ref.watch(ownBookingSettingsProvider).value;
     final progress = ref.watch(bookingSetupProgressProvider);
+    final profile = ref.watch(userProfileProvider).value?.profile;
+    final phoneBlocksListing = profile != null &&
+        !profile.isPhoneVerified &&
+        (ref.watch(remoteAppConfigProvider).value?.requireProviderPhoneVerification ?? false);
     void home({ProviderHomeTab tab = ProviderHomeTab.upcoming}) => context.goNamed(
           AppRoute.providerHome.name,
           queryParameters: tab == ProviderHomeTab.upcoming ? const {} : {'tab': tab.query},
@@ -45,6 +52,14 @@ class BusinessAttention extends ConsumerWidget {
           subtitle: '${progress.done} of ${BookingSetupProgress.total} done. Clients can book once your services, '
               'hours and location are set',
           onTap: home,
+        ),
+      if (phoneBlocksListing)
+        SettingsTile(
+          icon: Icons.phone_outlined,
+          iconColor: AppTheme.warning,
+          title: 'Verify your phone number',
+          subtitle: "Clients can't find or book you until you do",
+          onTap: () => context.pushNamed(AppRoute.verifyPhone.name),
         ),
       if (settings?.hiddenFromMarketplace == true)
         SettingsTile(

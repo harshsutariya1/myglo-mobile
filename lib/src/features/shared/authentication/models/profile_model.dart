@@ -41,6 +41,11 @@ abstract class ProfileModel with _$ProfileModel {
     @JsonKey(name: 'last_name') String? lastName,
     String? email,
     @JsonKey(name: 'phone_number') String? phoneNumber,
+
+    /// When [phoneNumber] was confirmed by a texted code; null if it never
+    /// was, or the number changed since. Only the server sets it, and only
+    /// the owner's own profile carries it.
+    @JsonKey(name: 'phone_verified_at') DateTime? phoneVerifiedAt,
     @JsonKey(name: 'profile_pic') String? profilePic,
     String? bio,
     @JsonKey(name: 'followers_count') @Default(0) int followersCount,
@@ -57,6 +62,11 @@ abstract class ProfileModel with _$ProfileModel {
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) =>
       _$ProfileModelFromJson(json);
+}
+
+extension ProfilePhone on ProfileModel {
+  /// The phone number on the profile has been confirmed by a texted code.
+  bool get isPhoneVerified => phoneVerifiedAt != null && (phoneNumber?.trim().isNotEmpty ?? false);
 }
 
 extension ProfileLocation on ProfileModel {

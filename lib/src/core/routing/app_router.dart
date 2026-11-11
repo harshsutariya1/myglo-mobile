@@ -8,6 +8,7 @@ import '../../features/shared/authentication/models/auth_repository.dart';
 import '../../features/shared/authentication/views/screens/email_auth_screen.dart';
 import '../../features/shared/authentication/views/screens/email_confirmation_screen.dart';
 import '../../features/shared/authentication/views/screens/reset_password_screen.dart';
+import '../../features/providers/provider_profiles/views/screens/verify_phone_screen.dart';
 import '../../features/shared/authentication/views/screens/role_selection_screen.dart';
 import '../../features/shared/authentication/views/screens/onboarding_details_screen.dart';
 import '../../features/shared/authentication/models/user_role.dart';
@@ -119,6 +120,7 @@ enum AppRoute {
   editProviderProfile(path: '/business/profile'),
   coverPhotos(path: '/business/cover-photos'),
   businessLocation(path: '/business/location'),
+  verifyPhone(path: '/business/verify-phone'),
   // The provider's clients, full-screen over Business Tools.
   providerContacts(path: '/business/contacts'),
   // Card payments and payouts (Stripe), full-screen.
@@ -319,6 +321,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoute.businessLocation.path,
         name: AppRoute.businessLocation.name,
         builder: (context, state) => const BusinessLocationScreen(),
+      ),
+      GoRoute(
+        path: AppRoute.verifyPhone.path,
+        name: AppRoute.verifyPhone.name,
+        builder: (context, state) => const VerifyPhoneScreen(),
       ),
       GoRoute(
         path: AppRoute.providerContacts.path,

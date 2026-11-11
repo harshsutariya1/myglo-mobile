@@ -3,7 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/config/remote_app_config.dart';
 import '../../../../core/routing/app_router.dart';
+import '../../../shared/authentication/controllers/user_profile_provider.dart';
+import '../../../shared/authentication/models/profile_model.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_update_banner.dart';
@@ -137,6 +140,7 @@ class _ProviderHomeScreenState extends ConsumerState<ProviderHomeScreen> {
                     children: [
                       PushPromptCard.provider(margin: EdgeInsets.only(bottom: 16)),
                       BookingSetupCard(),
+                      _VerifyPhoneBanner(),
                       _PausedBanner(),
                     ],
                   ),
@@ -194,6 +198,63 @@ class _ProviderHomeScreenState extends ConsumerState<ProviderHomeScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Shown while Myglo requires a verified phone number and the provider
+/// hasn't verified theirs: they aren't listed until they do.
+class _VerifyPhoneBanner extends ConsumerWidget {
+  const _VerifyPhoneBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final required = ref.watch(remoteAppConfigProvider).value?.requireProviderPhoneVerification ?? false;
+    final profile = ref.watch(userProfileProvider).value?.profile;
+    if (!required || profile == null || profile.isPhoneVerified) return const SizedBox.shrink();
+    final scheme = context.colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+      decoration: BoxDecoration(
+        color: AppTheme.warning.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.phone_outlined, color: AppTheme.warning, size: 26),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Verify your phone number',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: scheme.onSurface),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  "Clients can't find or book you until your number is verified.",
+                  style: TextStyle(fontSize: 13, height: 1.35, color: scheme.onSurface.withValues(alpha: 0.65)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          FilledButton(
+            onPressed: () => context.pushNamed(AppRoute.verifyPhone.name),
+            style: FilledButton.styleFrom(
+              backgroundColor: scheme.onSurface,
+              foregroundColor: scheme.surface,
+              minimumSize: const Size(0, 40),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+            ),
+            child: const Text('Verify'),
+          ),
+        ],
       ),
     );
   }

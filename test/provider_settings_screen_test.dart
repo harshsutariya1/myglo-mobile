@@ -115,6 +115,7 @@ const _destinations = [
   AppRoute.timeOff,
   AppRoute.deleteAccount,
   AppRoute.resetPassword,
+  AppRoute.verifyPhone,
 ];
 
 Future<(_MockAuthRepository, _FakeSettingsActions)> _pump(
@@ -126,6 +127,7 @@ Future<(_MockAuthRepository, _FakeSettingsActions)> _pump(
   _FakePushTokens? pushTokens,
   _FakeSystem? system,
   bool providerSelfDeletion = false,
+  bool requirePhoneVerification = false,
 }) async {
   SharedPreferences.setMockInitialValues({});
   final preferences = await SharedPreferences.getInstance();
@@ -160,7 +162,10 @@ Future<(_MockAuthRepository, _FakeSettingsActions)> _pump(
         pushTokenRepositoryProvider.overrideWithValue(pushTokens ?? _FakePushTokens()),
         if (system != null) systemBridgeProvider.overrideWithValue(system),
         remoteAppConfigProvider.overrideWith(
-          (ref) async => RemoteAppConfig(providerSelfDeletion: providerSelfDeletion),
+          (ref) async => RemoteAppConfig(
+            providerSelfDeletion: providerSelfDeletion,
+            requireProviderPhoneVerification: requirePhoneVerification,
+          ),
         ),
       ],
       child: MaterialApp.router(
@@ -374,6 +379,41 @@ void main() {
       {'hidden_from_marketplace': false},
     ]);
     await tester.pumpAndSettle(const Duration(seconds: 9));
+  });
+
+  testWidgets('an unverified phone number asks to be verified and opens verification', (tester) async {
+    await _pump(tester, profile: _profile.copyWith(phoneNumber: '0412345678', phoneVerifiedAt: null));
+
+    await tester.scrollUntilVisible(find.text('Phone number'), 300);
+    expect(find.text('0412 345 678 · not verified yet'), findsOneWidget);
+    expect(find.text('Verify'), findsOneWidget);
+
+    await _tapRow(tester, 'Phone number');
+
+    expect(find.text('opened verifyPhone'), findsOneWidget);
+  });
+
+  testWidgets('a verified phone number says so', (tester) async {
+    await _pump(
+      tester,
+      profile: _profile.copyWith(phoneNumber: '+61412345678', phoneVerifiedAt: DateTime(2026, 11, 1)),
+    );
+
+    await tester.scrollUntilVisible(find.text('Phone number'), 300);
+    expect(find.text('0412 345 678'), findsOneWidget);
+    expect(find.text('Verified'), findsOneWidget);
+    expect(find.text('Verify'), findsNothing);
+  });
+
+  testWidgets('when verification is required, an unverified provider is told what it costs them', (tester) async {
+    await _pump(
+      tester,
+      profile: _profile.copyWith(phoneNumber: '0412345678', phoneVerifiedAt: null),
+      requirePhoneVerification: true,
+    );
+
+    await tester.scrollUntilVisible(find.text('Phone number'), 300);
+    expect(find.text('Verify it so clients can find and book you'), findsOneWidget);
   });
 
   testWidgets('change password opens the reset flow for the login email', (tester) async {

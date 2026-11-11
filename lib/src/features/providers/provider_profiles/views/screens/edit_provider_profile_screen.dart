@@ -287,7 +287,8 @@ class _EditProviderProfileScreenState extends ConsumerState<EditProviderProfileS
                     SettingsSection(
                       title: 'Contact',
                       showDividers: false,
-                      footer: 'Choose whether clients see your email and phone in Settings › Privacy.',
+                      footer: 'Choose whether clients see your email and phone in Settings › Privacy. '
+                          'A changed phone number needs verifying again (Settings › Phone number).',
                       children: [
                         _FieldRow(
                           child: TextFormField(

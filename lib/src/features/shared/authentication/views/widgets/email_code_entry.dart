@@ -5,8 +5,9 @@ import 'package:pinput/pinput.dart';
 import '../../../../../core/config/app_config.dart';
 import '../../../../../core/theme/app_theme.dart';
 
-/// Code-entry step of account creation and password reset: explains where
-/// the code was sent, takes the digits, and offers a rate-limited "resend".
+/// Code-entry step of account creation, password reset and phone
+/// verification: explains where the code was sent, takes the digits, and
+/// offers a rate-limited "resend".
 class EmailCodeEntry extends StatelessWidget {
   const EmailCodeEntry({
     super.key,
@@ -19,11 +20,19 @@ class EmailCodeEntry extends StatelessWidget {
     this.enabled = true,
     this.isResending = false,
     this.purpose = 'Enter it below to create your account.',
+    this.icon = Icons.mark_email_unread_outlined,
+    this.length = AppConfig.emailOtpLength,
   });
+
+  final IconData icon;
+
+  /// Digits in the code.
+  final int length;
 
   /// What entering the code does, shown under where it was sent.
   final String purpose;
 
+  /// Where the code went: an email address, or a phone number.
   final String email;
   final TextEditingController pinController;
   final ValueChanged<String> onCompleted;
@@ -58,7 +67,7 @@ class EmailCodeEntry extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Icon(Icons.mark_email_unread_outlined, size: 80, color: scheme.primary),
+        Icon(icon, size: 80, color: scheme.primary),
         const SizedBox(height: 24),
         Text(
           'Enter your code',
@@ -71,14 +80,14 @@ class EmailCodeEntry extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          "We've sent a ${AppConfig.emailOtpLength}-digit code to\n$email.\n$purpose",
+          "We've sent a $length-digit code to\n$email.\n$purpose",
           textAlign: TextAlign.center,
           style: const TextStyle(fontSize: 16),
         ),
         const SizedBox(height: 32),
         Center(
           child: Pinput(
-            length: AppConfig.emailOtpLength,
+            length: length,
             controller: pinController,
             enabled: enabled,
             autofocus: true,

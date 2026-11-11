@@ -287,7 +287,10 @@ as List<double>,
 /// @nodoc
 mixin _$ProfileModel {
 
- String get id; UserRole get role;@JsonKey(name: 'first_name') String? get firstName;@JsonKey(name: 'last_name') String? get lastName; String? get email;@JsonKey(name: 'phone_number') String? get phoneNumber;@JsonKey(name: 'profile_pic') String? get profilePic; String? get bio;@JsonKey(name: 'followers_count') int get followersCount;@JsonKey(name: 'following_count') int get followingCount;@JsonKey(name: 'is_email_public') bool get isEmailPublic;@JsonKey(name: 'is_phone_public') bool get isPhonePublic;@JsonKey(name: 'provider_name') String? get providerName;@JsonKey(name: 'address_text') String? get addressText;@LocationCoordinatesConverter() LocationCoordinates? get coordinates;/// Public URLs of up to five cover photos, in display order (providers).
+ String get id; UserRole get role;@JsonKey(name: 'first_name') String? get firstName;@JsonKey(name: 'last_name') String? get lastName; String? get email;@JsonKey(name: 'phone_number') String? get phoneNumber;/// When [phoneNumber] was confirmed by a texted code; null if it never
+/// was, or the number changed since. Only the server sets it, and only
+/// the owner's own profile carries it.
+@JsonKey(name: 'phone_verified_at') DateTime? get phoneVerifiedAt;@JsonKey(name: 'profile_pic') String? get profilePic; String? get bio;@JsonKey(name: 'followers_count') int get followersCount;@JsonKey(name: 'following_count') int get followingCount;@JsonKey(name: 'is_email_public') bool get isEmailPublic;@JsonKey(name: 'is_phone_public') bool get isPhonePublic;@JsonKey(name: 'provider_name') String? get providerName;@JsonKey(name: 'address_text') String? get addressText;@LocationCoordinatesConverter() LocationCoordinates? get coordinates;/// Public URLs of up to five cover photos, in display order (providers).
 @JsonKey(name: 'cover_photos') List<String> get coverPhotos;
 /// Create a copy of ProfileModel
 /// with the given fields replaced by the non-null parameter values.
@@ -301,16 +304,16 @@ $ProfileModelCopyWith<ProfileModel> get copyWith => _$ProfileModelCopyWithImpl<P
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProfileModel&&(identical(other.id, id) || other.id == id)&&(identical(other.role, role) || other.role == role)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.email, email) || other.email == email)&&(identical(other.phoneNumber, phoneNumber) || other.phoneNumber == phoneNumber)&&(identical(other.profilePic, profilePic) || other.profilePic == profilePic)&&(identical(other.bio, bio) || other.bio == bio)&&(identical(other.followersCount, followersCount) || other.followersCount == followersCount)&&(identical(other.followingCount, followingCount) || other.followingCount == followingCount)&&(identical(other.isEmailPublic, isEmailPublic) || other.isEmailPublic == isEmailPublic)&&(identical(other.isPhonePublic, isPhonePublic) || other.isPhonePublic == isPhonePublic)&&(identical(other.providerName, providerName) || other.providerName == providerName)&&(identical(other.addressText, addressText) || other.addressText == addressText)&&(identical(other.coordinates, coordinates) || other.coordinates == coordinates)&&const DeepCollectionEquality().equals(other.coverPhotos, coverPhotos));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProfileModel&&(identical(other.id, id) || other.id == id)&&(identical(other.role, role) || other.role == role)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.email, email) || other.email == email)&&(identical(other.phoneNumber, phoneNumber) || other.phoneNumber == phoneNumber)&&(identical(other.phoneVerifiedAt, phoneVerifiedAt) || other.phoneVerifiedAt == phoneVerifiedAt)&&(identical(other.profilePic, profilePic) || other.profilePic == profilePic)&&(identical(other.bio, bio) || other.bio == bio)&&(identical(other.followersCount, followersCount) || other.followersCount == followersCount)&&(identical(other.followingCount, followingCount) || other.followingCount == followingCount)&&(identical(other.isEmailPublic, isEmailPublic) || other.isEmailPublic == isEmailPublic)&&(identical(other.isPhonePublic, isPhonePublic) || other.isPhonePublic == isPhonePublic)&&(identical(other.providerName, providerName) || other.providerName == providerName)&&(identical(other.addressText, addressText) || other.addressText == addressText)&&(identical(other.coordinates, coordinates) || other.coordinates == coordinates)&&const DeepCollectionEquality().equals(other.coverPhotos, coverPhotos));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,role,firstName,lastName,email,phoneNumber,profilePic,bio,followersCount,followingCount,isEmailPublic,isPhonePublic,providerName,addressText,coordinates,const DeepCollectionEquality().hash(coverPhotos));
+int get hashCode => Object.hash(runtimeType,id,role,firstName,lastName,email,phoneNumber,phoneVerifiedAt,profilePic,bio,followersCount,followingCount,isEmailPublic,isPhonePublic,providerName,addressText,coordinates,const DeepCollectionEquality().hash(coverPhotos));
 
 @override
 String toString() {
-  return 'ProfileModel(id: $id, role: $role, firstName: $firstName, lastName: $lastName, email: $email, phoneNumber: $phoneNumber, profilePic: $profilePic, bio: $bio, followersCount: $followersCount, followingCount: $followingCount, isEmailPublic: $isEmailPublic, isPhonePublic: $isPhonePublic, providerName: $providerName, addressText: $addressText, coordinates: $coordinates, coverPhotos: $coverPhotos)';
+  return 'ProfileModel(id: $id, role: $role, firstName: $firstName, lastName: $lastName, email: $email, phoneNumber: $phoneNumber, phoneVerifiedAt: $phoneVerifiedAt, profilePic: $profilePic, bio: $bio, followersCount: $followersCount, followingCount: $followingCount, isEmailPublic: $isEmailPublic, isPhonePublic: $isPhonePublic, providerName: $providerName, addressText: $addressText, coordinates: $coordinates, coverPhotos: $coverPhotos)';
 }
 
 
@@ -321,7 +324,7 @@ abstract mixin class $ProfileModelCopyWith<$Res>  {
   factory $ProfileModelCopyWith(ProfileModel value, $Res Function(ProfileModel) _then) = _$ProfileModelCopyWithImpl;
 @useResult
 $Res call({
- String id, UserRole role,@JsonKey(name: 'first_name') String? firstName,@JsonKey(name: 'last_name') String? lastName, String? email,@JsonKey(name: 'phone_number') String? phoneNumber,@JsonKey(name: 'profile_pic') String? profilePic, String? bio,@JsonKey(name: 'followers_count') int followersCount,@JsonKey(name: 'following_count') int followingCount,@JsonKey(name: 'is_email_public') bool isEmailPublic,@JsonKey(name: 'is_phone_public') bool isPhonePublic,@JsonKey(name: 'provider_name') String? providerName,@JsonKey(name: 'address_text') String? addressText,@LocationCoordinatesConverter() LocationCoordinates? coordinates,@JsonKey(name: 'cover_photos') List<String> coverPhotos
+ String id, UserRole role,@JsonKey(name: 'first_name') String? firstName,@JsonKey(name: 'last_name') String? lastName, String? email,@JsonKey(name: 'phone_number') String? phoneNumber,@JsonKey(name: 'phone_verified_at') DateTime? phoneVerifiedAt,@JsonKey(name: 'profile_pic') String? profilePic, String? bio,@JsonKey(name: 'followers_count') int followersCount,@JsonKey(name: 'following_count') int followingCount,@JsonKey(name: 'is_email_public') bool isEmailPublic,@JsonKey(name: 'is_phone_public') bool isPhonePublic,@JsonKey(name: 'provider_name') String? providerName,@JsonKey(name: 'address_text') String? addressText,@LocationCoordinatesConverter() LocationCoordinates? coordinates,@JsonKey(name: 'cover_photos') List<String> coverPhotos
 });
 
 
@@ -338,7 +341,7 @@ class _$ProfileModelCopyWithImpl<$Res>
 
 /// Create a copy of ProfileModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? role = null,Object? firstName = freezed,Object? lastName = freezed,Object? email = freezed,Object? phoneNumber = freezed,Object? profilePic = freezed,Object? bio = freezed,Object? followersCount = null,Object? followingCount = null,Object? isEmailPublic = null,Object? isPhonePublic = null,Object? providerName = freezed,Object? addressText = freezed,Object? coordinates = freezed,Object? coverPhotos = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? role = null,Object? firstName = freezed,Object? lastName = freezed,Object? email = freezed,Object? phoneNumber = freezed,Object? phoneVerifiedAt = freezed,Object? profilePic = freezed,Object? bio = freezed,Object? followersCount = null,Object? followingCount = null,Object? isEmailPublic = null,Object? isPhonePublic = null,Object? providerName = freezed,Object? addressText = freezed,Object? coordinates = freezed,Object? coverPhotos = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
@@ -346,7 +349,8 @@ as UserRole,firstName: freezed == firstName ? _self.firstName : firstName // ign
 as String?,lastName: freezed == lastName ? _self.lastName : lastName // ignore: cast_nullable_to_non_nullable
 as String?,email: freezed == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String?,phoneNumber: freezed == phoneNumber ? _self.phoneNumber : phoneNumber // ignore: cast_nullable_to_non_nullable
-as String?,profilePic: freezed == profilePic ? _self.profilePic : profilePic // ignore: cast_nullable_to_non_nullable
+as String?,phoneVerifiedAt: freezed == phoneVerifiedAt ? _self.phoneVerifiedAt : phoneVerifiedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,profilePic: freezed == profilePic ? _self.profilePic : profilePic // ignore: cast_nullable_to_non_nullable
 as String?,bio: freezed == bio ? _self.bio : bio // ignore: cast_nullable_to_non_nullable
 as String?,followersCount: null == followersCount ? _self.followersCount : followersCount // ignore: cast_nullable_to_non_nullable
 as int,followingCount: null == followingCount ? _self.followingCount : followingCount // ignore: cast_nullable_to_non_nullable
@@ -453,10 +457,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  UserRole role, @JsonKey(name: 'first_name')  String? firstName, @JsonKey(name: 'last_name')  String? lastName,  String? email, @JsonKey(name: 'phone_number')  String? phoneNumber, @JsonKey(name: 'profile_pic')  String? profilePic,  String? bio, @JsonKey(name: 'followers_count')  int followersCount, @JsonKey(name: 'following_count')  int followingCount, @JsonKey(name: 'is_email_public')  bool isEmailPublic, @JsonKey(name: 'is_phone_public')  bool isPhonePublic, @JsonKey(name: 'provider_name')  String? providerName, @JsonKey(name: 'address_text')  String? addressText, @LocationCoordinatesConverter()  LocationCoordinates? coordinates, @JsonKey(name: 'cover_photos')  List<String> coverPhotos)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  UserRole role, @JsonKey(name: 'first_name')  String? firstName, @JsonKey(name: 'last_name')  String? lastName,  String? email, @JsonKey(name: 'phone_number')  String? phoneNumber, @JsonKey(name: 'phone_verified_at')  DateTime? phoneVerifiedAt, @JsonKey(name: 'profile_pic')  String? profilePic,  String? bio, @JsonKey(name: 'followers_count')  int followersCount, @JsonKey(name: 'following_count')  int followingCount, @JsonKey(name: 'is_email_public')  bool isEmailPublic, @JsonKey(name: 'is_phone_public')  bool isPhonePublic, @JsonKey(name: 'provider_name')  String? providerName, @JsonKey(name: 'address_text')  String? addressText, @LocationCoordinatesConverter()  LocationCoordinates? coordinates, @JsonKey(name: 'cover_photos')  List<String> coverPhotos)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProfileModel() when $default != null:
-return $default(_that.id,_that.role,_that.firstName,_that.lastName,_that.email,_that.phoneNumber,_that.profilePic,_that.bio,_that.followersCount,_that.followingCount,_that.isEmailPublic,_that.isPhonePublic,_that.providerName,_that.addressText,_that.coordinates,_that.coverPhotos);case _:
+return $default(_that.id,_that.role,_that.firstName,_that.lastName,_that.email,_that.phoneNumber,_that.phoneVerifiedAt,_that.profilePic,_that.bio,_that.followersCount,_that.followingCount,_that.isEmailPublic,_that.isPhonePublic,_that.providerName,_that.addressText,_that.coordinates,_that.coverPhotos);case _:
   return orElse();
 
 }
@@ -474,10 +478,10 @@ return $default(_that.id,_that.role,_that.firstName,_that.lastName,_that.email,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  UserRole role, @JsonKey(name: 'first_name')  String? firstName, @JsonKey(name: 'last_name')  String? lastName,  String? email, @JsonKey(name: 'phone_number')  String? phoneNumber, @JsonKey(name: 'profile_pic')  String? profilePic,  String? bio, @JsonKey(name: 'followers_count')  int followersCount, @JsonKey(name: 'following_count')  int followingCount, @JsonKey(name: 'is_email_public')  bool isEmailPublic, @JsonKey(name: 'is_phone_public')  bool isPhonePublic, @JsonKey(name: 'provider_name')  String? providerName, @JsonKey(name: 'address_text')  String? addressText, @LocationCoordinatesConverter()  LocationCoordinates? coordinates, @JsonKey(name: 'cover_photos')  List<String> coverPhotos)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  UserRole role, @JsonKey(name: 'first_name')  String? firstName, @JsonKey(name: 'last_name')  String? lastName,  String? email, @JsonKey(name: 'phone_number')  String? phoneNumber, @JsonKey(name: 'phone_verified_at')  DateTime? phoneVerifiedAt, @JsonKey(name: 'profile_pic')  String? profilePic,  String? bio, @JsonKey(name: 'followers_count')  int followersCount, @JsonKey(name: 'following_count')  int followingCount, @JsonKey(name: 'is_email_public')  bool isEmailPublic, @JsonKey(name: 'is_phone_public')  bool isPhonePublic, @JsonKey(name: 'provider_name')  String? providerName, @JsonKey(name: 'address_text')  String? addressText, @LocationCoordinatesConverter()  LocationCoordinates? coordinates, @JsonKey(name: 'cover_photos')  List<String> coverPhotos)  $default,) {final _that = this;
 switch (_that) {
 case _ProfileModel():
-return $default(_that.id,_that.role,_that.firstName,_that.lastName,_that.email,_that.phoneNumber,_that.profilePic,_that.bio,_that.followersCount,_that.followingCount,_that.isEmailPublic,_that.isPhonePublic,_that.providerName,_that.addressText,_that.coordinates,_that.coverPhotos);case _:
+return $default(_that.id,_that.role,_that.firstName,_that.lastName,_that.email,_that.phoneNumber,_that.phoneVerifiedAt,_that.profilePic,_that.bio,_that.followersCount,_that.followingCount,_that.isEmailPublic,_that.isPhonePublic,_that.providerName,_that.addressText,_that.coordinates,_that.coverPhotos);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -494,10 +498,10 @@ return $default(_that.id,_that.role,_that.firstName,_that.lastName,_that.email,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  UserRole role, @JsonKey(name: 'first_name')  String? firstName, @JsonKey(name: 'last_name')  String? lastName,  String? email, @JsonKey(name: 'phone_number')  String? phoneNumber, @JsonKey(name: 'profile_pic')  String? profilePic,  String? bio, @JsonKey(name: 'followers_count')  int followersCount, @JsonKey(name: 'following_count')  int followingCount, @JsonKey(name: 'is_email_public')  bool isEmailPublic, @JsonKey(name: 'is_phone_public')  bool isPhonePublic, @JsonKey(name: 'provider_name')  String? providerName, @JsonKey(name: 'address_text')  String? addressText, @LocationCoordinatesConverter()  LocationCoordinates? coordinates, @JsonKey(name: 'cover_photos')  List<String> coverPhotos)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  UserRole role, @JsonKey(name: 'first_name')  String? firstName, @JsonKey(name: 'last_name')  String? lastName,  String? email, @JsonKey(name: 'phone_number')  String? phoneNumber, @JsonKey(name: 'phone_verified_at')  DateTime? phoneVerifiedAt, @JsonKey(name: 'profile_pic')  String? profilePic,  String? bio, @JsonKey(name: 'followers_count')  int followersCount, @JsonKey(name: 'following_count')  int followingCount, @JsonKey(name: 'is_email_public')  bool isEmailPublic, @JsonKey(name: 'is_phone_public')  bool isPhonePublic, @JsonKey(name: 'provider_name')  String? providerName, @JsonKey(name: 'address_text')  String? addressText, @LocationCoordinatesConverter()  LocationCoordinates? coordinates, @JsonKey(name: 'cover_photos')  List<String> coverPhotos)?  $default,) {final _that = this;
 switch (_that) {
 case _ProfileModel() when $default != null:
-return $default(_that.id,_that.role,_that.firstName,_that.lastName,_that.email,_that.phoneNumber,_that.profilePic,_that.bio,_that.followersCount,_that.followingCount,_that.isEmailPublic,_that.isPhonePublic,_that.providerName,_that.addressText,_that.coordinates,_that.coverPhotos);case _:
+return $default(_that.id,_that.role,_that.firstName,_that.lastName,_that.email,_that.phoneNumber,_that.phoneVerifiedAt,_that.profilePic,_that.bio,_that.followersCount,_that.followingCount,_that.isEmailPublic,_that.isPhonePublic,_that.providerName,_that.addressText,_that.coordinates,_that.coverPhotos);case _:
   return null;
 
 }
@@ -509,7 +513,7 @@ return $default(_that.id,_that.role,_that.firstName,_that.lastName,_that.email,_
 @JsonSerializable()
 
 class _ProfileModel implements ProfileModel {
-  const _ProfileModel({required this.id, required this.role, @JsonKey(name: 'first_name') this.firstName, @JsonKey(name: 'last_name') this.lastName, this.email, @JsonKey(name: 'phone_number') this.phoneNumber, @JsonKey(name: 'profile_pic') this.profilePic, this.bio, @JsonKey(name: 'followers_count') this.followersCount = 0, @JsonKey(name: 'following_count') this.followingCount = 0, @JsonKey(name: 'is_email_public') this.isEmailPublic = false, @JsonKey(name: 'is_phone_public') this.isPhonePublic = false, @JsonKey(name: 'provider_name') this.providerName, @JsonKey(name: 'address_text') this.addressText, @LocationCoordinatesConverter() this.coordinates, @JsonKey(name: 'cover_photos') final  List<String> coverPhotos = const <String>[]}): _coverPhotos = coverPhotos;
+  const _ProfileModel({required this.id, required this.role, @JsonKey(name: 'first_name') this.firstName, @JsonKey(name: 'last_name') this.lastName, this.email, @JsonKey(name: 'phone_number') this.phoneNumber, @JsonKey(name: 'phone_verified_at') this.phoneVerifiedAt, @JsonKey(name: 'profile_pic') this.profilePic, this.bio, @JsonKey(name: 'followers_count') this.followersCount = 0, @JsonKey(name: 'following_count') this.followingCount = 0, @JsonKey(name: 'is_email_public') this.isEmailPublic = false, @JsonKey(name: 'is_phone_public') this.isPhonePublic = false, @JsonKey(name: 'provider_name') this.providerName, @JsonKey(name: 'address_text') this.addressText, @LocationCoordinatesConverter() this.coordinates, @JsonKey(name: 'cover_photos') final  List<String> coverPhotos = const <String>[]}): _coverPhotos = coverPhotos;
   factory _ProfileModel.fromJson(Map<String, dynamic> json) => _$ProfileModelFromJson(json);
 
 @override final  String id;
@@ -518,6 +522,10 @@ class _ProfileModel implements ProfileModel {
 @override@JsonKey(name: 'last_name') final  String? lastName;
 @override final  String? email;
 @override@JsonKey(name: 'phone_number') final  String? phoneNumber;
+/// When [phoneNumber] was confirmed by a texted code; null if it never
+/// was, or the number changed since. Only the server sets it, and only
+/// the owner's own profile carries it.
+@override@JsonKey(name: 'phone_verified_at') final  DateTime? phoneVerifiedAt;
 @override@JsonKey(name: 'profile_pic') final  String? profilePic;
 @override final  String? bio;
 @override@JsonKey(name: 'followers_count') final  int followersCount;
@@ -550,16 +558,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProfileModel&&(identical(other.id, id) || other.id == id)&&(identical(other.role, role) || other.role == role)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.email, email) || other.email == email)&&(identical(other.phoneNumber, phoneNumber) || other.phoneNumber == phoneNumber)&&(identical(other.profilePic, profilePic) || other.profilePic == profilePic)&&(identical(other.bio, bio) || other.bio == bio)&&(identical(other.followersCount, followersCount) || other.followersCount == followersCount)&&(identical(other.followingCount, followingCount) || other.followingCount == followingCount)&&(identical(other.isEmailPublic, isEmailPublic) || other.isEmailPublic == isEmailPublic)&&(identical(other.isPhonePublic, isPhonePublic) || other.isPhonePublic == isPhonePublic)&&(identical(other.providerName, providerName) || other.providerName == providerName)&&(identical(other.addressText, addressText) || other.addressText == addressText)&&(identical(other.coordinates, coordinates) || other.coordinates == coordinates)&&const DeepCollectionEquality().equals(other._coverPhotos, _coverPhotos));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProfileModel&&(identical(other.id, id) || other.id == id)&&(identical(other.role, role) || other.role == role)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.email, email) || other.email == email)&&(identical(other.phoneNumber, phoneNumber) || other.phoneNumber == phoneNumber)&&(identical(other.phoneVerifiedAt, phoneVerifiedAt) || other.phoneVerifiedAt == phoneVerifiedAt)&&(identical(other.profilePic, profilePic) || other.profilePic == profilePic)&&(identical(other.bio, bio) || other.bio == bio)&&(identical(other.followersCount, followersCount) || other.followersCount == followersCount)&&(identical(other.followingCount, followingCount) || other.followingCount == followingCount)&&(identical(other.isEmailPublic, isEmailPublic) || other.isEmailPublic == isEmailPublic)&&(identical(other.isPhonePublic, isPhonePublic) || other.isPhonePublic == isPhonePublic)&&(identical(other.providerName, providerName) || other.providerName == providerName)&&(identical(other.addressText, addressText) || other.addressText == addressText)&&(identical(other.coordinates, coordinates) || other.coordinates == coordinates)&&const DeepCollectionEquality().equals(other._coverPhotos, _coverPhotos));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,role,firstName,lastName,email,phoneNumber,profilePic,bio,followersCount,followingCount,isEmailPublic,isPhonePublic,providerName,addressText,coordinates,const DeepCollectionEquality().hash(_coverPhotos));
+int get hashCode => Object.hash(runtimeType,id,role,firstName,lastName,email,phoneNumber,phoneVerifiedAt,profilePic,bio,followersCount,followingCount,isEmailPublic,isPhonePublic,providerName,addressText,coordinates,const DeepCollectionEquality().hash(_coverPhotos));
 
 @override
 String toString() {
-  return 'ProfileModel(id: $id, role: $role, firstName: $firstName, lastName: $lastName, email: $email, phoneNumber: $phoneNumber, profilePic: $profilePic, bio: $bio, followersCount: $followersCount, followingCount: $followingCount, isEmailPublic: $isEmailPublic, isPhonePublic: $isPhonePublic, providerName: $providerName, addressText: $addressText, coordinates: $coordinates, coverPhotos: $coverPhotos)';
+  return 'ProfileModel(id: $id, role: $role, firstName: $firstName, lastName: $lastName, email: $email, phoneNumber: $phoneNumber, phoneVerifiedAt: $phoneVerifiedAt, profilePic: $profilePic, bio: $bio, followersCount: $followersCount, followingCount: $followingCount, isEmailPublic: $isEmailPublic, isPhonePublic: $isPhonePublic, providerName: $providerName, addressText: $addressText, coordinates: $coordinates, coverPhotos: $coverPhotos)';
 }
 
 
@@ -570,7 +578,7 @@ abstract mixin class _$ProfileModelCopyWith<$Res> implements $ProfileModelCopyWi
   factory _$ProfileModelCopyWith(_ProfileModel value, $Res Function(_ProfileModel) _then) = __$ProfileModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, UserRole role,@JsonKey(name: 'first_name') String? firstName,@JsonKey(name: 'last_name') String? lastName, String? email,@JsonKey(name: 'phone_number') String? phoneNumber,@JsonKey(name: 'profile_pic') String? profilePic, String? bio,@JsonKey(name: 'followers_count') int followersCount,@JsonKey(name: 'following_count') int followingCount,@JsonKey(name: 'is_email_public') bool isEmailPublic,@JsonKey(name: 'is_phone_public') bool isPhonePublic,@JsonKey(name: 'provider_name') String? providerName,@JsonKey(name: 'address_text') String? addressText,@LocationCoordinatesConverter() LocationCoordinates? coordinates,@JsonKey(name: 'cover_photos') List<String> coverPhotos
+ String id, UserRole role,@JsonKey(name: 'first_name') String? firstName,@JsonKey(name: 'last_name') String? lastName, String? email,@JsonKey(name: 'phone_number') String? phoneNumber,@JsonKey(name: 'phone_verified_at') DateTime? phoneVerifiedAt,@JsonKey(name: 'profile_pic') String? profilePic, String? bio,@JsonKey(name: 'followers_count') int followersCount,@JsonKey(name: 'following_count') int followingCount,@JsonKey(name: 'is_email_public') bool isEmailPublic,@JsonKey(name: 'is_phone_public') bool isPhonePublic,@JsonKey(name: 'provider_name') String? providerName,@JsonKey(name: 'address_text') String? addressText,@LocationCoordinatesConverter() LocationCoordinates? coordinates,@JsonKey(name: 'cover_photos') List<String> coverPhotos
 });
 
 
@@ -587,7 +595,7 @@ class __$ProfileModelCopyWithImpl<$Res>
 
 /// Create a copy of ProfileModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? role = null,Object? firstName = freezed,Object? lastName = freezed,Object? email = freezed,Object? phoneNumber = freezed,Object? profilePic = freezed,Object? bio = freezed,Object? followersCount = null,Object? followingCount = null,Object? isEmailPublic = null,Object? isPhonePublic = null,Object? providerName = freezed,Object? addressText = freezed,Object? coordinates = freezed,Object? coverPhotos = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? role = null,Object? firstName = freezed,Object? lastName = freezed,Object? email = freezed,Object? phoneNumber = freezed,Object? phoneVerifiedAt = freezed,Object? profilePic = freezed,Object? bio = freezed,Object? followersCount = null,Object? followingCount = null,Object? isEmailPublic = null,Object? isPhonePublic = null,Object? providerName = freezed,Object? addressText = freezed,Object? coordinates = freezed,Object? coverPhotos = null,}) {
   return _then(_ProfileModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
@@ -595,7 +603,8 @@ as UserRole,firstName: freezed == firstName ? _self.firstName : firstName // ign
 as String?,lastName: freezed == lastName ? _self.lastName : lastName // ignore: cast_nullable_to_non_nullable
 as String?,email: freezed == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String?,phoneNumber: freezed == phoneNumber ? _self.phoneNumber : phoneNumber // ignore: cast_nullable_to_non_nullable
-as String?,profilePic: freezed == profilePic ? _self.profilePic : profilePic // ignore: cast_nullable_to_non_nullable
+as String?,phoneVerifiedAt: freezed == phoneVerifiedAt ? _self.phoneVerifiedAt : phoneVerifiedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,profilePic: freezed == profilePic ? _self.profilePic : profilePic // ignore: cast_nullable_to_non_nullable
 as String?,bio: freezed == bio ? _self.bio : bio // ignore: cast_nullable_to_non_nullable
 as String?,followersCount: null == followersCount ? _self.followersCount : followersCount // ignore: cast_nullable_to_non_nullable
 as int,followingCount: null == followingCount ? _self.followingCount : followingCount // ignore: cast_nullable_to_non_nullable

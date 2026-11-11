@@ -7,6 +7,10 @@ class AppConfig {
   /// Supabase Dashboard > Authentication > Providers > Email > "Email OTP Length".
   static const int emailOtpLength = 6;
 
+  /// Digits in the texted phone verification code. Must match Supabase
+  /// Dashboard > Authentication > Providers > Phone > "SMS OTP Length".
+  static const int smsOtpLength = 6;
+
   /// Shortest password accepted when one is chosen (sign-up and password
   /// reset). Keep Supabase Dashboard > Authentication > Providers > Email >
   /// "Minimum password length" at the same value: the server is what

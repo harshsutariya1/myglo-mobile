@@ -12,12 +12,14 @@ import '../../../../../core/routing/app_router.dart';
 import '../../../../../core/services/shorebird_update_service.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/utils/app_logger.dart';
+import '../../../../../core/utils/phone_numbers.dart';
 import '../../../../../core/widgets/app_update_banner.dart';
 import '../../../../../core/widgets/skeleton/skeletons.dart';
 import '../../../../../core/widgets/snackbar_utils.dart';
 import '../../../../customers/provider_profile/views/widgets/section_states.dart';
 import '../../../../shared/authentication/controllers/session_actions.dart';
 import '../../../../shared/authentication/controllers/user_profile_provider.dart';
+import '../../../../shared/authentication/models/profile_model.dart';
 import '../../../../shared/notifications/push/push_notifications_controller.dart';
 import '../../../../shared/notifications/push/push_settings.dart';
 import '../../../../shared/bookings/models/booking_failure.dart';
@@ -46,7 +48,11 @@ class SettingsScreen extends ConsumerWidget {
     final email = user?.rawUser.email ?? profile?.email ?? '';
     final hasPhone = (profile?.phoneNumber?.trim() ?? '').isNotEmpty;
     // Off unless Myglo's platform settings allow it; the server enforces it.
-    final canDeleteAccount = ref.watch(remoteAppConfigProvider).value?.providerSelfDeletion ?? false;
+    final remoteConfig = ref.watch(remoteAppConfigProvider).value;
+    final canDeleteAccount = remoteConfig?.providerSelfDeletion ?? false;
+    final phoneVerified = profile?.isPhoneVerified ?? false;
+    // Myglo requires a verified number before a provider is listed.
+    final phoneBlocksListing = !phoneVerified && (remoteConfig?.requireProviderPhoneVerification ?? false);
     void soon(String feature) => context.showComingSoon(feature);
     void editProfile() => context.pushNamed(AppRoute.editProviderProfile.name);
 
@@ -82,6 +88,21 @@ class SettingsScreen extends ConsumerWidget {
                 title: 'Public profile',
                 subtitle: 'Photo, names, bio and phone number',
                 onTap: editProfile,
+              ),
+              SettingsTile(
+                icon: Icons.phone_outlined,
+                title: 'Phone number',
+                subtitle: switch ((hasPhone, phoneVerified, phoneBlocksListing)) {
+                  (_, true, _) => PhoneNumbers.display(profile?.phoneNumber),
+                  (_, false, true) => "Verify it so clients can find and book you",
+                  (true, false, false) => '${PhoneNumbers.display(profile?.phoneNumber)} · not verified yet',
+                  (false, false, false) => 'Add your mobile number and verify it',
+                },
+                iconColor: phoneBlocksListing ? AppTheme.warning : null,
+                badge: phoneVerified
+                    ? const StatusPill(label: 'Verified', icon: Icons.verified_rounded, color: AppTheme.success)
+                    : const StatusPill(label: 'Verify', color: AppTheme.warning),
+                onTap: () => context.pushNamed(AppRoute.verifyPhone.name),
               ),
               SettingsTile(
                 icon: Icons.photo_library_outlined,
