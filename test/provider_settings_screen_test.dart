@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:myglo/src/core/config/app_config.dart';
+import 'package:myglo/src/core/platform/system_bridge.dart';
 import 'package:myglo/src/core/routing/app_router.dart';
 import 'package:myglo/src/core/services/app_preferences.dart';
 import 'package:myglo/src/core/theme/app_theme.dart';
@@ -24,6 +26,20 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'support/fake_push_messaging.dart';
 
 class _MockAuthRepository extends Mock implements AuthRepository {}
+
+/// Records the links the screen asks the system to open.
+class _FakeSystem implements SystemBridge {
+  final opened = <Uri>[];
+
+  @override
+  Future<bool> openUrl(Uri url, {Uri? appUrl, String? appPackage}) async {
+    opened.add(url);
+    return true;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
 
 /// Records booking-rule changes instead of saving them.
 class _FakeScheduleActions implements ProviderScheduleActions {
@@ -106,6 +122,7 @@ Future<(_MockAuthRepository, _FakeSettingsActions)> _pump(
   ProfileModel profile = _profile,
   FakePushMessaging? push,
   _FakePushTokens? pushTokens,
+  _FakeSystem? system,
 }) async {
   SharedPreferences.setMockInitialValues({});
   final preferences = await SharedPreferences.getInstance();
@@ -138,6 +155,7 @@ Future<(_MockAuthRepository, _FakeSettingsActions)> _pump(
         ownTimeOffProvider.overrideWith((ref) async => const []),
         pushMessagingProvider.overrideWithValue(push ?? FakePushMessaging()),
         pushTokenRepositoryProvider.overrideWithValue(pushTokens ?? _FakePushTokens()),
+        if (system != null) systemBridgeProvider.overrideWithValue(system),
       ],
       child: MaterialApp.router(
         theme: AppTheme.lightTheme,
@@ -395,6 +413,22 @@ void main() {
     expect(find.text('Not available on this device. Booking updates still arrive in the app and by email'), findsOneWidget);
     expect(find.textContaining('coming soon'), findsNothing);
     expect(push.permissionRequests, 0);
+  });
+
+  testWidgets('terms and privacy open the published legal pages', (tester) async {
+    final system = _FakeSystem();
+    await _pump(tester, system: system);
+
+    for (final label in ['Terms', 'Privacy']) {
+      await tester.scrollUntilVisible(find.widgetWithText(TextButton, label), 300);
+      await tester.ensureVisible(find.widgetWithText(TextButton, label));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, label));
+      await tester.pumpAndSettle();
+    }
+
+    expect(system.opened, [AppConfig.termsUrl, AppConfig.privacyUrl]);
+    expect(find.textContaining('coming soon'), findsNothing);
   });
 
   testWidgets('log out asks for confirmation first', (tester) async {

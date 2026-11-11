@@ -68,6 +68,12 @@ class AppConfig {
   /// (see docs/share_links.md).
   static const String shareLinkHost = 'myglo.app';
 
+  /// Terms of Service on the public site.
+  static final Uri termsUrl = Uri.https(shareLinkHost, '/terms');
+
+  /// Privacy Policy on the public site.
+  static final Uri privacyUrl = Uri.https(shareLinkHost, '/privacy');
+
   /// Where users reach a person (e.g. to delete a suspended account).
   static const String supportEmail = 'hello@myglo.app';
 

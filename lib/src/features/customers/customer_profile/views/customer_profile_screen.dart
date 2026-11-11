@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/config/app_config.dart';
+import '../../../../core/platform/system_bridge.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/snackbar_utils.dart';
 import '../../../../core/widgets/skeleton/skeletons.dart';
 import '../../../shared/authentication/controllers/user_profile_provider.dart';
 import '../../../discovery_feed/views/upload_post_screen.dart';
@@ -120,6 +123,16 @@ class CustomerProfileScreen extends ConsumerWidget {
                       icon: Icons.info_outline,
                       onTap: () => _showUnderDevelopment(context),
                     ),
+                    ProfileMenuTile(
+                      title: 'Terms of Service',
+                      icon: Icons.receipt_long_outlined,
+                      onTap: () => _openLegal(context, ref, AppConfig.termsUrl),
+                    ),
+                    ProfileMenuTile(
+                      title: 'Privacy Policy',
+                      icon: Icons.shield_outlined,
+                      onTap: () => _openLegal(context, ref, AppConfig.privacyUrl),
+                    ),
 
                     Padding(
                       padding: const EdgeInsets.symmetric(
@@ -196,6 +209,14 @@ class CustomerProfileScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// Opens the Terms or Privacy Policy page in the browser.
+  Future<void> _openLegal(BuildContext context, WidgetRef ref, Uri url) async {
+    final opened = await ref.read(systemBridgeProvider).openUrl(url);
+    if (!opened && context.mounted) {
+      context.showAppSnackBar("Couldn't open the page. You can read it at ${url.host}${url.path}.", isError: true);
+    }
   }
 
   void _showUnderDevelopment(BuildContext context) {

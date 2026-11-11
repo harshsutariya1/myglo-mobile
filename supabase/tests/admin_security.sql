@@ -86,7 +86,7 @@ BEGIN
     PERFORM pg_temp.act_as(v_admin, 'aal2', interval '1 minute');
     PERFORM pg_temp.expect_error(
         format('INSERT INTO public.profiles (id, role, email) VALUES (%L, %L, %L)', v_admin, 'customer', 'x@example.test'),
-        'admin_accounts_cannot_have_profiles', 'admin inserted own profile');
+        'permission denied for table profiles', 'admin inserted own profile');
     PERFORM pg_temp.expect_error(
         format('SELECT public.register_user_role(%L, %L, %L)', v_admin, 'x@example.test', 'provider'),
         'admin_accounts_cannot_have_profiles', 'admin registered a role');

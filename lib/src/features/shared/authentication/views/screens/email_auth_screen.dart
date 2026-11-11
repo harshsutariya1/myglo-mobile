@@ -1,7 +1,10 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../../core/config/app_config.dart';
+import '../../../../../core/platform/system_bridge.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/routing/app_router.dart';
 import '../../../../../core/utils/app_logger.dart';
@@ -21,7 +24,7 @@ class EmailAuthScreen extends ConsumerStatefulWidget {
 class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
     with SingleTickerProviderStateMixin {
   final _emailController = TextEditingController();
-  final _passwordController = TextEditingController(text: '123456'); //default password during development only
+  final _passwordController = TextEditingController();
 
   bool _isLoading = false;
   bool _isValidEmail = false;
@@ -29,6 +32,8 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
 
   late AnimationController _animController;
   late Animation<double> _animation;
+  late final TapGestureRecognizer _termsTap = TapGestureRecognizer()..onTap = () => _openLegal(AppConfig.termsUrl);
+  late final TapGestureRecognizer _privacyTap = TapGestureRecognizer()..onTap = () => _openLegal(AppConfig.privacyUrl);
 
   @override
   void initState() {
@@ -65,7 +70,17 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
     _emailController.dispose();
     _passwordController.dispose();
     _animController.dispose();
+    _termsTap.dispose();
+    _privacyTap.dispose();
     super.dispose();
+  }
+
+  /// Opens the Terms or Privacy Policy page in the browser.
+  Future<void> _openLegal(Uri url) async {
+    final opened = await ref.read(systemBridgeProvider).openUrl(url);
+    if (!opened && mounted) {
+      context.showAppSnackBar("Couldn't open the page. You can read it at ${url.host}${url.path}.", isError: true);
+    }
   }
 
   /// The account exists but its email was never confirmed: send a fresh code
@@ -230,11 +245,13 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
                           TextSpan(
                             text: 'Terms of Service',
                             style: TextStyle(color: context.colorScheme.secondary),
+                            recognizer: _termsTap,
                           ),
                           TextSpan(text: '\nand '),
                           TextSpan(
                             text: 'Privacy Policy',
                             style: TextStyle(color: context.colorScheme.secondary),
+                            recognizer: _privacyTap,
                           ),
                         ],
                       ),

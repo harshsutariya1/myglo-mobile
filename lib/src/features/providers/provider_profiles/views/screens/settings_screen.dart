@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../../core/config/app_config.dart';
+import '../../../../../core/platform/system_bridge.dart';
 import '../../../../../core/routing/app_router.dart';
 import '../../../../../core/services/shorebird_update_service.dart';
 import '../../../../../core/theme/app_theme.dart';
@@ -215,7 +216,7 @@ class SettingsScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 28),
-          _Footer(onLegal: soon),
+          const _Footer(),
         ],
       );
     }
@@ -630,9 +631,7 @@ class _AppUpdateTile extends ConsumerWidget {
 }
 
 class _Footer extends ConsumerStatefulWidget {
-  const _Footer({required this.onLegal});
-
-  final ValueChanged<String> onLegal;
+  const _Footer();
 
   @override
   ConsumerState<_Footer> createState() => _FooterState();
@@ -640,6 +639,14 @@ class _Footer extends ConsumerStatefulWidget {
 
 class _FooterState extends ConsumerState<_Footer> {
   bool _signingOut = false;
+
+  /// Opens the Terms or Privacy Policy page in the browser.
+  Future<void> _openLegal(Uri url) async {
+    final opened = await ref.read(systemBridgeProvider).openUrl(url);
+    if (!opened && mounted) {
+      context.showAppSnackBar("Couldn't open the page. You can read it at ${url.host}${url.path}.", isError: true);
+    }
+  }
 
   Future<void> _confirmLogout() async {
     final confirmed = await showDialog<bool>(
@@ -688,9 +695,9 @@ class _FooterState extends ConsumerState<_Footer> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            TextButton(onPressed: () => widget.onLegal('Terms of service'), style: linkStyle, child: const Text('Terms')),
+            TextButton(onPressed: () => _openLegal(AppConfig.termsUrl), style: linkStyle, child: const Text('Terms')),
             Text('·', style: TextStyle(color: muted)),
-            TextButton(onPressed: () => widget.onLegal('Privacy policy'), style: linkStyle, child: const Text('Privacy')),
+            TextButton(onPressed: () => _openLegal(AppConfig.privacyUrl), style: linkStyle, child: const Text('Privacy')),
           ],
         ),
         const SizedBox(height: 8),
