@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../../core/config/app_config.dart';
 import '../../../../../core/config/remote_app_config.dart';
+import '../../../../../core/platform/contact_launcher.dart';
 import '../../../../../core/platform/system_bridge.dart';
 import '../../../../../core/routing/app_router.dart';
 import '../../../../../core/services/shorebird_update_service.dart';
@@ -25,7 +26,6 @@ import '../../../../shared/notifications/push/push_settings.dart';
 import '../../../../shared/bookings/models/booking_failure.dart';
 import '../../../schedule/controllers/provider_schedule_controller.dart';
 import '../../../schedule/views/widgets/booking_rules_section.dart';
-import '../../controllers/provider_settings_controller.dart';
 import '../../../payments/views/widgets/payment_options_section.dart';
 import '../widgets/settings_widgets.dart';
 
@@ -48,12 +48,9 @@ class SettingsScreen extends ConsumerWidget {
     final email = user?.rawUser.email ?? profile?.email ?? '';
     final hasPhone = (profile?.phoneNumber?.trim() ?? '').isNotEmpty;
     // Off unless Myglo's platform settings allow it; the server enforces it.
-    final remoteConfig = ref.watch(remoteAppConfigProvider).value;
-    final canDeleteAccount = remoteConfig?.providerSelfDeletion ?? false;
+    final canDeleteAccount = ref.watch(remoteAppConfigProvider).value?.providerSelfDeletion ?? false;
     final phoneVerified = profile?.isPhoneVerified ?? false;
-    // Myglo requires a verified number before a provider is listed.
-    final phoneBlocksListing = !phoneVerified && (remoteConfig?.requireProviderPhoneVerification ?? false);
-    void soon(String feature) => context.showComingSoon(feature);
+    void verifyPhone() => context.pushNamed(AppRoute.verifyPhone.name);
     void editProfile() => context.pushNamed(AppRoute.editProviderProfile.name);
 
     final Widget body;
@@ -78,7 +75,8 @@ class SettingsScreen extends ConsumerWidget {
             subtitle: user.displaySubtitle ?? email,
             avatarUrl: profile?.profilePic,
             onTap: editProfile,
-            onVerification: () => soon('Provider verification'),
+            phoneVerified: phoneVerified,
+            onVerification: verifyPhone,
           ),
           SettingsSection(
             title: 'Business profile',
@@ -86,23 +84,22 @@ class SettingsScreen extends ConsumerWidget {
               SettingsTile(
                 icon: Icons.storefront_outlined,
                 title: 'Public profile',
-                subtitle: 'Photo, names, bio and phone number',
+                subtitle: 'Photo, names and bio',
                 onTap: editProfile,
               ),
               SettingsTile(
                 icon: Icons.phone_outlined,
                 title: 'Phone number',
-                subtitle: switch ((hasPhone, phoneVerified, phoneBlocksListing)) {
-                  (_, true, _) => PhoneNumbers.display(profile?.phoneNumber),
-                  (_, false, true) => "Verify it so clients can find and book you",
-                  (true, false, false) => '${PhoneNumbers.display(profile?.phoneNumber)} · not verified yet',
-                  (false, false, false) => 'Add your mobile number and verify it',
+                subtitle: switch ((hasPhone, phoneVerified)) {
+                  (_, true) => PhoneNumbers.display(profile?.phoneNumber),
+                  (true, false) => '${PhoneNumbers.display(profile?.phoneNumber)} · not verified yet',
+                  (false, false) => 'Add your mobile number and verify it',
                 },
-                iconColor: phoneBlocksListing ? AppTheme.warning : null,
+                iconColor: phoneVerified ? null : AppTheme.warning,
                 badge: phoneVerified
                     ? const StatusPill(label: 'Verified', icon: Icons.verified_rounded, color: AppTheme.success)
                     : const StatusPill(label: 'Verify', color: AppTheme.warning),
-                onTap: () => context.pushNamed(AppRoute.verifyPhone.name),
+                onTap: verifyPhone,
               ),
               SettingsTile(
                 icon: Icons.photo_library_outlined,
@@ -125,19 +122,6 @@ class SettingsScreen extends ConsumerWidget {
                 subtitle: settings == null ? 'Studio and mobile appointments' : serviceAreaSummary(settings),
                 onTap: () => context.pushNamed(AppRoute.serviceArea.name),
               ),
-              SettingsTile(
-                icon: Icons.receipt_long_outlined,
-                title: 'ABN & GST',
-                subtitle: 'Australian Business Number and GST registration',
-                soon: true,
-                onTap: () => soon('ABN details'),
-              ),
-              SettingsTile(
-                icon: Icons.link_rounded,
-                title: 'Portfolio & social links',
-                soon: true,
-                onTap: () => soon('Portfolio links'),
-              ),
             ],
           ),
           const BookingRulesSection(),
@@ -157,12 +141,6 @@ class SettingsScreen extends ConsumerWidget {
                 subtitle: 'Weekly, every Monday',
                 onTap: () => context.pushNamed(AppRoute.providerPayments.name),
               ),
-              SettingsTile(
-                icon: Icons.request_quote_outlined,
-                title: 'Invoices & tax receipts',
-                soon: true,
-                onTap: () => soon('Automated invoices'),
-              ),
             ],
           ),
           SettingsSection(
@@ -170,57 +148,21 @@ class SettingsScreen extends ConsumerWidget {
             footer: 'Booking emails always go to $email.',
             children: [
               const _PushNotificationsTile(),
-              SettingsTile(
-                icon: Icons.sms_outlined,
-                title: 'SMS alerts',
-                soon: true,
-                onTap: () => soon('SMS alerts'),
-              ),
-              SettingsTile(
-                icon: Icons.mail_outline_rounded,
-                title: 'Email preferences',
-                soon: true,
-                onTap: () => soon('Email preferences'),
-              ),
             ],
           ),
           SettingsSection(
             title: 'Privacy & security',
             footer: canDeleteAccount
-                ? 'Hidden details stay private. Clients can still book through Myglo.'
-                : 'Hidden details stay private. Clients can still book through Myglo. '
+                ? 'Clients see your business phone number and email on your profile.'
+                : 'Clients see your business phone number and email on your profile. '
                     'To close your account for good, email ${AppConfig.supportEmail}.',
             children: [
               const _MarketplaceVisibilityTile(),
-              _ContactVisibilityTile(
-                field: ContactField.email,
-                value: profile?.isEmailPublic ?? false,
-                available: email.isNotEmpty,
-              ),
-              _ContactVisibilityTile(
-                field: ContactField.phone,
-                value: profile?.isPhonePublic ?? false,
-                available: hasPhone,
-                onUnavailableTap: editProfile,
-              ),
               SettingsTile(
                 icon: Icons.alternate_email_rounded,
                 title: 'Login email',
                 subtitle: email.isEmpty ? null : email,
-                soon: true,
-                onTap: () => soon('Changing your login email'),
-              ),
-              SettingsTile(
-                icon: Icons.verified_user_outlined,
-                title: 'Two-step verification',
-                soon: true,
-                onTap: () => soon('Two-step verification'),
-              ),
-              SettingsTile(
-                icon: Icons.fingerprint_rounded,
-                title: 'Face ID & fingerprint login',
-                soon: true,
-                onTap: () => soon('Biometric login'),
+                trailing: const SizedBox.shrink(),
               ),
               SettingsTile(
                 icon: Icons.lock_outline_rounded,
@@ -243,12 +185,7 @@ class SettingsScreen extends ConsumerWidget {
           SettingsSection(
             title: 'Support & about',
             children: [
-              SettingsTile(
-                icon: Icons.help_outline_rounded,
-                title: 'Help centre',
-                soon: true,
-                onTap: () => soon('The help centre'),
-              ),
+              const _ContactSupportTile(),
               const _AppUpdateTile(),
             ],
           ),
@@ -331,6 +268,7 @@ class _ProfileStatusCard extends StatelessWidget {
     required this.subtitle,
     required this.avatarUrl,
     required this.onTap,
+    required this.phoneVerified,
     required this.onVerification,
   });
 
@@ -338,6 +276,8 @@ class _ProfileStatusCard extends StatelessWidget {
   final String subtitle;
   final String? avatarUrl;
   final VoidCallback onTap;
+  /// The business phone number has been confirmed by a texted code.
+  final bool phoneVerified;
   final VoidCallback onVerification;
 
   @override
@@ -382,14 +322,19 @@ class _ProfileStatusCard extends StatelessWidget {
                           Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 13.5, color: muted)),
                         ],
                         const SizedBox(height: 8),
-                        // Verification isn't built yet, so nobody is verified.
                         GestureDetector(
                           onTap: onVerification,
-                          child: const StatusPill(
-                            label: 'Unverified',
-                            icon: Icons.error_outline_rounded,
-                            color: AppTheme.warning,
-                          ),
+                          child: phoneVerified
+                              ? const StatusPill(
+                                  label: 'Phone verified',
+                                  icon: Icons.verified_rounded,
+                                  color: AppTheme.success,
+                                )
+                              : const StatusPill(
+                                  label: 'Verify your phone',
+                                  icon: Icons.error_outline_rounded,
+                                  color: AppTheme.warning,
+                                ),
                         ),
                       ],
                     ),
@@ -611,84 +556,22 @@ class _MarketplaceVisibilityTileState extends ConsumerState<_MarketplaceVisibili
   }
 }
 
-/// Live switch for showing an email address or phone number publicly.
-class _ContactVisibilityTile extends ConsumerStatefulWidget {
-  const _ContactVisibilityTile({
-    required this.field,
-    required this.value,
-    required this.available,
-    this.onUnavailableTap,
-  });
-
-  final ContactField field;
-  final bool value;
-
-  /// False when there's nothing to show (e.g. no phone number saved).
-  final bool available;
-
-  /// Where to add the missing detail.
-  final VoidCallback? onUnavailableTap;
+/// Opens an email to Myglo's support address.
+class _ContactSupportTile extends ConsumerWidget {
+  const _ContactSupportTile();
 
   @override
-  ConsumerState<_ContactVisibilityTile> createState() => _ContactVisibilityTileState();
-}
-
-class _ContactVisibilityTileState extends ConsumerState<_ContactVisibilityTile> {
-  /// Optimistic value, held until the refreshed profile shows it.
-  bool? _pending;
-  bool _saving = false;
-  Timer? _settle;
-
-  @override
-  void didUpdateWidget(_ContactVisibilityTile oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (_pending != null && !_saving && widget.value == _pending) {
-      _settle?.cancel();
-      _pending = null;
-    }
-  }
-
-  @override
-  void dispose() {
-    _settle?.cancel();
-    super.dispose();
-  }
-
-  Future<void> _set(bool visible) async {
-    _settle?.cancel();
-    setState(() {
-      _pending = visible;
-      _saving = true;
-    });
-    final ok = await ref.read(providerSettingsActionsProvider).setContactVisibility(widget.field, visible: visible);
-    if (!mounted) return;
-    setState(() {
-      _saving = false;
-      if (!ok || widget.value == visible) _pending = null;
-    });
-    if (!ok) {
-      context.showAppSnackBar("Couldn't update your privacy setting. Please try again.", isError: true);
-    } else if (_pending != null) {
-      _settle = Timer(const Duration(seconds: 8), () {
-        if (mounted) setState(() => _pending = null);
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isEmail = widget.field == ContactField.email;
-    final value = _pending ?? widget.value;
-    final enabled = widget.available && !_saving;
+  Widget build(BuildContext context, WidgetRef ref) {
     return SettingsTile(
-      icon: isEmail ? Icons.mail_outline_rounded : Icons.phone_outlined,
-      title: isEmail ? 'Show email on profile' : 'Show phone on profile',
-      subtitle: widget.available ? null : (isEmail ? 'No email on file' : 'Add a phone number to your profile first'),
-      onTap: enabled ? () => _set(!value) : (widget.available ? null : widget.onUnavailableTap),
-      trailing: Switch.adaptive(
-        value: value && widget.available,
-        onChanged: enabled ? _set : null,
-      ),
+      icon: Icons.help_outline_rounded,
+      title: 'Contact support',
+      subtitle: AppConfig.supportEmail,
+      onTap: () async {
+        final opened = await ref.read(contactLauncherProvider).email(AppConfig.supportEmail);
+        if (!opened && context.mounted) {
+          context.showAppSnackBar('Email us at ${AppConfig.supportEmail}', isError: true);
+        }
+      },
     );
   }
 }

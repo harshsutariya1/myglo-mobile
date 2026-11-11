@@ -74,6 +74,7 @@ _PlatformSettings _$PlatformSettingsFromJson(
   autoCompleteAfterHours:
       (json['auto_complete_after_hours'] as num?)?.toInt() ?? 24,
   reportWindowHours: (json['report_window_hours'] as num?)?.toInt() ?? 24,
+  providerSelfDeletion: json['provider_self_deletion'] as bool? ?? false,
   updatedAt: json['updated_at'] == null
       ? null
       : DateTime.parse(json['updated_at'] as String),
@@ -93,6 +94,7 @@ Map<String, dynamic> _$PlatformSettingsToJson(
   'card_max_advance_days': instance.cardMaxAdvanceDays,
   'auto_complete_after_hours': instance.autoCompleteAfterHours,
   'report_window_hours': instance.reportWindowHours,
+  'provider_self_deletion': instance.providerSelfDeletion,
   'updated_at': instance.updatedAt?.toIso8601String(),
   'updated_by': instance.updatedBy,
 };
@@ -183,6 +185,9 @@ _AdminUserDetail _$AdminUserDetailFromJson(
       ? null
       : DateTime.parse(json['email_confirmed_at'] as String),
   phone: json['phone'] as String?,
+  phoneVerifiedAt: json['phone_verified_at'] == null
+      ? null
+      : DateTime.parse(json['phone_verified_at'] as String),
   avatarUrl: json['avatar_url'] as String?,
   address: json['address'] as String?,
   createdAt: DateTime.parse(json['created_at'] as String),
@@ -214,6 +219,7 @@ Map<String, dynamic> _$AdminUserDetailToJson(
   'email': instance.email,
   'email_confirmed_at': instance.emailConfirmedAt?.toIso8601String(),
   'phone': instance.phone,
+  'phone_verified_at': instance.phoneVerifiedAt?.toIso8601String(),
   'avatar_url': instance.avatarUrl,
   'address': instance.address,
   'created_at': instance.createdAt.toIso8601String(),

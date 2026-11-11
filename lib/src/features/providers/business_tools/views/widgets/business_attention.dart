@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../../core/config/remote_app_config.dart';
 import '../../../../../core/routing/app_router.dart';
 import '../../../../shared/authentication/controllers/user_profile_provider.dart';
 import '../../../../shared/authentication/models/profile_model.dart';
@@ -34,9 +33,7 @@ class BusinessAttention extends ConsumerWidget {
     final settings = ref.watch(ownBookingSettingsProvider).value;
     final progress = ref.watch(bookingSetupProgressProvider);
     final profile = ref.watch(userProfileProvider).value?.profile;
-    final phoneBlocksListing = profile != null &&
-        !profile.isPhoneVerified &&
-        (ref.watch(remoteAppConfigProvider).value?.requireProviderPhoneVerification ?? false);
+    final phoneUnverified = profile != null && !profile.isPhoneVerified;
     void home({ProviderHomeTab tab = ProviderHomeTab.upcoming}) => context.goNamed(
           AppRoute.providerHome.name,
           queryParameters: tab == ProviderHomeTab.upcoming ? const {} : {'tab': tab.query},
@@ -53,12 +50,12 @@ class BusinessAttention extends ConsumerWidget {
               'hours and location are set',
           onTap: home,
         ),
-      if (phoneBlocksListing)
+      if (phoneUnverified)
         SettingsTile(
           icon: Icons.phone_outlined,
           iconColor: AppTheme.warning,
           title: 'Verify your phone number',
-          subtitle: "Clients can't find or book you until you do",
+          subtitle: 'It takes a minute: we text you a code',
           onTap: () => context.pushNamed(AppRoute.verifyPhone.name),
         ),
       if (settings?.hiddenFromMarketplace == true)

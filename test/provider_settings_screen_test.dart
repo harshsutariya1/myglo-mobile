@@ -9,7 +9,6 @@ import 'package:myglo/src/core/platform/system_bridge.dart';
 import 'package:myglo/src/core/routing/app_router.dart';
 import 'package:myglo/src/core/services/app_preferences.dart';
 import 'package:myglo/src/core/theme/app_theme.dart';
-import 'package:myglo/src/features/providers/provider_profiles/controllers/provider_settings_controller.dart';
 import 'package:myglo/src/features/providers/provider_profiles/views/screens/settings_screen.dart';
 import 'package:myglo/src/features/providers/schedule/controllers/provider_schedule_controller.dart';
 import 'package:myglo/src/features/shared/bookings/controllers/booking_controllers.dart';
@@ -62,16 +61,6 @@ final _hours = WeeklySchedule([
   for (var day = 1; day <= 5; day++) WorkingHoursRange(weekday: day, opensMinutes: 9 * 60, closesMinutes: 17 * 60),
 ]);
 
-class _FakeSettingsActions implements ProviderSettingsActions {
-  final calls = <(ContactField, bool)>[];
-
-  @override
-  Future<bool> setContactVisibility(ContactField field, {required bool visible}) async {
-    calls.add((field, visible));
-    return true;
-  }
-}
-
 final _user = User(
   id: 'prov-1',
   appMetadata: const {},
@@ -118,7 +107,7 @@ const _destinations = [
   AppRoute.verifyPhone,
 ];
 
-Future<(_MockAuthRepository, _FakeSettingsActions)> _pump(
+Future<_MockAuthRepository> _pump(
   WidgetTester tester, {
   _FakeScheduleActions? scheduleActions,
   ProviderBookingSettings settings = _settings,
@@ -127,12 +116,10 @@ Future<(_MockAuthRepository, _FakeSettingsActions)> _pump(
   _FakePushTokens? pushTokens,
   _FakeSystem? system,
   bool providerSelfDeletion = false,
-  bool requirePhoneVerification = false,
 }) async {
   SharedPreferences.setMockInitialValues({});
   final preferences = await SharedPreferences.getInstance();
   final auth = _MockAuthRepository();
-  final actions = _FakeSettingsActions();
   final router = GoRouter(
     routes: [
       GoRoute(path: '/', builder: (context, state) => const SettingsScreen()),
@@ -153,7 +140,6 @@ Future<(_MockAuthRepository, _FakeSettingsActions)> _pump(
           (ref) async => AppUserProfile(rawUser: _user, role: UserRole.provider, profile: profile),
         ),
         authRepositoryProvider.overrideWithValue(auth),
-        providerSettingsActionsProvider.overrideWithValue(actions),
         providerScheduleActionsProvider.overrideWithValue(scheduleActions ?? _FakeScheduleActions()),
         bookingSettingsProvider.overrideWith((ref, id) => Stream.value(settings)),
         workingHoursProvider.overrideWith((ref, id) async => _hours),
@@ -162,10 +148,7 @@ Future<(_MockAuthRepository, _FakeSettingsActions)> _pump(
         pushTokenRepositoryProvider.overrideWithValue(pushTokens ?? _FakePushTokens()),
         if (system != null) systemBridgeProvider.overrideWithValue(system),
         remoteAppConfigProvider.overrideWith(
-          (ref) async => RemoteAppConfig(
-            providerSelfDeletion: providerSelfDeletion,
-            requireProviderPhoneVerification: requirePhoneVerification,
-          ),
+          (ref) async => RemoteAppConfig(providerSelfDeletion: providerSelfDeletion),
         ),
       ],
       child: MaterialApp.router(
@@ -180,7 +163,7 @@ Future<(_MockAuthRepository, _FakeSettingsActions)> _pump(
     ),
   );
   await tester.pumpAndSettle();
-  return (auth, actions);
+  return auth;
 }
 
 Future<void> _tapRow(WidgetTester tester, String label) async {
@@ -197,7 +180,7 @@ void main() {
 
     expect(find.text('Glow Studio'), findsOneWidget);
     expect(find.text('Mia Nguyen'), findsOneWidget);
-    expect(find.text('Unverified'), findsOneWidget);
+    expect(find.text('Verify your phone'), findsOneWidget);
     expect(find.text('Accepting new clients'), findsOneWidget);
     expect(find.text('Listed publicly'), findsOneWidget);
   });
@@ -272,43 +255,22 @@ void main() {
     }
   });
 
-  testWidgets('features that are not live explain themselves', (tester) async {
+  testWidgets('has no placeholder rows or contact visibility switches', (tester) async {
     await _pump(tester);
 
-    await tester.scrollUntilVisible(find.text('Invoices & tax receipts'), 300);
-    await tester.ensureVisible(find.text('Invoices & tax receipts'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Invoices & tax receipts'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Automated invoices is coming soon'), findsOneWidget);
-  });
-
-  testWidgets('email visibility toggle saves the new value', (tester) async {
-    final (_, actions) = await _pump(tester);
-
-    await tester.scrollUntilVisible(find.text('Show email on profile'), 300);
-    await tester.ensureVisible(find.text('Show email on profile'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Show email on profile'));
-    await tester.pumpAndSettle();
-
-    expect(actions.calls, [(ContactField.email, true)]);
-  });
-
-  testWidgets('phone visibility is disabled without a phone number', (tester) async {
-    final (_, actions) = await _pump(tester);
-
-    await tester.scrollUntilVisible(find.text('Show phone on profile'), 300);
-    await tester.ensureVisible(find.text('Show phone on profile'));
-    await tester.pumpAndSettle();
-    expect(find.text('Add a phone number to your profile first'), findsOneWidget);
-    await tester.tap(find.text('Show phone on profile'));
-    await tester.pumpAndSettle();
-
-    expect(actions.calls, isEmpty);
-    // Tapping it goes where a number can be added.
-    expect(find.text('opened editProviderProfile'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Contact support'), 300);
+    for (final gone in [
+      'Invoices & tax receipts',
+      'ABN & GST',
+      'SMS alerts',
+      'Two-step verification',
+      'Show email on profile',
+      'Show phone on profile',
+      'Soon',
+    ]) {
+      expect(find.text(gone), findsNothing, reason: gone);
+    }
+    expect(find.text(AppConfig.supportEmail), findsOneWidget);
   });
 
   testWidgets('has no separate account details page', (tester) async {
@@ -387,6 +349,7 @@ void main() {
     await tester.scrollUntilVisible(find.text('Phone number'), 300);
     expect(find.text('0412 345 678 · not verified yet'), findsOneWidget);
     expect(find.text('Verify'), findsOneWidget);
+    expect(find.text('Verify your phone'), findsOneWidget);
 
     await _tapRow(tester, 'Phone number');
 
@@ -402,18 +365,8 @@ void main() {
     await tester.scrollUntilVisible(find.text('Phone number'), 300);
     expect(find.text('0412 345 678'), findsOneWidget);
     expect(find.text('Verified'), findsOneWidget);
+    expect(find.text('Phone verified'), findsOneWidget);
     expect(find.text('Verify'), findsNothing);
-  });
-
-  testWidgets('when verification is required, an unverified provider is told what it costs them', (tester) async {
-    await _pump(
-      tester,
-      profile: _profile.copyWith(phoneNumber: '0412345678', phoneVerifiedAt: null),
-      requirePhoneVerification: true,
-    );
-
-    await tester.scrollUntilVisible(find.text('Phone number'), 300);
-    expect(find.text('Verify it so clients can find and book you'), findsOneWidget);
   });
 
   testWidgets('change password opens the reset flow for the login email', (tester) async {
@@ -455,19 +408,6 @@ void main() {
     await _pump(tester);
 
     expect(find.text("Not set. Clients can't find you on the map yet"), findsOneWidget);
-  });
-
-  testWidgets('contact visibility stays on while the profile refreshes', (tester) async {
-    final (_, actions) = await _pump(tester);
-
-    await _tapRow(tester, 'Show email on profile');
-
-    expect(actions.calls, [(ContactField.email, true)]);
-    final toggle = find.descendant(
-      of: find.ancestor(of: find.text('Show email on profile'), matching: find.byType(InkWell)).first,
-      matching: find.byType(Switch),
-    );
-    expect(tester.widget<Switch>(toggle).value, isTrue);
   });
 
   testWidgets('turning push notifications on asks the system and registers this phone', (tester) async {
@@ -533,7 +473,7 @@ void main() {
   });
 
   testWidgets('log out asks for confirmation first', (tester) async {
-    final (auth, _) = await _pump(tester);
+    final auth = await _pump(tester);
 
     await tester.scrollUntilVisible(find.widgetWithText(TextButton, 'Log out'), 300);
     await tester.ensureVisible(find.widgetWithText(TextButton, 'Log out'));

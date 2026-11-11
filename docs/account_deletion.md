@@ -19,8 +19,8 @@ enforced by the server and read by the app through `get_app_config`:
   UPDATE private.platform_settings SET provider_self_deletion = true WHERE id;
   ```
 
-  (or `admin_update_platform_settings('{"provider_self_deletion": true}', '<reason>')`
-  as an admin; the admin settings screen has no switch for it yet).
+  or, in the app as an admin: **Admin → Settings → Platform settings →
+  Accounts → "Providers can delete their own account"**.
 
 > **Store review risk.** The App Store (guideline 5.1.1(v)) and Google Play
 > require that anyone who can create an account in the app can also start

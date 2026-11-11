@@ -1,10 +1,10 @@
--- Checks for provider phone verification
--- (20261113120000_provider_phone_verification).
+-- Checks for phone verification and the contact rules
+-- (20261113120000_phone_verification_and_contact_rules).
 --
 -- Run inside a transaction that is rolled back (see supabase/tests/jobs.sql).
--- Needs a listed provider with a location. Auth's side (texting and checking
--- the code) is simulated by writing auth.users.phone / phone_confirmed_at,
--- which is what Auth does when a code is accepted.
+-- Needs one provider and one client profile. Auth's side (texting and
+-- checking the code) is simulated by writing auth.users.phone /
+-- phone_confirmed_at, which is what Auth does when a code is accepted.
 
 CREATE FUNCTION pg_temp.act_as(p_uid uuid)
 RETURNS void LANGUAGE plpgsql AS $$
@@ -41,38 +41,30 @@ $$;
 DO $test$
 DECLARE
     v_provider uuid;
-    v_viewer   uuid;
-    v_lat      double precision;
-    v_lng      double precision;
+    v_client   uuid;
+    v_new      uuid := gen_random_uuid();
     -- A number no real account has (Auth keeps phones unique).
     v_phone    constant text := '61400' || lpad((floor(random() * 1000000))::integer::text, 6, '0');
     v_json     jsonb;
     v_first    timestamptz;
     v_profile  public.profiles;
-    v_on_map   boolean;
+    v_seen     record;
 BEGIN
     IF NOT has_function_privilege('authenticated', 'public.confirm_phone_verification()', 'EXECUTE')
-       OR has_function_privilege('anon', 'public.confirm_phone_verification()', 'EXECUTE')
-       OR has_function_privilege('authenticated', 'private.lacks_required_phone(uuid)', 'EXECUTE') THEN
+       OR has_function_privilege('anon', 'public.confirm_phone_verification()', 'EXECUTE') THEN
         RAISE EXCEPTION 'FAIL: privileges';
     END IF;
 
-    SELECT p.id, public.st_y(p.coordinates::public.geometry), public.st_x(p.coordinates::public.geometry)
-    INTO v_provider, v_lat, v_lng
-    FROM public.profiles p
-    JOIN public.provider_booking_settings s ON s.provider_id = p.id
-    WHERE p.role = 'provider' AND p.coordinates IS NOT NULL AND NOT s.hidden_from_marketplace
-      AND NOT private.is_unbookable(p.id)
-      AND EXISTS (SELECT 1 FROM public.services sv WHERE sv.provider_id = p.id)
-    ORDER BY p.id LIMIT 1;
-    SELECT p.id INTO v_viewer FROM public.profiles p WHERE p.id <> v_provider ORDER BY p.id LIMIT 1;
-    IF v_provider IS NULL OR v_viewer IS NULL THEN
-        RAISE EXCEPTION 'needs a listed provider with a location and a service, and one other account';
+    SELECT p.id INTO v_provider FROM public.profiles p WHERE p.role = 'provider' ORDER BY p.id LIMIT 1;
+    SELECT p.id INTO v_client FROM public.profiles p WHERE p.role = 'customer' ORDER BY p.id LIMIT 1;
+    IF v_provider IS NULL OR v_client IS NULL THEN
+        RAISE EXCEPTION 'needs a provider and a client';
     END IF;
     UPDATE public.profiles SET phone_number = '0400 000 000', phone_verified_at = NULL WHERE id = v_provider;
+    UPDATE public.profiles SET phone_number = '0400 000 001' WHERE id = v_client;
     UPDATE auth.users SET phone = NULL, phone_confirmed_at = NULL WHERE id = v_provider;
-    UPDATE private.platform_settings SET require_provider_phone_verification = false WHERE id;
 
+    -- ------------------------------------------------------- verification
     -- Nothing confirmed by Auth: nothing to copy.
     PERFORM pg_temp.act_as(v_provider);
     PERFORM pg_temp.expect_error('SELECT public.confirm_phone_verification()', 'phone_not_verified', 'no phone');
@@ -108,42 +100,63 @@ BEGIN
         RAISE EXCEPTION 'FAIL: the verified time moved';
     END IF;
 
-    -- The requirement: verified providers stay listed, unverified ones don't.
-    UPDATE private.platform_settings SET require_provider_phone_verification = true WHERE id;
-    IF private.is_unlisted(v_provider) THEN
-        RAISE EXCEPTION 'FAIL: a verified provider was unlisted';
-    END IF;
-    PERFORM pg_temp.act_as(v_viewer);
-    v_on_map := EXISTS (SELECT 1 FROM public.map_providers(v_lat, v_lng, 2000, 300) m WHERE m.provider_id = v_provider);
-    IF NOT v_on_map OR NOT (SELECT pp.is_listed FROM public.public_profiles pp WHERE pp.id = v_provider)
-       OR NOT (public.get_app_config()->>'require_provider_phone_verification')::boolean THEN
-        RAISE EXCEPTION 'FAIL verified + required: on map %', v_on_map;
-    END IF;
-
-    -- Changing the number in the profile editor clears the mark...
+    -- Changing the number in the profile editor clears the mark; the
+    -- provider stays listed (verification is asked for, not enforced).
     PERFORM pg_temp.act_as(v_provider);
     UPDATE public.profiles SET phone_number = '0411 111 111' WHERE id = v_provider;
     PERFORM pg_temp.as_owner();
     IF (SELECT p.phone_verified_at FROM public.profiles p WHERE p.id = v_provider) IS NOT NULL THEN
         RAISE EXCEPTION 'FAIL: a changed number stayed verified';
     END IF;
-    -- ...and with the requirement on, that unlists the provider.
-    IF NOT private.is_unlisted(v_provider) OR NOT private.lacks_required_phone(v_provider) THEN
-        RAISE EXCEPTION 'FAIL: an unverified provider stayed listed';
-    END IF;
-    PERFORM pg_temp.act_as(v_viewer);
-    v_on_map := EXISTS (SELECT 1 FROM public.map_providers(v_lat, v_lng, 2000, 300) m WHERE m.provider_id = v_provider);
-    IF v_on_map OR (SELECT pp.is_listed FROM public.public_profiles pp WHERE pp.id = v_provider) THEN
-        RAISE EXCEPTION 'FAIL unverified + required: on map %', v_on_map;
+    IF private.is_unlisted(v_provider) IS DISTINCT FROM
+       (private.is_unbookable(v_provider) OR private.is_hidden_provider(v_provider)) THEN
+        RAISE EXCEPTION 'FAIL: an unverified phone changed whether the provider is listed';
     END IF;
 
-    -- Requirement off: listed again, verified or not.
+    -- --------------------------------------------------- a number is required
+    PERFORM pg_temp.act_as(v_provider);
+    PERFORM pg_temp.expect_error(
+        format('UPDATE public.profiles SET phone_number = %L WHERE id = %L', '  ', v_provider),
+        'phone_required', 'provider removed their number');
+    PERFORM pg_temp.act_as(v_client);
+    PERFORM pg_temp.expect_error(
+        format('UPDATE public.profiles SET phone_number = NULL WHERE id = %L', v_client),
+        'phone_required', 'client removed their number');
+
+    -- Onboarding won't finish without a usable number.
     PERFORM pg_temp.as_owner();
-    UPDATE private.platform_settings SET require_provider_phone_verification = false WHERE id;
-    IF private.is_unlisted(v_provider) THEN
-        RAISE EXCEPTION 'FAIL: unlisted with the requirement off';
+    INSERT INTO auth.users (id, instance_id, aud, role, email)
+    VALUES (v_new, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+            'phone-' || v_new || '@example.test');
+    INSERT INTO public.profiles (id, role, email) VALUES (v_new, 'customer', 'phone-' || v_new || '@example.test');
+    PERFORM pg_temp.act_as(v_new);
+    PERFORM pg_temp.expect_error(
+        format('SELECT public.update_onboarding_details(%L, %L, %L, %L, %L, NULL)', v_new, 'customer', 'Test', 'Client', ''),
+        'A phone number is required', 'onboarding without a phone');
+    PERFORM pg_temp.expect_error(
+        format('SELECT public.update_onboarding_details(%L, %L, %L, %L, %L, NULL)', v_new, 'customer', 'Test', 'Client', '12345'),
+        'Enter a valid phone number', 'onboarding with a bad phone');
+    PERFORM public.update_onboarding_details(v_new, 'customer', 'Test', 'Client', '0412 345 678', NULL);
+    PERFORM pg_temp.as_owner();
+    IF (SELECT p.phone_number FROM public.profiles p WHERE p.id = v_new) <> '0412 345 678' THEN
+        RAISE EXCEPTION 'FAIL: onboarding did not save the phone number';
     END IF;
 
-    RAISE NOTICE 'phone verification: all checks passed';
+    -- ------------------------------------------- contact details by role
+    -- Whatever the old switches say: a provider's are shown, a client's never.
+    UPDATE public.profiles SET is_email_public = false, is_phone_public = false WHERE id = v_provider;
+    UPDATE public.profiles SET is_email_public = true, is_phone_public = true WHERE id = v_client;
+    PERFORM pg_temp.act_as(v_new);
+    SELECT pp.email, pp.phone_number INTO v_seen FROM public.public_profiles pp WHERE pp.id = v_provider;
+    IF v_seen.email IS NULL OR v_seen.phone_number IS NULL THEN
+        RAISE EXCEPTION 'FAIL: a provider''s contact details were hidden';
+    END IF;
+    SELECT pp.email, pp.phone_number INTO v_seen FROM public.public_profiles pp WHERE pp.id = v_client;
+    IF v_seen.email IS NOT NULL OR v_seen.phone_number IS NOT NULL THEN
+        RAISE EXCEPTION 'FAIL: a client''s contact details were public';
+    END IF;
+
+    PERFORM pg_temp.as_owner();
+    RAISE NOTICE 'phone verification and contact rules: all checks passed';
 END;
 $test$;

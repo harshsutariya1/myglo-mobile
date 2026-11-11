@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../../core/config/app_config.dart';
-import '../../../../../core/config/remote_app_config.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/utils/phone_numbers.dart';
 import '../../../../../core/widgets/snackbar_utils.dart';
@@ -207,7 +206,6 @@ class _VerifyPhoneScreenState extends ConsumerState<VerifyPhoneScreen> {
   @override
   Widget build(BuildContext context) {
     final profile = ref.watch(userProfileProvider).value?.profile;
-    final required = ref.watch(remoteAppConfigProvider).value?.requireProviderPhoneVerification ?? false;
     if (!_prefilled && profile != null) {
       _prefilled = true;
       final saved = profile.phoneNumber?.trim() ?? '';
@@ -258,7 +256,6 @@ class _VerifyPhoneScreenState extends ConsumerState<VerifyPhoneScreen> {
                         enabled: !_isSending,
                         verified: unchanged,
                         hadVerifiedNumber: verified,
-                        required: required,
                         onSubmitted: unchanged ? null : _sendCode,
                       ),
                     const SizedBox(height: 24),
@@ -293,7 +290,6 @@ class _NumberStep extends StatelessWidget {
     required this.enabled,
     required this.verified,
     required this.hadVerifiedNumber,
-    required this.required,
     required this.onSubmitted,
   });
 
@@ -306,9 +302,6 @@ class _NumberStep extends StatelessWidget {
 
   /// The profile has a verified number (maybe not the one in the field).
   final bool hadVerifiedNumber;
-
-  /// Myglo requires providers to verify before they're listed.
-  final bool required;
   final VoidCallback? onSubmitted;
 
   @override
@@ -320,9 +313,6 @@ class _NumberStep extends StatelessWidget {
     } else if (hadVerifiedNumber) {
       explanation = "We'll text a ${AppConfig.smsOtpLength}-digit code to the new number. "
           'Your current number stays verified until the new one is confirmed.';
-    } else if (required) {
-      explanation = "We'll text you a ${AppConfig.smsOtpLength}-digit code. "
-          "Clients can't find or book you on Myglo until your number is verified.";
     } else {
       explanation = "We'll text you a ${AppConfig.smsOtpLength}-digit code to confirm the number is yours.";
     }
@@ -365,7 +355,7 @@ class _NumberStep extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         Text(
-          'Standard message rates may apply. Whether clients see this number is up to you (Settings › Privacy).',
+          'Standard message rates may apply. Clients see this number on your profile.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 13, color: scheme.onSurface.withValues(alpha: 0.6)),
         ),

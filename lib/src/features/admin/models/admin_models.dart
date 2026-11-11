@@ -56,6 +56,10 @@ abstract class PlatformSettings with _$PlatformSettings {
     @JsonKey(name: 'card_max_advance_days') @Default(60) int cardMaxAdvanceDays,
     @JsonKey(name: 'auto_complete_after_hours') @Default(24) int autoCompleteAfterHours,
     @JsonKey(name: 'report_window_hours') @Default(24) int reportWindowHours,
+
+    /// Whether providers may delete their own account in the app. Off:
+    /// they hide their business instead and ask support to close it.
+    @JsonKey(name: 'provider_self_deletion') @Default(false) bool providerSelfDeletion,
     @JsonKey(name: 'updated_at') DateTime? updatedAt,
     @JsonKey(name: 'updated_by') String? updatedBy,
   }) = _PlatformSettings;
@@ -74,6 +78,7 @@ abstract class PlatformSettings with _$PlatformSettings {
         'card_max_advance_days': cardMaxAdvanceDays,
         'auto_complete_after_hours': autoCompleteAfterHours,
         'report_window_hours': reportWindowHours,
+        'provider_self_deletion': providerSelfDeletion,
       };
 
   /// The values in [edited] that differ from these.
@@ -157,6 +162,9 @@ abstract class AdminUserDetail with _$AdminUserDetail {
     String? email,
     @JsonKey(name: 'email_confirmed_at') DateTime? emailConfirmedAt,
     String? phone,
+
+    /// When the phone number was confirmed by a texted code, if it was.
+    @JsonKey(name: 'phone_verified_at') DateTime? phoneVerifiedAt,
     @JsonKey(name: 'avatar_url') String? avatarUrl,
     String? address,
     @JsonKey(name: 'created_at') required DateTime createdAt,

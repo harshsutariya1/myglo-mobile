@@ -12,7 +12,6 @@ class RemoteAppConfig {
     this.checkoutHoldMinutes = 15,
     this.reportWindowHours = defaultReportWindowHours,
     this.providerSelfDeletion = false,
-    this.requireProviderPhoneVerification = false,
   });
 
   factory RemoteAppConfig.fromJson(Map<String, dynamic> json) => RemoteAppConfig(
@@ -20,7 +19,6 @@ class RemoteAppConfig {
     checkoutHoldMinutes: (json['checkout_hold_minutes'] as num?)?.toInt() ?? 15,
     reportWindowHours: (json['report_window_hours'] as num?)?.toInt() ?? defaultReportWindowHours,
     providerSelfDeletion: json['provider_self_deletion'] as bool? ?? false,
-    requireProviderPhoneVerification: json['require_provider_phone_verification'] as bool? ?? false,
   );
 
   /// The server's default (Stripe holds card funds for at most 90 days).
@@ -42,10 +40,6 @@ class RemoteAppConfig {
   /// default: they hide their business from the marketplace instead, and
   /// ask support to close the account.
   final bool providerSelfDeletion;
-
-  /// While on, providers without a verified phone number aren't shown in
-  /// the marketplace and can't be booked (the server enforces it).
-  final bool requireProviderPhoneVerification;
 }
 
 /// The admin-set platform settings, loaded once per session. Falls back to

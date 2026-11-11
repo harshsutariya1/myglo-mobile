@@ -21,8 +21,6 @@ class EditCustomerProfileController extends _$EditCustomerProfileController {
     required String lastName,
     required String phone,
     required String bio,
-    required bool isEmailPublic,
-    required bool isPhonePublic,
     File? newProfilePic,
   }) async {
     AppLogger.d('EditCustomerProfileController: Saving profile for customer $id', tag: 'EditCustomerProfile');
@@ -43,8 +41,6 @@ class EditCustomerProfileController extends _$EditCustomerProfileController {
         lastName: lastName,
         phone: phone,
         bio: bio,
-        isEmailPublic: isEmailPublic,
-        isPhonePublic: isPhonePublic,
         profilePic: profilePicUrl,
       );
       

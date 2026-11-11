@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:myglo/src/core/config/app_config.dart';
-import 'package:myglo/src/core/config/remote_app_config.dart';
 import 'package:myglo/src/core/theme/app_theme.dart';
 import 'package:myglo/src/features/providers/provider_profiles/views/screens/verify_phone_screen.dart';
 import 'package:myglo/src/features/shared/authentication/controllers/user_profile_provider.dart';
@@ -38,7 +37,6 @@ const _profile = ProfileModel(id: 'prov-1', role: UserRole.provider, providerNam
 Future<_MockAuthRepository> _pump(
   WidgetTester tester, {
   ProfileModel profile = _profile,
-  bool required = false,
   void Function(_MockAuthRepository repo)? arrange,
 }) async {
   final repo = _MockAuthRepository();
@@ -68,9 +66,6 @@ Future<_MockAuthRepository> _pump(
         authRepositoryProvider.overrideWithValue(repo),
         userProfileProvider.overrideWith(
           (ref) async => AppUserProfile(rawUser: _user, role: UserRole.provider, profile: profile),
-        ),
-        remoteAppConfigProvider.overrideWith(
-          (ref) async => RemoteAppConfig(requireProviderPhoneVerification: required),
         ),
       ],
       child: MaterialApp.router(theme: AppTheme.lightTheme, routerConfig: router),
@@ -140,12 +135,6 @@ void main() {
       expect(find.text('Verify your phone number'), findsOneWidget);
       expect(tester.widget<TextFormField>(find.byType(TextFormField)).controller!.text, '0412 345 678');
       verifyNever(() => repo.startPhoneVerification(any()));
-    });
-
-    testWidgets('says when verification is required to be listed', (tester) async {
-      await _pump(tester, required: true);
-
-      expect(find.textContaining("Clients can't find or book you on Myglo until your number is verified."), findsOneWidget);
     });
 
     testWidgets('a number that cannot be texted is not sent', (tester) async {

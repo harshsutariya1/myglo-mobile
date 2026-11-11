@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/config/app_config.dart';
+import '../../../../core/platform/contact_launcher.dart';
 import '../../../../core/platform/system_bridge.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/snackbar_utils.dart';
@@ -92,36 +93,11 @@ class CustomerProfileScreen extends ConsumerWidget {
                       child: Divider(color: Colors.grey.shade300),
                     ),
 
-                    // App Features
-                    ProfileMenuTile(
-                      title: 'Payment Methods',
-                      icon: Icons.payment,
-                      onTap: () => _showUnderDevelopment(context),
-                    ),
-                    ProfileMenuTile(
-                      title: 'Rewards',
-                      icon: Icons.card_giftcard,
-                      onTap: () => _showUnderDevelopment(context),
-                    ),
-
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
-                      child: Divider(color: Colors.grey.shade300),
-                    ),
-
                     // Support & Info
                     ProfileMenuTile(
-                      title: 'Help Centre',
+                      title: 'Contact Support',
                       icon: Icons.help_outline,
-                      onTap: () => _showUnderDevelopment(context),
-                    ),
-                    ProfileMenuTile(
-                      title: 'About',
-                      icon: Icons.info_outline,
-                      onTap: () => _showUnderDevelopment(context),
+                      onTap: () => _contactSupport(context, ref),
                     ),
                     ProfileMenuTile(
                       title: 'Terms of Service',
@@ -219,26 +195,12 @@ class CustomerProfileScreen extends ConsumerWidget {
     }
   }
 
-  void _showUnderDevelopment(BuildContext context) {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Row(
-          children: [
-            Icon(Icons.construction, color: Colors.white, size: 20),
-            SizedBox(width: 12),
-            Text(
-              'Feature under development',
-              style: TextStyle(color: Colors.white),
-            ),
-          ],
-        ),
-        backgroundColor: Colors.black87,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
+  /// Opens an email to Myglo's support address.
+  Future<void> _contactSupport(BuildContext context, WidgetRef ref) async {
+    final opened = await ref.read(contactLauncherProvider).email(AppConfig.supportEmail);
+    if (!opened && context.mounted) {
+      context.showAppSnackBar('Email us at ${AppConfig.supportEmail}', isError: true);
+    }
   }
 
   void _showPostsSheet(BuildContext context, String userId, WidgetRef ref) {

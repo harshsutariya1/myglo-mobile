@@ -108,6 +108,12 @@ class _Detail extends StatelessWidget {
               value: user.emailConfirmedAt == null ? 'No' : adminDate(user.emailConfirmedAt!),
             ),
             AdminInfoRow(label: 'Phone', value: user.phone ?? '—'),
+            if (user.isProvider)
+              AdminInfoRow(
+                label: 'Phone verified',
+                value: user.phoneVerifiedAt == null ? 'No' : adminDate(user.phoneVerifiedAt!),
+                valueColor: user.phoneVerifiedAt == null ? AppTheme.warning : null,
+              ),
             if (user.isProvider) AdminInfoRow(label: 'Address', value: user.address ?? '—'),
             AdminInfoRow(label: 'Joined', value: adminDate(user.createdAt)),
             AdminInfoRow(label: 'Last sign-in', value: user.lastSignIn == null ? 'Never' : adminDateTime(user.lastSignIn!)),
@@ -129,6 +135,11 @@ class _Detail extends StatelessWidget {
           AdminSection(
             title: 'Booking settings',
             children: [
+              AdminInfoRow(
+                label: 'Marketplace',
+                value: settings['hidden_from_marketplace'] == true ? 'Hidden by the provider' : 'Listed',
+                valueColor: settings['hidden_from_marketplace'] == true ? AppTheme.warning : null,
+              ),
               AdminInfoRow(label: 'Taking bookings', value: settings['accepts_bookings'] == true ? 'Yes' : 'Paused'),
               AdminInfoRow(label: 'Approves requests', value: settings['requires_approval'] == true ? 'Yes' : 'No'),
               AdminInfoRow(

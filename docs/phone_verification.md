@@ -26,32 +26,32 @@ Enter code   ──► Auth: verifyOTP(phone_change)    number confirmed on the 
 
 ## Is it required?
 
-That is the platform setting `require_provider_phone_verification`
-(migration `20261113120000_provider_phone_verification`), **off by default**
-so nobody disappears before texting works.
+Verification is asked for, not enforced. An unverified provider stays listed
+and bookable, and the app keeps asking them to verify: a banner on the
+provider home screen, a row under "needs attention" in My business, and the
+status pill and "Phone number" row in Settings. Admins see whether a
+provider's number is verified on the person's page.
 
-While it is on, a provider without a verified number is *unlisted*, exactly
-like a hidden one (`private.is_unlisted`): out of search, the map, the home
-list, city counts and tag search, with no free times and not bookable.
-Bookings they already have carry on. The app tells them on the home screen,
-under "needs attention" in My business, and in Settings.
-
-Turn it on once SMS has been tested end to end, and after telling existing
-providers (every unverified provider is unlisted the moment it's on):
-
-```sql
-UPDATE private.platform_settings SET require_provider_phone_verification = true WHERE id;
-```
-
-(or `admin_update_platform_settings('{"require_provider_phone_verification": true}', '<reason>')`
-as an admin; the admin settings screen has no switch for it yet). To see who
-would be affected first:
+To see who hasn't verified:
 
 ```sql
 SELECT p.id, p.provider_name, p.phone_number
 FROM public.profiles p
 WHERE p.role = 'provider' AND p.phone_verified_at IS NULL;
 ```
+
+## Phone numbers are required, and contact details follow the role
+
+- Clients and providers must give a phone number: onboarding won't finish
+  without one (`update_onboarding_details`), both profile editors require
+  it, and a saved number can be changed but not removed (`phone_required`).
+  Accounts created before this rule keep working without one until they
+  next edit their profile.
+- There are no "show my email / phone" switches any more. A provider's
+  email and phone are always shown to signed-in users on their profile; a
+  client's never are (`public_profiles`). Providers still get a client's
+  phone number on that client's bookings. The `is_email_public` /
+  `is_phone_public` columns remain only for app builds already installed.
 
 ## One-time setup (Supabase dashboard)
 
@@ -67,8 +67,8 @@ WHERE p.role = 'provider' AND p.phone_verified_at IS NULL;
 3. **Authentication → Rate limits**: set the hourly SMS limit to something
    sensible for launch (for example 30), so a bug or abuse can't run up a
    bill.
-4. Apply the migration, verify a number on a real phone on both platforms,
-   then turn the requirement on.
+4. Apply the migration and verify a number on a real phone on both
+   platforms.
 
 ## Testing
 

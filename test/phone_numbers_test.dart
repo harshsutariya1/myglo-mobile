@@ -29,6 +29,16 @@ void main() {
     expect(PhoneNumbers.same(null, '+61412345678'), isFalse);
   });
 
+  test('validateRequired: a phone number is mandatory and must be plausible', () {
+    expect(PhoneNumbers.validateRequired(null), 'Phone number is required');
+    expect(PhoneNumbers.validateRequired('   '), 'Phone number is required');
+    expect(PhoneNumbers.validateRequired('12345'), contains('valid phone number'));
+    expect(PhoneNumbers.validateRequired('call me'), contains('valid phone number'));
+    expect(PhoneNumbers.validateRequired('0412 345 678'), isNull);
+    expect(PhoneNumbers.validateRequired('+61 412 345 678'), isNull);
+    expect(PhoneNumbers.validateRequired('(07) 5555 1234'), isNull);
+  });
+
   test('display writes Australian mobiles the local way and leaves the rest', () {
     expect(PhoneNumbers.display('+61412345678'), '0412 345 678');
     expect(PhoneNumbers.display('0412345678'), '0412 345 678');

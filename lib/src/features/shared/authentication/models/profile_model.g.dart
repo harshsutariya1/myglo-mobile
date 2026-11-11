@@ -38,8 +38,6 @@ _ProfileModel _$ProfileModelFromJson(Map<String, dynamic> json) =>
       bio: json['bio'] as String?,
       followersCount: (json['followers_count'] as num?)?.toInt() ?? 0,
       followingCount: (json['following_count'] as num?)?.toInt() ?? 0,
-      isEmailPublic: json['is_email_public'] as bool? ?? false,
-      isPhonePublic: json['is_phone_public'] as bool? ?? false,
       providerName: json['provider_name'] as String?,
       addressText: json['address_text'] as String?,
       coordinates: const LocationCoordinatesConverter().fromJson(
@@ -65,8 +63,6 @@ Map<String, dynamic> _$ProfileModelToJson(_ProfileModel instance) =>
       'bio': instance.bio,
       'followers_count': instance.followersCount,
       'following_count': instance.followingCount,
-      'is_email_public': instance.isEmailPublic,
-      'is_phone_public': instance.isPhonePublic,
       'provider_name': instance.providerName,
       'address_text': instance.addressText,
       'coordinates': const LocationCoordinatesConverter().toJson(

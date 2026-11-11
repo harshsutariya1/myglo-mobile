@@ -11,6 +11,7 @@ import '../../../../../core/config/app_config.dart';
 import '../../../../../core/routing/app_router.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/utils/app_logger.dart';
+import '../../../../../core/utils/phone_numbers.dart';
 import '../../../../../core/utils/network_error.dart';
 import '../../../../../core/widgets/skeleton/skeletons.dart';
 import '../../../../../core/widgets/snackbar_utils.dart';
@@ -159,16 +160,6 @@ class _EditProviderProfileScreenState extends ConsumerState<EditProviderProfileS
     return null;
   }
 
-  static String? _validatePhone(String? value) {
-    final text = value?.trim() ?? '';
-    if (text.isEmpty) return null;
-    final digits = text.replaceAll(RegExp(r'\D'), '');
-    if (!RegExp(r'^[+\d][\d\s()-]*$').hasMatch(text) || digits.length < 8 || digits.length > 15) {
-      return 'Enter a valid phone number, e.g. 0412 345 678';
-    }
-    return null;
-  }
-
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
@@ -287,7 +278,7 @@ class _EditProviderProfileScreenState extends ConsumerState<EditProviderProfileS
                     SettingsSection(
                       title: 'Contact',
                       showDividers: false,
-                      footer: 'Choose whether clients see your email and phone in Settings › Privacy. '
+                      footer: 'Clients see your phone number and email on your profile. '
                           'A changed phone number needs verifying again (Settings › Phone number).',
                       children: [
                         _FieldRow(
@@ -300,7 +291,7 @@ class _EditProviderProfileScreenState extends ConsumerState<EditProviderProfileS
                               LengthLimitingTextInputFormatter(20),
                             ],
                             decoration: _decoration(context, 'Phone number', Icons.phone_outlined),
-                            validator: _validatePhone,
+                            validator: PhoneNumbers.validateRequired,
                           ),
                         ),
                         SettingsTile(

@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/config/remote_app_config.dart';
 import '../../../../core/routing/app_router.dart';
 import '../../../shared/authentication/controllers/user_profile_provider.dart';
 import '../../../shared/authentication/models/profile_model.dart';
@@ -203,16 +202,15 @@ class _ProviderHomeScreenState extends ConsumerState<ProviderHomeScreen> {
   }
 }
 
-/// Shown while Myglo requires a verified phone number and the provider
-/// hasn't verified theirs: they aren't listed until they do.
+/// Asks a provider who hasn't verified their phone number to do it. They
+/// stay listed and bookable meanwhile.
 class _VerifyPhoneBanner extends ConsumerWidget {
   const _VerifyPhoneBanner();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final required = ref.watch(remoteAppConfigProvider).value?.requireProviderPhoneVerification ?? false;
     final profile = ref.watch(userProfileProvider).value?.profile;
-    if (!required || profile == null || profile.isPhoneVerified) return const SizedBox.shrink();
+    if (profile == null || profile.isPhoneVerified) return const SizedBox.shrink();
     final scheme = context.colorScheme;
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -235,7 +233,7 @@ class _VerifyPhoneBanner extends ConsumerWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  "Clients can't find or book you until your number is verified.",
+                  "Confirm your mobile with a texted code, so clients know they can reach you.",
                   style: TextStyle(fontSize: 13, height: 1.35, color: scheme.onSurface.withValues(alpha: 0.65)),
                 ),
               ],

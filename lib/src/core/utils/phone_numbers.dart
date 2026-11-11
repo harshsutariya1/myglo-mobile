@@ -22,6 +22,20 @@ class PhoneNumbers {
     return null;
   }
 
+  static final RegExp _plausible = RegExp(r'^[+\d(][\d\s()-]*$');
+
+  /// Form validator for the phone number every account must have: required,
+  /// 8–15 digits with an optional leading `+` (what the server accepts).
+  static String? validateRequired(String? value) {
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) return 'Phone number is required';
+    final digits = text.replaceAll(RegExp(r'\D'), '');
+    if (!_plausible.hasMatch(text) || digits.length < 8 || digits.length > 15) {
+      return 'Enter a valid phone number, e.g. 0412 345 678';
+    }
+    return null;
+  }
+
   /// Whether [a] and [b] are the same number, however each was typed.
   static bool same(String? a, String? b) {
     final first = toE164(a);

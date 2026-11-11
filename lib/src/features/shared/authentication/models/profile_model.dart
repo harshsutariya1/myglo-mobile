@@ -50,8 +50,6 @@ abstract class ProfileModel with _$ProfileModel {
     String? bio,
     @JsonKey(name: 'followers_count') @Default(0) int followersCount,
     @JsonKey(name: 'following_count') @Default(0) int followingCount,
-    @JsonKey(name: 'is_email_public') @Default(false) bool isEmailPublic,
-    @JsonKey(name: 'is_phone_public') @Default(false) bool isPhonePublic,
     @JsonKey(name: 'provider_name') String? providerName,
     @JsonKey(name: 'address_text') String? addressText,
     @LocationCoordinatesConverter() LocationCoordinates? coordinates,
