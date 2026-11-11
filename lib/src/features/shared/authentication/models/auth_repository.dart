@@ -140,6 +140,61 @@ class AuthRepository {
     }
   }
 
+  /// Emails a password-reset *code* (the "Reset password" template renders
+  /// `{{ .Token }}`). Supabase answers the same way whether or not the
+  /// address has an account, and allows one email per address per minute.
+  Future<void> sendPasswordResetCode(String email) async {
+    AppLogger.auth('Sending password reset code', email: email);
+    try {
+      await _client.auth.resetPasswordForEmail(email);
+    } on AuthException catch (e) {
+      AppLogger.w('Password reset email AuthException: ${e.message} (code: ${e.code})', tag: 'Auth');
+      rethrow;
+    } catch (e, st) {
+      AppLogger.e('Unexpected error sending password reset code', tag: 'Auth', error: e, stackTrace: st);
+      rethrow;
+    }
+  }
+
+  /// Checks the code from the reset email. On success the user is signed in
+  /// (that session is what lets them choose a new password). Throws
+  /// [AuthException] for a wrong or expired code.
+  Future<AuthResponse> verifyPasswordResetCode({required String email, required String code}) async {
+    AppLogger.auth('Verifying password reset code', email: email);
+    try {
+      return await _client.auth.verifyOTP(type: OtpType.recovery, email: email, token: code);
+    } on AuthException catch (e) {
+      AppLogger.w('Password reset code rejected: ${e.message} (code: ${e.code})', tag: 'Auth');
+      rethrow;
+    } catch (e, st) {
+      AppLogger.e('Unexpected error verifying password reset code', tag: 'Auth', error: e, stackTrace: st);
+      rethrow;
+    }
+  }
+
+  /// Sets the signed-in user's password, then signs their other devices
+  /// out, so anyone who knew the old password loses access.
+  Future<void> updatePassword(String newPassword) async {
+    final userId = _client.auth.currentUser?.id;
+    AppLogger.auth('Updating password', userId: userId);
+    try {
+      await _client.auth.updateUser(UserAttributes(password: newPassword));
+    } on AuthException catch (e) {
+      AppLogger.w('Password update AuthException: ${e.message} (code: ${e.code})', tag: 'Auth');
+      rethrow;
+    } catch (e, st) {
+      AppLogger.e('Unexpected error updating password', tag: 'Auth', error: e, stackTrace: st);
+      rethrow;
+    }
+    try {
+      await _client.auth.signOut(scope: SignOutScope.others);
+    } catch (e, st) {
+      // The password is changed; the other sessions end when their tokens
+      // expire. Worth knowing about, not worth failing the reset for.
+      AppLogger.e('Signing out other sessions after a password change failed', tag: 'Auth', error: e, stackTrace: st);
+    }
+  }
+
   Future<void> updateUserRole({required String role}) async {
     final user = _client.auth.currentUser;
     AppLogger.auth('Updating user role metadata', userId: user?.id, role: role);

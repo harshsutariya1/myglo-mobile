@@ -11,12 +11,14 @@ class RemoteAppConfig {
     this.cardMaxAdvanceDays = defaultCardMaxAdvanceDays,
     this.checkoutHoldMinutes = 15,
     this.reportWindowHours = defaultReportWindowHours,
+    this.providerSelfDeletion = false,
   });
 
   factory RemoteAppConfig.fromJson(Map<String, dynamic> json) => RemoteAppConfig(
     cardMaxAdvanceDays: (json['card_max_advance_days'] as num?)?.toInt() ?? defaultCardMaxAdvanceDays,
     checkoutHoldMinutes: (json['checkout_hold_minutes'] as num?)?.toInt() ?? 15,
     reportWindowHours: (json['report_window_hours'] as num?)?.toInt() ?? defaultReportWindowHours,
+    providerSelfDeletion: json['provider_self_deletion'] as bool? ?? false,
   );
 
   /// The server's default (Stripe holds card funds for at most 90 days).
@@ -33,6 +35,11 @@ class RemoteAppConfig {
 
   /// How long after an appointment ends the client can report a problem.
   final int reportWindowHours;
+
+  /// Whether providers may delete their own account in the app. Off by
+  /// default: they hide their business from the marketplace instead, and
+  /// ask support to close the account.
+  final bool providerSelfDeletion;
 }
 
 /// The admin-set platform settings, loaded once per session. Falls back to

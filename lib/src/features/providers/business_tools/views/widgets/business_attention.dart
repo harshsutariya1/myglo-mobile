@@ -46,7 +46,15 @@ class BusinessAttention extends ConsumerWidget {
               'hours and location are set',
           onTap: home,
         ),
-      if (settings?.acceptsBookings == false)
+      if (settings?.hiddenFromMarketplace == true)
+        SettingsTile(
+          icon: Icons.visibility_off_outlined,
+          iconColor: AppTheme.warning,
+          title: 'Your business is hidden',
+          subtitle: "Clients can't find or book you until you show it again",
+          onTap: home,
+        )
+      else if (settings?.acceptsBookings == false)
         SettingsTile(
           icon: Icons.pause_circle_outline_rounded,
           iconColor: AppTheme.warning,

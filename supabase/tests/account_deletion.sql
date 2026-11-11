@@ -304,9 +304,27 @@ BEGIN
         RAISE EXCEPTION 'FAIL provider clear: %', pg_temp.blocker_codes(v_provider);
     END IF;
 
+    -- Providers hide their business instead of deleting their own account
+    -- (20261112120000), unless the platform setting allows it. Support can
+    -- still close the account: delete_account() doesn't apply the rule.
+    UPDATE private.platform_settings SET provider_self_deletion = false WHERE id;
     PERFORM pg_temp.act_as(v_provider, interval '30 seconds');
     v_json := public.get_my_account_deletion_status();
-    IF v_json->>'role' <> 'provider' OR NOT (v_json->>'has_payout_account')::boolean THEN
+    IF v_json->'blockers' <> '[{"code": "provider_deletion_disabled", "count": 1}]'::jsonb THEN
+        RAISE EXCEPTION 'FAIL provider self-deletion off: %', v_json;
+    END IF;
+    PERFORM pg_temp.expect_error('SELECT public.begin_account_deletion()', 'account_deletion_blocked',
+        'provider self-deletion off');
+    PERFORM pg_temp.as_owner();
+    IF pg_temp.blocker_codes(v_provider) <> '{}' THEN
+        RAISE EXCEPTION 'FAIL support deletion blocked: %', pg_temp.blocker_codes(v_provider);
+    END IF;
+    UPDATE private.platform_settings SET provider_self_deletion = true WHERE id;
+
+    PERFORM pg_temp.act_as(v_provider, interval '30 seconds');
+    v_json := public.get_my_account_deletion_status();
+    IF v_json->>'role' <> 'provider' OR NOT (v_json->>'has_payout_account')::boolean
+       OR jsonb_array_length(v_json->'blockers') <> 0 THEN
         RAISE EXCEPTION 'FAIL provider status: %', v_json;
     END IF;
     v_json := public.begin_account_deletion();

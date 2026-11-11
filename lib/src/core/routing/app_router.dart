@@ -7,6 +7,7 @@ import '../../features/shared/account_deletion/views/delete_account_screen.dart'
 import '../../features/shared/authentication/models/auth_repository.dart';
 import '../../features/shared/authentication/views/screens/email_auth_screen.dart';
 import '../../features/shared/authentication/views/screens/email_confirmation_screen.dart';
+import '../../features/shared/authentication/views/screens/reset_password_screen.dart';
 import '../../features/shared/authentication/views/screens/role_selection_screen.dart';
 import '../../features/shared/authentication/views/screens/onboarding_details_screen.dart';
 import '../../features/shared/authentication/models/user_role.dart';
@@ -79,6 +80,8 @@ enum AppRoute {
   error(path: '/error'),
   auth(path: '/auth'),
   confirmEmail(path: '/confirm_email'),
+  // Forgotten password (signed out) and "Change password" (signed in).
+  resetPassword(path: '/reset-password'),
   roleSelection(path: '/role'),
   onboardingDetails(path: '/onboarding_details'),
   customerHome(path: '/customer_home'),
@@ -178,6 +181,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             verifyOnly: extra['verifyOnly'] as bool? ?? false,
           );
         },
+      ),
+      GoRoute(
+        path: AppRoute.resetPassword.path,
+        name: AppRoute.resetPassword.name,
+        builder: (context, state) => ResetPasswordScreen(email: state.uri.queryParameters['email'] ?? ''),
       ),
       GoRoute(
         path: AppRoute.roleSelection.path,

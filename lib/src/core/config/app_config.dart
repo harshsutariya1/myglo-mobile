@@ -7,6 +7,12 @@ class AppConfig {
   /// Supabase Dashboard > Authentication > Providers > Email > "Email OTP Length".
   static const int emailOtpLength = 6;
 
+  /// Shortest password accepted when one is chosen (sign-up and password
+  /// reset). Keep Supabase Dashboard > Authentication > Providers > Email >
+  /// "Minimum password length" at the same value: the server is what
+  /// enforces it.
+  static const int passwordMinLength = 8;
+
   /// Minimum wait before another verification email may be requested. Supabase
   /// itself enforces 60 seconds between emails to the same address.
   static const Duration otpResendCooldown = Duration(seconds: 60);

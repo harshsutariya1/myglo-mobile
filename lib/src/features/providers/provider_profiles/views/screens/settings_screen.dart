@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../../core/config/app_config.dart';
+import '../../../../../core/config/remote_app_config.dart';
 import '../../../../../core/platform/system_bridge.dart';
 import '../../../../../core/routing/app_router.dart';
 import '../../../../../core/services/shorebird_update_service.dart';
@@ -44,6 +45,8 @@ class SettingsScreen extends ConsumerWidget {
     final covers = profile?.coverPhotos.length ?? 0;
     final email = user?.rawUser.email ?? profile?.email ?? '';
     final hasPhone = (profile?.phoneNumber?.trim() ?? '').isNotEmpty;
+    // Off unless Myglo's platform settings allow it; the server enforces it.
+    final canDeleteAccount = ref.watch(remoteAppConfigProvider).value?.providerSelfDeletion ?? false;
     void soon(String feature) => context.showComingSoon(feature);
     void editProfile() => context.pushNamed(AppRoute.editProviderProfile.name);
 
@@ -162,8 +165,12 @@ class SettingsScreen extends ConsumerWidget {
           ),
           SettingsSection(
             title: 'Privacy & security',
-            footer: 'Hidden details stay private. Clients can still book through Myglo.',
+            footer: canDeleteAccount
+                ? 'Hidden details stay private. Clients can still book through Myglo.'
+                : 'Hidden details stay private. Clients can still book through Myglo. '
+                    'To close your account for good, email ${AppConfig.supportEmail}.',
             children: [
+              const _MarketplaceVisibilityTile(),
               _ContactVisibilityTile(
                 field: ContactField.email,
                 value: profile?.isEmailPublic ?? false,
@@ -195,12 +202,21 @@ class SettingsScreen extends ConsumerWidget {
                 onTap: () => soon('Biometric login'),
               ),
               SettingsTile(
-                icon: Icons.person_off_outlined,
-                title: 'Delete account',
-                subtitle: 'Close your business profile and payouts account',
-                iconColor: AppTheme.destructive,
-                onTap: () => context.pushNamed(AppRoute.deleteAccount.name),
+                icon: Icons.lock_outline_rounded,
+                title: 'Change password',
+                subtitle: email.isEmpty ? null : "We'll email you a code to confirm it's you",
+                onTap: email.isEmpty
+                    ? null
+                    : () => context.pushNamed(AppRoute.resetPassword.name, queryParameters: {'email': email}),
               ),
+              if (canDeleteAccount)
+                SettingsTile(
+                  icon: Icons.person_off_outlined,
+                  title: 'Delete account',
+                  subtitle: 'Close your business profile and payouts account',
+                  iconColor: AppTheme.destructive,
+                  onTap: () => context.pushNamed(AppRoute.deleteAccount.name),
+                ),
             ],
           ),
           SettingsSection(
@@ -458,7 +474,13 @@ class _AcceptingBookingsRowState extends ConsumerState<_AcceptingBookingsRow> {
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: scheme.onSurface),
                   ),
                   const SizedBox(height: 6),
-                  if (accepting)
+                  if (settings?.hiddenFromMarketplace == true)
+                    const StatusPill(
+                      label: 'Hidden from marketplace',
+                      icon: Icons.visibility_off_outlined,
+                      color: AppTheme.warning,
+                    )
+                  else if (accepting)
                     const StatusPill(
                       label: 'Listed publicly',
                       color: AppTheme.success,
@@ -477,6 +499,93 @@ class _AcceptingBookingsRowState extends ConsumerState<_AcceptingBookingsRow> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Live switch that hides the business from the marketplace: the provider's
+/// alternative to deleting their account. Hidden providers aren't shown to
+/// clients and can't be booked (enforced by the server); their existing
+/// bookings carry on.
+class _MarketplaceVisibilityTile extends ConsumerStatefulWidget {
+  const _MarketplaceVisibilityTile();
+
+  @override
+  ConsumerState<_MarketplaceVisibilityTile> createState() => _MarketplaceVisibilityTileState();
+}
+
+class _MarketplaceVisibilityTileState extends ConsumerState<_MarketplaceVisibilityTile> {
+  /// Optimistic value, held until the live settings show it.
+  bool? _pending;
+  bool _saving = false;
+  Timer? _settle;
+
+  @override
+  void dispose() {
+    _settle?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _set(bool hidden) async {
+    if (hidden) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Hide your business?'),
+          content: const Text(
+            "Clients won't find you in search, on the map or in Discover, and nobody can make a new booking. "
+            "Your profile, services and reviews are kept, and the appointments you already have aren't "
+            'affected: you still need to turn up for them.\n\nYou can show your business again at any time.',
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Cancel')),
+            FilledButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Hide')),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    }
+    _settle?.cancel();
+    setState(() {
+      _pending = hidden;
+      _saving = true;
+    });
+    try {
+      await ref.read(providerScheduleActionsProvider).updateSettings({'hidden_from_marketplace': hidden});
+      if (!mounted) return;
+      context.showAppSnackBar(hidden ? 'Your business is hidden' : 'Your business is back in the marketplace');
+      // Fallback if the live update never arrives (e.g. realtime is down).
+      _settle = Timer(const Duration(seconds: 8), () {
+        if (mounted) setState(() => _pending = null);
+      });
+    } on BookingFailure catch (failure) {
+      if (mounted) {
+        setState(() => _pending = null);
+        context.showAppSnackBar(failure.message, isError: true);
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = ref.watch(ownBookingSettingsProvider).value;
+    if (_pending != null && !_saving && settings?.hiddenFromMarketplace == _pending) {
+      _settle?.cancel();
+      _pending = null;
+    }
+    final hidden = _pending ?? settings?.hiddenFromMarketplace ?? false;
+    final enabled = settings != null && !_saving;
+    return SettingsTile(
+      icon: hidden ? Icons.visibility_off_outlined : Icons.storefront_outlined,
+      iconColor: hidden ? AppTheme.warning : null,
+      title: 'Hide my business',
+      subtitle: hidden
+          ? "Hidden. Clients can't find or book you"
+          : 'Stop appearing in the marketplace and taking new bookings',
+      onTap: enabled ? () => _set(!hidden) : null,
+      trailing: Switch.adaptive(value: hidden, onChanged: enabled ? _set : null),
     );
   }
 }

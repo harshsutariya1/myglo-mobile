@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:myglo/src/core/config/app_config.dart';
+import 'package:myglo/src/core/config/remote_app_config.dart';
 import 'package:myglo/src/core/platform/system_bridge.dart';
 import 'package:myglo/src/core/routing/app_router.dart';
 import 'package:myglo/src/core/services/app_preferences.dart';
@@ -113,6 +114,7 @@ const _destinations = [
   AppRoute.workingHours,
   AppRoute.timeOff,
   AppRoute.deleteAccount,
+  AppRoute.resetPassword,
 ];
 
 Future<(_MockAuthRepository, _FakeSettingsActions)> _pump(
@@ -123,6 +125,7 @@ Future<(_MockAuthRepository, _FakeSettingsActions)> _pump(
   FakePushMessaging? push,
   _FakePushTokens? pushTokens,
   _FakeSystem? system,
+  bool providerSelfDeletion = false,
 }) async {
   SharedPreferences.setMockInitialValues({});
   final preferences = await SharedPreferences.getInstance();
@@ -156,6 +159,9 @@ Future<(_MockAuthRepository, _FakeSettingsActions)> _pump(
         pushMessagingProvider.overrideWithValue(push ?? FakePushMessaging()),
         pushTokenRepositoryProvider.overrideWithValue(pushTokens ?? _FakePushTokens()),
         if (system != null) systemBridgeProvider.overrideWithValue(system),
+        remoteAppConfigProvider.overrideWith(
+          (ref) async => RemoteAppConfig(providerSelfDeletion: providerSelfDeletion),
+        ),
       ],
       child: MaterialApp.router(
         theme: AppTheme.lightTheme,
@@ -315,12 +321,67 @@ void main() {
     expect(find.text('opened editProviderProfile'), findsOneWidget);
   });
 
-  testWidgets('delete account opens the deletion screen', (tester) async {
+  testWidgets('providers hide their business instead of deleting their account', (tester) async {
     await _pump(tester);
+
+    await tester.scrollUntilVisible(find.text('Change password'), 300);
+    expect(find.text('Hide my business'), findsOneWidget);
+    expect(find.text('Delete account'), findsNothing);
+    await tester.scrollUntilVisible(find.textContaining('To close your account for good, email ${AppConfig.supportEmail}'), 300);
+  });
+
+  testWidgets('delete account is offered only when the platform allows it', (tester) async {
+    await _pump(tester, providerSelfDeletion: true);
 
     await _tapRow(tester, 'Delete account');
 
     expect(find.text('opened deleteAccount'), findsOneWidget);
+  });
+
+  testWidgets('hiding the business asks first, then saves', (tester) async {
+    final schedule = _FakeScheduleActions();
+    await _pump(tester, scheduleActions: schedule);
+
+    await _tapRow(tester, 'Hide my business');
+    expect(find.text('Hide your business?'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(schedule.updates, isEmpty);
+
+    await _tapRow(tester, 'Hide my business');
+    await tester.tap(find.widgetWithText(FilledButton, 'Hide'));
+    await tester.pumpAndSettle();
+
+    expect(schedule.updates, [
+      {'hidden_from_marketplace': true},
+    ]);
+    expect(find.text('Your business is hidden'), findsOneWidget);
+    // Let the optimistic-value fallback timer and the snackbar finish.
+    await tester.pumpAndSettle(const Duration(seconds: 9));
+  });
+
+  testWidgets('a hidden business says so and can be shown again without confirming', (tester) async {
+    final schedule = _FakeScheduleActions();
+    await _pump(tester, scheduleActions: schedule, settings: _settings.copyWith(hiddenFromMarketplace: true));
+
+    expect(find.text('Hidden from marketplace'), findsOneWidget);
+    expect(find.text('Listed publicly'), findsNothing);
+
+    await _tapRow(tester, 'Hide my business');
+
+    expect(find.text('Hide your business?'), findsNothing);
+    expect(schedule.updates, [
+      {'hidden_from_marketplace': false},
+    ]);
+    await tester.pumpAndSettle(const Duration(seconds: 9));
+  });
+
+  testWidgets('change password opens the reset flow for the login email', (tester) async {
+    await _pump(tester);
+
+    await _tapRow(tester, 'Change password');
+
+    expect(find.text('opened resetPassword'), findsOneWidget);
   });
 
   testWidgets('cover photos show how many are set and open the editor', (tester) async {

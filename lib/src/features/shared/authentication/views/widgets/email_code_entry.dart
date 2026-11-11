@@ -5,8 +5,8 @@ import 'package:pinput/pinput.dart';
 import '../../../../../core/config/app_config.dart';
 import '../../../../../core/theme/app_theme.dart';
 
-/// Code-entry step of account creation: explains where the code was sent, takes
-/// the digits, and offers a rate-limited "resend".
+/// Code-entry step of account creation and password reset: explains where
+/// the code was sent, takes the digits, and offers a rate-limited "resend".
 class EmailCodeEntry extends StatelessWidget {
   const EmailCodeEntry({
     super.key,
@@ -18,7 +18,11 @@ class EmailCodeEntry extends StatelessWidget {
     this.errorText,
     this.enabled = true,
     this.isResending = false,
+    this.purpose = 'Enter it below to create your account.',
   });
+
+  /// What entering the code does, shown under where it was sent.
+  final String purpose;
 
   final String email;
   final TextEditingController pinController;
@@ -67,7 +71,7 @@ class EmailCodeEntry extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          "We've sent a ${AppConfig.emailOtpLength}-digit code to\n$email.\nEnter it below to create your account.",
+          "We've sent a ${AppConfig.emailOtpLength}-digit code to\n$email.\n$purpose",
           textAlign: TextAlign.center,
           style: const TextStyle(fontSize: 16),
         ),

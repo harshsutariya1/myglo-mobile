@@ -128,6 +128,15 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
     }
   }
 
+  /// Emails a code to the address just entered and lets the user choose a
+  /// new password (see ResetPasswordScreen).
+  void _forgotPassword() {
+    final email = _emailController.text.trim();
+    if (email.isEmpty || !_isValidEmail) return;
+    _passwordController.clear();
+    context.pushNamed(AppRoute.resetPassword.name, queryParameters: {'email': email});
+  }
+
   Future<void> _handleLogin() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
@@ -207,6 +216,14 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen>
                       animation: _animation,
                       controller: _passwordController,
                     ),
+                    if (_accountExists)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: _isLoading ? null : _forgotPassword,
+                          child: const Text('Forgot password?'),
+                        ),
+                      ),
 
                     const SizedBox(height: 32),
                     AnimatedOpacity(

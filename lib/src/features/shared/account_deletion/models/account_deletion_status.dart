@@ -9,6 +9,9 @@ part 'account_deletion_status.g.dart';
 /// Why an account can't be deleted yet (`account_deletion_blockers`, plus
 /// `stripe_balance` from the delete-account function).
 enum AccountDeletionBlockerCode {
+  /// Providers hide their business instead (a platform setting).
+  @JsonValue('provider_deletion_disabled')
+  providerDeletionDisabled,
   @JsonValue('admin_account')
   adminAccount,
   @JsonValue('account_suspended')
@@ -39,6 +42,7 @@ abstract class AccountDeletionBlocker with _$AccountDeletionBlocker {
   factory AccountDeletionBlocker.fromJson(Map<String, dynamic> json) => _$AccountDeletionBlockerFromJson(json);
 
   String get title => switch (code) {
+        AccountDeletionBlockerCode.providerDeletionDisabled => "Business accounts aren't deleted in the app",
         AccountDeletionBlockerCode.adminAccount => 'Admin account',
         AccountDeletionBlockerCode.accountSuspended => 'Account suspended',
         AccountDeletionBlockerCode.upcomingBookings =>
@@ -50,6 +54,9 @@ abstract class AccountDeletionBlocker with _$AccountDeletionBlocker {
       };
 
   String get message => switch (code) {
+        AccountDeletionBlockerCode.providerDeletionDisabled =>
+          'Hide your business from the marketplace in Settings to stop appearing and taking bookings. '
+              'To close the account for good, email ${AppConfig.supportEmail}.',
         AccountDeletionBlockerCode.adminAccount =>
           "Admin accounts can't be deleted in the app. Another admin can remove it.",
         AccountDeletionBlockerCode.accountSuspended =>

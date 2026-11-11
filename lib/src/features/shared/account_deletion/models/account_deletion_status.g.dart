@@ -29,6 +29,8 @@ Map<String, dynamic> _$AccountDeletionBlockerToJson(
 };
 
 const _$AccountDeletionBlockerCodeEnumMap = {
+  AccountDeletionBlockerCode.providerDeletionDisabled:
+      'provider_deletion_disabled',
   AccountDeletionBlockerCode.adminAccount: 'admin_account',
   AccountDeletionBlockerCode.accountSuspended: 'account_suspended',
   AccountDeletionBlockerCode.upcomingBookings: 'upcoming_bookings',

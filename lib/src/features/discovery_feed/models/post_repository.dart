@@ -130,6 +130,8 @@ class PostRepository {
           .from('public_profiles')
           .select('id, provider_name, profile_pic')
           .eq('role', 'provider')
+          // Not hidden by the provider or restricted by Myglo.
+          .eq('is_listed', true)
           .ilike('provider_name', '%$query%')
           .limit(10);
       sw.stop();

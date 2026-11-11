@@ -44,6 +44,33 @@ class AuthErrorMessages {
     return generic;
   }
 
+  static const String weakPassword =
+      'That password is too easy to guess or has appeared in a data breach. Choose a different one.';
+  static const String samePassword = 'Choose a password you haven\'t used on this account before.';
+  static const String sessionExpired = 'That took a while. Request a new code and try again.';
+
+  /// For choosing a new password after the reset code was accepted.
+  static String forPasswordUpdate(Object error) {
+    if (error is AuthException) {
+      if (_isBanned(error)) return suspended;
+      if (_isRateLimit(error)) return rateLimited;
+      return switch (error.code) {
+        'weak_password' => weakPassword,
+        'same_password' => samePassword,
+        'session_not_found' || 'session_expired' || 'reauthentication_needed' || 'no_authorization' => sessionExpired,
+        _ => generic,
+      };
+    }
+    if (isConnectivityError(error)) return offline;
+    return generic;
+  }
+
+  /// Whether choosing a password failed because the reset session is gone,
+  /// so the code step has to be done again.
+  static bool needsNewCode(Object error) =>
+      error is AuthException &&
+      const {'session_not_found', 'session_expired', 'reauthentication_needed', 'no_authorization'}.contains(error.code);
+
   /// Suspended by Myglo's team (an Auth ban).
   static bool _isBanned(AuthException error) => error.code == 'user_banned';
 

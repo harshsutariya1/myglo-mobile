@@ -115,11 +115,11 @@ class _SelectDateTimeScreenState extends ConsumerState<SelectDateTimeScreen> {
       footer: selection.isEmpty ? null : footer,
       body: switch (settingsAsync) {
         _ when selection.isEmpty => const _NoServicesView(),
-        AsyncValue(:final value?) when !value.acceptsBookings => const _CenteredState(
+        AsyncValue(:final value?) when !value.takesNewBookings => const _CenteredState(
             child: SectionEmptyView(
               icon: Icons.event_busy_rounded,
               title: 'Not taking bookings right now',
-              message: "This provider has paused online bookings. Check back soon, or contact them directly.",
+              message: "This provider isn't taking online bookings at the moment. Check back soon, or contact them directly.",
             ),
           ),
         AsyncValue(:final value?) => _buildPicker(context, value, selection),

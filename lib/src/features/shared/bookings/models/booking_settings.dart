@@ -15,6 +15,10 @@ abstract class ProviderBookingSettings with _$ProviderBookingSettings {
     @JsonKey(name: 'time_zone') @Default(BookingTime.defaultTimeZone) String timeZone,
     @JsonKey(name: 'accepts_bookings') @Default(true) bool acceptsBookings,
 
+    /// The provider hid their business: it isn't shown anywhere in the
+    /// marketplace and can't be booked. Bookings they already have carry on.
+    @JsonKey(name: 'hidden_from_marketplace') @Default(false) bool hiddenFromMarketplace,
+
     /// Bookings paid in the app wait for the provider to accept instead of
     /// confirming instantly. Cash bookings are always requests, whatever this
     /// says (see BookingTerms).
@@ -46,6 +50,10 @@ abstract class ProviderBookingSettings with _$ProviderBookingSettings {
   }) = _ProviderBookingSettings;
 
   factory ProviderBookingSettings.fromJson(Map<String, dynamic> json) => _$ProviderBookingSettingsFromJson(json);
+
+  /// Clients can make new bookings: not paused and not hidden. The server
+  /// decides (`private.is_unlisted`); this only explains it up front.
+  bool get takesNewBookings => acceptsBookings && !hiddenFromMarketplace;
 
   /// Last day a client may book, counted from [today] (provider-local).
   DateTime lastBookableDay(DateTime today) => today.add(Duration(days: maxAdvanceDays));

@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:myglo/src/core/config/app_config.dart';
+import 'package:myglo/src/core/config/remote_app_config.dart';
 import 'package:myglo/src/core/theme/app_theme.dart';
 import 'package:myglo/src/core/utils/formatters.dart';
 import 'package:myglo/src/features/shared/account_deletion/controllers/account_deletion_controller.dart';
@@ -111,6 +113,26 @@ void main() {
         AccountDeletionBlockerCode.unknown,
       ]);
       expect(status.blockers.first.title, '2 upcoming bookings');
+    });
+
+    test('a provider is pointed at hiding their business while self-deletion is off', () {
+      final status = AccountDeletionStatus.fromJson({
+        'role': 'provider',
+        'blockers': [
+          {'code': 'provider_deletion_disabled', 'count': 1},
+        ],
+      });
+
+      expect(status.canDelete, isFalse);
+      expect(status.blockers.single.code, AccountDeletionBlockerCode.providerDeletionDisabled);
+      expect(status.blockers.single.message, contains('Hide your business from the marketplace'));
+      expect(status.blockers.single.message, contains(AppConfig.supportEmail));
+    });
+
+    test('providers may not delete their own account unless the platform says so', () {
+      expect(const RemoteAppConfig().providerSelfDeletion, isFalse);
+      expect(RemoteAppConfig.fromJson({'card_max_advance_days': 60}).providerSelfDeletion, isFalse);
+      expect(RemoteAppConfig.fromJson({'provider_self_deletion': true}).providerSelfDeletion, isTrue);
     });
 
     test('an empty status can be deleted', () {

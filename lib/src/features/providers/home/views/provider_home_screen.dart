@@ -199,7 +199,8 @@ class _ProviderHomeScreenState extends ConsumerState<ProviderHomeScreen> {
   }
 }
 
-/// Shown while the provider has paused new bookings, with a way to resume.
+/// Shown while the provider has hidden their business or paused new
+/// bookings, with a way to undo it.
 class _PausedBanner extends ConsumerStatefulWidget {
   const _PausedBanner();
 
@@ -210,12 +211,16 @@ class _PausedBanner extends ConsumerStatefulWidget {
 class _PausedBannerState extends ConsumerState<_PausedBanner> {
   bool _busy = false;
 
-  Future<void> _resume() async {
+  Future<void> _resume({required bool hidden}) async {
     setState(() => _busy = true);
     try {
-      await ref.read(providerScheduleActionsProvider).updateSettings({'accepts_bookings': true});
+      await ref
+          .read(providerScheduleActionsProvider)
+          .updateSettings(hidden ? {'hidden_from_marketplace': false} : {'accepts_bookings': true});
       HapticFeedback.mediumImpact();
-      if (mounted) context.showAppSnackBar("You're taking bookings again");
+      if (mounted) {
+        context.showAppSnackBar(hidden ? 'Your business is back in the marketplace' : "You're taking bookings again");
+      }
     } on BookingFailure catch (failure) {
       if (mounted) context.showAppSnackBar(failure.message, isError: true);
     } finally {
@@ -225,8 +230,9 @@ class _PausedBannerState extends ConsumerState<_PausedBanner> {
 
   @override
   Widget build(BuildContext context) {
+    final hidden = ref.watch(ownBookingSettingsProvider.select((s) => s.value?.hiddenFromMarketplace == true));
     final paused = ref.watch(ownBookingSettingsProvider.select((s) => s.value?.acceptsBookings == false));
-    if (!paused) return const SizedBox.shrink();
+    if (!hidden && !paused) return const SizedBox.shrink();
     final scheme = context.colorScheme;
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -237,19 +243,25 @@ class _PausedBannerState extends ConsumerState<_PausedBanner> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.pause_circle_outline_rounded, color: AppTheme.warning, size: 26),
+          Icon(
+            hidden ? Icons.visibility_off_outlined : Icons.pause_circle_outline_rounded,
+            color: AppTheme.warning,
+            size: 26,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'New bookings are paused',
+                  hidden ? 'Your business is hidden' : 'New bookings are paused',
                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: scheme.onSurface),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  "Clients can't book you right now. Existing appointments aren't affected.",
+                  hidden
+                      ? "Clients can't find or book you. Existing appointments aren't affected."
+                      : "Clients can't book you right now. Existing appointments aren't affected.",
                   style: TextStyle(fontSize: 13, height: 1.35, color: scheme.onSurface.withValues(alpha: 0.65)),
                 ),
               ],
@@ -257,7 +269,7 @@ class _PausedBannerState extends ConsumerState<_PausedBanner> {
           ),
           const SizedBox(width: 8),
           FilledButton(
-            onPressed: _busy ? null : _resume,
+            onPressed: _busy ? null : () => _resume(hidden: hidden),
             style: FilledButton.styleFrom(
               backgroundColor: scheme.onSurface,
               foregroundColor: scheme.surface,
@@ -268,7 +280,7 @@ class _PausedBannerState extends ConsumerState<_PausedBanner> {
             ),
             child: _busy
                 ? SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2, color: scheme.surface))
-                : const Text('Resume'),
+                : Text(hidden ? 'Show' : 'Resume'),
           ),
         ],
       ),
