@@ -1,0 +1,53 @@
+name: CI
+
+# Static analysis and the test suite on every pull request and on pushes to
+# main. No secrets: the app's .env is replaced by placeholder values (the
+# tests never reach Supabase).
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          # The version the lockfile and the suite were last checked with.
+          flutter-version: 3.47.9
+          cache: true
+
+      # .env is bundled as an asset, so it must exist; real values never go to CI.
+      - name: Placeholder .env
+        run: printf 'SUPABASE_URL=https://example.supabase.co\nSUPABASE_ANON_KEY=ci-placeholder\n' > .env
+
+      - run: flutter pub get
+
+      - run: flutter analyze --no-fatal-infos
+
+      - run: flutter test --reporter=compact
+
+  edge-functions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check the Edge Functions
+        working-directory: supabase/functions
+        run: deno check */index.ts
