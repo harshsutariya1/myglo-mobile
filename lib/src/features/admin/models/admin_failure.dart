@@ -2,13 +2,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/utils/app_logger.dart';
 import '../../../core/utils/network_error.dart';
+import '../../shared/account_deletion/models/account_deletion_status.dart';
 
 /// Rethrows [error] from an admin call. Refusals the server raises on purpose
 /// (no fresh two-factor code, invalid setting…) become an [AdminFailure] and
 /// are only logged locally; anything else is reported to Sentry and rethrown
 /// unchanged, so connectivity errors still reach the offline handling.
 Never throwAdminError(Object error, StackTrace stackTrace, {required String action}) {
-  if (error is PostgrestException) {
+  if (error is PostgrestException || error is FunctionException) {
     final failure = AdminFailure.from(error);
     if (failure.isExpected) {
       AppLogger.w('$action refused: ${failure.code.key}', tag: AdminFailure.tag);
@@ -49,6 +50,13 @@ enum AdminFailureCode {
   jobNotFailed('job_not_failed'),
   reportClosed('report_closed'),
 
+  /// Closing an account: something has to clear first (see
+  /// [AdminFailure.blockers]).
+  accountDeletionBlocked('deletion_blocked'),
+
+  /// Closing an account: the deletion service didn't answer.
+  deletionUnavailable('deletion_unavailable'),
+
   /// The request never reached the server (or its reply never came back).
   offline('offline'),
   unknown('unknown');
@@ -68,7 +76,7 @@ enum AdminFailureCode {
 /// An admin action the server refused, or that couldn't reach it, with copy
 /// ready to show.
 class AdminFailure implements Exception {
-  const AdminFailure(this.code, {this.detail});
+  const AdminFailure(this.code, {this.detail, this.blockers = const []});
 
   static const tag = 'Admin';
 
@@ -77,11 +85,36 @@ class AdminFailure implements Exception {
   /// The server's DETAIL, e.g. which setting was invalid.
   final String? detail;
 
+  /// What stops an account being closed ([AdminFailureCode.accountDeletionBlocked]).
+  final List<AccountDeletionBlocker> blockers;
+
   static AdminFailure from(Object error) {
     if (error is AdminFailure) return error;
     if (error is PostgrestException) {
       final detail = error.details is String ? error.details as String : null;
       return AdminFailure(AdminFailureCode.fromKey(error.message), detail: detail);
+    }
+    if (error is FunctionException) {
+      // The delete-account function answers `{ "error": code, ... }`.
+      final body = error.details is Map ? Map<String, dynamic>.from(error.details as Map) : const <String, dynamic>{};
+      final key = body['error'] as String?;
+      return switch (key) {
+        'deletion_blocked' => AdminFailure(
+            AdminFailureCode.accountDeletionBlocked,
+            blockers: [
+              for (final b in (body['blockers'] as List? ?? const []))
+                if (b is Map) AccountDeletionBlocker.fromJson(Map<String, dynamic>.from(b)),
+            ],
+          ),
+        'account_not_found' => const AdminFailure(AdminFailureCode.notFound),
+        _ when key != null && AdminFailureCode.fromKey(key) != AdminFailureCode.unknown =>
+          AdminFailure(AdminFailureCode.fromKey(key)),
+        _ => AdminFailure(
+            error.status >= 500 || error.status == 404
+                ? AdminFailureCode.deletionUnavailable
+                : AdminFailureCode.unknown,
+          ),
+      };
     }
     if (isConnectivityError(error)) return const AdminFailure(AdminFailureCode.offline);
     return const AdminFailure(AdminFailureCode.unknown);
@@ -115,6 +148,10 @@ class AdminFailure implements Exception {
         AdminFailureCode.settlementNotHeld => "The provider's share isn't on hold.",
         AdminFailureCode.jobNotFailed => 'That job is no longer failed; it may already have been retried.',
         AdminFailureCode.reportClosed => 'Another admin has already closed this report.',
+        AdminFailureCode.accountDeletionBlocked => blockers.isEmpty
+            ? 'Something has to be sorted before this account can be closed.'
+            : "This account can't be closed yet: ${blockers.map((b) => b.title.toLowerCase()).join(', ')}.",
+        AdminFailureCode.deletionUnavailable => "The account couldn't be closed right now. Please try again shortly.",
         AdminFailureCode.offline => "You're offline. Check your connection and try again.",
         AdminFailureCode.unknown => 'Something went wrong. Please try again.',
       };

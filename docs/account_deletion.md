@@ -27,12 +27,16 @@ enforced by the server and read by the app through `get_app_config`:
 > deleting it in the app. Offering providers only "hide" plus an email
 > address may be rejected. If a reviewer objects, turn the setting on.
 
-**Closing a provider's account on request** (support): check it's the
-account owner asking, then run `SELECT public.delete_account('<user id>');`
-as the service role. It applies every blocker below except
-`provider_deletion_disabled`, and queues the same clean-up jobs. The Stripe
-balance check lives in the Edge Function, so check the connected account's
-balance is empty in the Stripe Dashboard first.
+**Closing an account on request** (support): check it's the account owner
+asking (an email from the account's own address), then in the app as an
+admin: **Admin → People → the person → Moderation → Close account**. It needs
+a fresh authenticator code and a reason, and runs the same deletion as in-app
+deletion through the `delete-account` function: the Stripe balance check,
+`delete_account(user, p_by_admin => true)` and the confirmation email. Every
+blocker below applies except `provider_deletion_disabled` and
+`account_suspended` (a suspended account can be closed this way). The audit
+log records it as `account.close` (migration
+`20261124130000_admin_account_closure`).
 
 ## Hiding a business (providers)
 

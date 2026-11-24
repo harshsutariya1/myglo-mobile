@@ -213,6 +213,22 @@ class AdminRepository {
         detail: providerId,
       );
 
+  /// Closes an account its owner asked support to close: the same deletion
+  /// as in-app account deletion (personal details removed, money and
+  /// booking records kept), run by the delete-account function. Needs a
+  /// fresh two-factor code and a reason; refused while bookings, payouts or
+  /// disputes are open.
+  Future<void> closeAccount(String userId, {required String reason}) async {
+    final sw = Stopwatch()..start();
+    try {
+      await _client.functions.invoke('delete-account', body: {'user_id': userId, 'reason': reason});
+      sw.stop();
+      AppLogger.api('fn.delete-account(admin)', endpoint: userId, duration: sw.elapsed);
+    } catch (e, st) {
+      throwAdminError(e, st, action: 'Close account');
+    }
+  }
+
   Future<dynamic> _rpc(String fn, {Map<String, dynamic>? params, String? detail}) async {
     final sw = Stopwatch()..start();
     try {

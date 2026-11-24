@@ -62,6 +62,34 @@ void main() {
       expect(from('something new').isExpected, isFalse);
     });
 
+    test('maps the delete-account function\'s answers when closing an account', () {
+      final blocked = AdminFailure.from(FunctionException(status: 409, details: {
+        'error': 'deletion_blocked',
+        'blockers': [
+          {'code': 'upcoming_bookings', 'count': 2},
+          {'code': 'open_disputes', 'count': 1},
+        ],
+      }));
+      expect(blocked.code, AdminFailureCode.accountDeletionBlocked);
+      expect(blocked.blockers, hasLength(2));
+      expect(blocked.message, contains('2 upcoming bookings'));
+      expect(blocked.isExpected, isTrue);
+
+      expect(
+        AdminFailure.from(FunctionException(status: 403, details: {'error': 'reauth_required'})).code,
+        AdminFailureCode.reauthRequired,
+      );
+      expect(
+        AdminFailure.from(FunctionException(status: 404, details: {'error': 'account_not_found'})).code,
+        AdminFailureCode.notFound,
+      );
+      expect(
+        AdminFailure.from(FunctionException(status: 502, details: {'error': 'deletion_unavailable'})).code,
+        AdminFailureCode.deletionUnavailable,
+      );
+      expect(AdminFailure.from(FunctionException(status: 500)).code, AdminFailureCode.deletionUnavailable);
+    });
+
     test('keeps the detail of an invalid setting', () {
       final failure = AdminFailure.from(
         const PostgrestException(message: 'invalid_setting', code: '22023', details: 'owner'),
