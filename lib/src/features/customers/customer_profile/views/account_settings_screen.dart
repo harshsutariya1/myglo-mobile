@@ -42,6 +42,12 @@ class AccountSettingsScreen extends ConsumerWidget {
               Divider(color: Colors.grey.shade300, height: 1),
             ],
             ProfileMenuTile(
+              title: 'Blocked Accounts',
+              icon: Icons.block_rounded,
+              onTap: () => context.pushNamed(AppRoute.blockedAccounts.name),
+            ),
+            Divider(color: Colors.grey.shade300, height: 1),
+            ProfileMenuTile(
               title: 'Change Password',
               icon: Icons.lock_reset,
               onTap: () => _changePassword(context, ref),

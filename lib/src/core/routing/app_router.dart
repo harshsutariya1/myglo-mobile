@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 import '../../features/shared/account_deletion/views/delete_account_screen.dart';
+import '../../features/shared/blocking/views/blocked_accounts_screen.dart';
 import '../../features/shared/authentication/models/auth_repository.dart';
 import '../../features/shared/authentication/views/screens/email_auth_screen.dart';
 import '../../features/shared/authentication/views/screens/email_confirmation_screen.dart';
@@ -108,6 +109,7 @@ enum AppRoute {
   settings(path: 'settings'),
   // Clients and providers alike, full-screen over their settings.
   deleteAccount(path: '/account/delete'),
+  blockedAccounts(path: '/account/blocked'),
   // Client discovery, full-screen over the home tab.
   providerSearch(path: '/search'),
   providersMap(path: '/map'),
@@ -291,6 +293,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoute.deleteAccount.path,
         name: AppRoute.deleteAccount.name,
         builder: (context, state) => const DeleteAccountScreen(),
+      ),
+      GoRoute(
+        path: AppRoute.blockedAccounts.path,
+        name: AppRoute.blockedAccounts.name,
+        builder: (context, state) => const BlockedAccountsScreen(),
       ),
       GoRoute(
         path: AppRoute.workingHours.path,

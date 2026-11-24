@@ -165,6 +165,11 @@ class SettingsScreen extends ConsumerWidget {
                 trailing: const SizedBox.shrink(),
               ),
               SettingsTile(
+                icon: Icons.block_rounded,
+                title: 'Blocked accounts',
+                onTap: () => context.pushNamed(AppRoute.blockedAccounts.name),
+              ),
+              SettingsTile(
                 icon: Icons.lock_outline_rounded,
                 title: 'Change password',
                 subtitle: email.isEmpty ? null : "We'll email you a code to confirm it's you",

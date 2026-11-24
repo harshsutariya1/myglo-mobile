@@ -8,12 +8,13 @@ import '../../../../../core/widgets/skeleton/skeletons.dart';
 import '../../../../discovery_feed/views/shared_post_screen.dart';
 import '../../../authentication/controllers/user_profile_provider.dart';
 import '../../../bookings/views/widgets/booking_card.dart' show PersonAvatar;
+import '../../../blocking/views/block_user_dialog.dart';
 import '../../../reports/models/report.dart';
 import '../../../reports/views/report_sheet.dart';
 import '../../models/review.dart';
 import 'star_rating.dart';
 
-enum _ReviewAction { report }
+enum _ReviewAction { report, block }
 
 /// One review: who wrote it, the stars, when, which services, the text and
 /// photos, and the provider's reply. Anyone but its author can report it.
@@ -100,8 +101,15 @@ class ReviewCard extends ConsumerWidget {
                 tooltip: 'More',
                 icon: Icon(Icons.more_horiz_rounded, size: 20, color: muted),
                 padding: EdgeInsets.zero,
-                onSelected: (_) => showReportSheet(context, target: ReportTarget.review, targetId: review.id),
-                itemBuilder: (_) => const [PopupMenuItem(value: _ReviewAction.report, child: Text('Report review'))],
+                onSelected: (action) => switch (action) {
+                  _ReviewAction.report => showReportSheet(context, target: ReportTarget.review, targetId: review.id),
+                  _ReviewAction.block =>
+                    confirmAndBlockUser(context, ref, userId: review.clientId, name: review.reviewerName),
+                },
+                itemBuilder: (_) => [
+                  const PopupMenuItem(value: _ReviewAction.report, child: Text('Report review')),
+                  PopupMenuItem(value: _ReviewAction.block, child: Text('Block ${review.reviewerName}')),
+                ],
               ),
           ],
         ),

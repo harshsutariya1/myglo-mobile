@@ -20,6 +20,7 @@ import '../../shared/authentication/models/profile_model.dart';
 import '../../shared/authentication/models/user_role.dart';
 import '../../shared/reports/models/report.dart';
 import '../../shared/reports/views/report_sheet.dart';
+import '../../shared/blocking/views/block_user_dialog.dart';
 import '../../shared/reviews/views/widgets/rating_summary.dart';
 import '../../shared/services/views/widgets/service_details_sheet.dart';
 import '../controllers/delete_post_controller.dart';
@@ -114,7 +115,9 @@ class PostDetailScreen extends ConsumerWidget {
               height: _barHeight,
               author: authorAsync,
               onBack: onBack,
-              onMore: deleting ? null : () => _showPostActions(context, ref, isOwner: isOwner),
+              onMore: deleting
+                  ? null
+                  : () => _showPostActions(context, ref, isOwner: isOwner, authorName: _authorName(authorAsync.value)),
             ),
           ),
         ],
@@ -136,17 +139,27 @@ class PostDetailScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _showPostActions(BuildContext context, WidgetRef ref, {required bool isOwner}) {
+  /// How the post's author is named in "Block …".
+  static String _authorName(ProfileModel? author) {
+    if (author == null) return 'this account';
+    final business = author.providerName?.trim() ?? '';
+    if (author.role == UserRole.provider && business.isNotEmpty) return business;
+    final name = [author.firstName, author.lastName].whereType<String>().map((s) => s.trim()).where((s) => s.isNotEmpty).join(' ');
+    return name.isEmpty ? 'this account' : name;
+  }
+
+  Future<void> _showPostActions(
+    BuildContext context,
+    WidgetRef ref, {
+    required bool isOwner,
+    required String authorName,
+  }) {
     return showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
       backgroundColor: context.colorScheme.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (sheetContext) {
-        void comingSoon(String feature) {
-          Navigator.of(sheetContext).pop();
-          context.showComingSoon(feature);
-        }
 
         return SafeArea(
           child: Padding(
@@ -162,15 +175,25 @@ class PostDetailScreen extends ConsumerWidget {
                     sharePost(context, ref, post);
                   },
                 ),
-                if (isOwner)
-                  _ActionTile(icon: Icons.edit_outlined, label: 'Edit caption', onTap: () => comingSoon('Editing posts'))
-                else
+                if (!isOwner)
                   _ActionTile(
                     icon: Icons.flag_outlined,
                     label: 'Report post',
                     onTap: () {
                       Navigator.of(sheetContext).pop();
                       showReportSheet(context, target: ReportTarget.post, targetId: post.id);
+                    },
+                  ),
+                if (!isOwner)
+                  _ActionTile(
+                    icon: Icons.block_rounded,
+                    label: 'Block $authorName',
+                    destructive: true,
+                    onTap: () async {
+                      Navigator.of(sheetContext).pop();
+                      final blocked = await confirmAndBlockUser(context, ref, userId: post.authorId, name: authorName);
+                      // Their post is no longer visible to this user.
+                      if (blocked && context.mounted) Navigator.of(context).maybePop();
                     },
                   ),
                 if (isOwner)
@@ -561,11 +584,6 @@ class _EngagementRowState extends ConsumerState<_EngagementRow> {
           ),
           const Spacer(),
           Text(Formatters.relativeTime(post.createdAt), style: TextStyle(fontSize: 13, color: muted)),
-          IconButton(
-            tooltip: 'Save',
-            onPressed: () => context.showComingSoon('Saving posts'),
-            icon: Icon(Icons.bookmark_border_rounded, size: 26, color: scheme.onSurface),
-          ),
         ],
       ),
     );

@@ -10,6 +10,7 @@ import '../../../../core/widgets/snackbar_utils.dart';
 import '../../../customers/provider_profile/views/widgets/section_states.dart';
 import '../../../shared/authentication/controllers/user_profile_provider.dart';
 import '../../../shared/bookings/views/widgets/booking_card.dart' show PersonAvatar;
+import '../../../shared/blocking/views/block_user_dialog.dart';
 import '../../../shared/reports/models/report.dart';
 import '../../../shared/reports/views/report_sheet.dart';
 import '../../controllers/post_comments_controller.dart';
@@ -168,6 +169,9 @@ class _PostCommentsSheetState extends ConsumerState<PostCommentsSheet> {
                       onReport: canReport
                           ? () => showReportSheet(context, target: ReportTarget.comment, targetId: comment.id)
                           : null,
+                      onBlock: canReport
+                          ? () => confirmAndBlockUser(context, ref, userId: comment.authorId, name: comment.authorName)
+                          : null,
                     );
                   },
                 ),
@@ -215,10 +219,16 @@ class _PostCommentsSheetState extends ConsumerState<PostCommentsSheet> {
   }
 }
 
-enum _CommentAction { report, delete }
+enum _CommentAction { report, block, delete }
 
 class _CommentTile extends StatelessWidget {
-  const _CommentTile({required this.comment, required this.isPostAuthor, required this.onDelete, this.onReport});
+  const _CommentTile({
+    required this.comment,
+    required this.isPostAuthor,
+    required this.onDelete,
+    this.onReport,
+    this.onBlock,
+  });
 
   final PostComment comment;
   final bool isPostAuthor;
@@ -228,6 +238,9 @@ class _CommentTile extends StatelessWidget {
 
   /// Null for the viewer's own comments.
   final VoidCallback? onReport;
+
+  /// Blocks the comment's author (offered with [onReport]).
+  final VoidCallback? onBlock;
 
   @override
   Widget build(BuildContext context) {
@@ -273,10 +286,13 @@ class _CommentTile extends StatelessWidget {
               icon: Icon(Icons.more_horiz_rounded, size: 19, color: muted),
               onSelected: (action) => switch (action) {
                 _CommentAction.report => onReport!(),
+                _CommentAction.block => onBlock?.call(),
                 _CommentAction.delete => onDelete?.call(),
               },
               itemBuilder: (_) => [
                 const PopupMenuItem(value: _CommentAction.report, child: Text('Report comment')),
+                if (onBlock != null)
+                  PopupMenuItem(value: _CommentAction.block, child: Text('Block ${comment.authorName}')),
                 if (onDelete != null) const PopupMenuItem(value: _CommentAction.delete, child: Text('Delete comment')),
               ],
             )
