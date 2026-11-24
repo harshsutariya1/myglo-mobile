@@ -14,7 +14,6 @@ import '../../../core/utils/network_error.dart';
 import '../../../core/widgets/dashed_border.dart';
 import '../../../core/widgets/skeleton/skeletons.dart';
 import '../../../core/widgets/snackbar_utils.dart';
-import '../../../core/widgets/soon_badge.dart';
 import '../../providers/provider_profiles/models/service_model.dart';
 import '../../shared/authentication/controllers/user_profile_provider.dart';
 import '../../shared/services/views/widgets/service_tile.dart';
@@ -424,12 +423,6 @@ class _UploadPostScreenState extends ConsumerState<UploadPostScreen> {
                         onClear: () => setState(() => _selectedService = null),
                       ),
                     ],
-                    const _SectionLabel('Location', soon: true),
-                    _SoonRow(
-                      icon: Icons.place_outlined,
-                      label: 'Add a suburb or neighbourhood',
-                      onTap: () => context.showComingSoon('Location tags'),
-                    ),
                   ],
                 ),
               ),
@@ -461,10 +454,9 @@ InputDecoration _fieldDecoration(BuildContext context, {required String hint}) {
 }
 
 class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.label, {this.soon = false});
+  const _SectionLabel(this.label);
 
   final String label;
-  final bool soon;
 
   @override
   Widget build(BuildContext context) {
@@ -478,7 +470,6 @@ class _SectionLabel extends StatelessWidget {
               child: Text(label, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: context.colorScheme.onSurface)),
             ),
           ),
-          if (soon) ...[const SizedBox(width: 8), const SoonBadge()],
         ],
       ),
     );
@@ -821,24 +812,6 @@ class _LinkedServiceField extends StatelessWidget {
       title: service.name,
       subtitle: '${Formatters.aud(service.price)} · ${Formatters.duration(service.durationMinutes)}',
       trailing: IconButton(tooltip: 'Unlink service', icon: const Icon(Icons.close_rounded), onPressed: onClear),
-    );
-  }
-}
-
-class _SoonRow extends StatelessWidget {
-  const _SoonRow({required this.icon, required this.label, required this.onTap});
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return _OutlinedRow(
-      onTap: onTap,
-      leading: Icon(icon, color: context.colorScheme.onSurface.withValues(alpha: 0.45)),
-      title: label,
-      muted: true,
     );
   }
 }

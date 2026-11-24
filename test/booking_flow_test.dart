@@ -226,18 +226,14 @@ Future<void> _scrollTo(WidgetTester tester, Finder finder) async {
 
 void main() {
   group('Payment step', () {
-    testWidgets('card is unavailable until the provider can take it; Afterpay is coming soon', (tester) async {
+    testWidgets('card is unavailable until the provider can take it; no placeholder methods', (tester) async {
       await _pumpPayment(tester, repository: _FakeBookingRepository());
 
       expect(find.text('Pay in cash'), findsOneWidget);
       expect(find.textContaining("doesn't take payment in the app yet"), findsOneWidget);
       expect(find.text('Unavailable'), findsOneWidget);
-      expect(find.text('Coming soon'), findsOneWidget);
-      expect(find.text('Afterpay'), findsOneWidget);
-
-      await tester.tap(find.text('Afterpay'));
-      await tester.pump();
-      expect(find.text('Afterpay is coming soon'), findsOneWidget);
+      expect(find.text('Coming soon'), findsNothing);
+      expect(find.text('Afterpay'), findsNothing);
 
       expect(find.text(r'$115'), findsWidgets);
     });

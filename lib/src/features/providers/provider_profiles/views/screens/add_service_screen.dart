@@ -12,7 +12,6 @@ import '../../../../../core/utils/formatters.dart';
 import '../../../../../core/utils/network_error.dart';
 import '../../../../../core/widgets/dashed_border.dart';
 import '../../../../../core/widgets/snackbar_utils.dart';
-import '../../../../../core/widgets/soon_badge.dart';
 import '../../controllers/add_service_controller.dart';
 import '../../models/service_catalog.dart';
 import '../../models/service_model.dart';
@@ -360,13 +359,6 @@ class _AddServiceScreenState extends ConsumerState<AddServiceScreen> {
                       validator: _validatePrice,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _SoonToggle(
-                      label: 'Show discount',
-                      onTap: () => context.showComingSoon('Discounted pricing'),
-                    ),
-                  ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -414,8 +406,6 @@ class _AddServiceScreenState extends ConsumerState<AddServiceScreen> {
                 Text('Choose how long the service takes',
                     style: TextStyle(fontSize: 12.5, color: Theme.of(context).colorScheme.error)),
               ],
-              const _SectionLabel('Where it happens', soon: true),
-              _LocationModePreview(onTap: () => context.showComingSoon('Mobile and online services')),
               const _SectionLabel("Description & what's included"),
               TextFormField(
                 controller: _descriptionController,
@@ -490,10 +480,9 @@ InputDecoration _inputDecoration(
 }
 
 class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.label, {this.soon = false});
+  const _SectionLabel(this.label);
 
   final String label;
-  final bool soon;
 
   @override
   Widget build(BuildContext context) {
@@ -510,7 +499,6 @@ class _SectionLabel extends StatelessWidget {
               ),
             ),
           ),
-          if (soon) ...[const SizedBox(width: 8), const SoonBadge()],
         ],
       ),
     );
@@ -614,24 +602,6 @@ class _CoverPicker extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 10),
-        InkWell(
-          onTap: () => context.showComingSoon('Multiple service photos'),
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Row(
-              children: [
-                Icon(Icons.collections_outlined, size: 18, color: scheme.onSurface.withValues(alpha: 0.5)),
-                const SizedBox(width: 8),
-                Text('Add more photos',
-                    style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: scheme.onSurface.withValues(alpha: 0.6))),
-                const SizedBox(width: 8),
-                const SoonBadge(),
-              ],
-            ),
-          ),
-        ),
       ],
     );
   }
@@ -690,83 +660,6 @@ class _ChoicePill extends StatelessWidget {
                 Text(label, style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: foreground)),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Discount toggle placeholder sized to sit beside the price field.
-class _SoonToggle extends StatelessWidget {
-  const _SoonToggle({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        height: 56,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: scheme.onSurface.withValues(alpha: 0.1)),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: scheme.onSurface.withValues(alpha: 0.5))),
-                  const SizedBox(height: 3),
-                  const SoonBadge(),
-                ],
-              ),
-            ),
-            IgnorePointer(
-              child: Switch(value: false, onChanged: null, materialTapTargetSize: MaterialTapTargetSize.shrinkWrap),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Segmented control previewing location modes. Every service is currently
-/// delivered at the provider's address.
-class _LocationModePreview extends StatelessWidget {
-  const _LocationModePreview({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: IgnorePointer(
-        child: SizedBox(
-          width: double.infinity,
-          child: SegmentedButton<int>(
-            showSelectedIcon: false,
-            segments: const [
-              ButtonSegment(value: 0, label: Text('My place'), icon: Icon(Icons.storefront_outlined, size: 18)),
-              ButtonSegment(value: 1, label: Text("Client's"), icon: Icon(Icons.home_outlined, size: 18)),
-              ButtonSegment(value: 2, label: Text('Online'), icon: Icon(Icons.videocam_outlined, size: 18)),
-            ],
-            selected: const {0},
-            onSelectionChanged: null,
           ),
         ),
       ),

@@ -70,7 +70,7 @@ void main() {
 
     expect(find.text('Edit details'), findsOneWidget);
     expect(find.text('Duplicate as new'), findsOneWidget);
-    expect(find.text('Pause service'), findsOneWidget);
+    expect(find.text('Pause service'), findsNothing);
     expect(find.text('Delete service'), findsOneWidget);
   });
 
