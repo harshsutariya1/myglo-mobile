@@ -211,12 +211,12 @@ BEGIN
     END IF;
 
     -- The app is told whether providers may delete their own account.
+    PERFORM pg_temp.as_owner();
     IF (public.get_app_config()->>'provider_self_deletion')::boolean IS DISTINCT FROM
        (SELECT s.provider_self_deletion FROM private.platform_settings s WHERE s.id) THEN
         RAISE EXCEPTION 'FAIL: get_app_config.provider_self_deletion';
     END IF;
 
-    PERFORM pg_temp.as_owner();
     RAISE NOTICE 'marketplace visibility: all checks passed';
 END;
 $test$;

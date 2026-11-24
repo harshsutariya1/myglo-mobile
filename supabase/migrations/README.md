@@ -49,9 +49,9 @@ once.
 | `20261102100000_business_stats_card_earnings.sql` | 20261102094204 |  |
 | `20261102110000_business_overview.sql` | 20261102105338 |  |
 | `20261102120000_account_deletion.sql` | 20261102180358 |  |
-| `20261111120000_lock_down_profile_writes_and_storage.sql` | — | **Not applied yet.** |
-| `20261112120000_provider_marketplace_visibility.sql` | — | **Not applied yet.** |
-| `20261113120000_phone_verification_and_contact_rules.sql` | — | **Not applied yet.** |
-| `20261124120000_user_blocking.sql` | — | **Not applied yet.** |
-| `20261124130000_admin_account_closure.sql` | — | **Not applied yet.** |
-| `20261124140000_platform_fee_free_at_launch.sql` | — | **Not applied yet.** |
+| `20261111120000_lock_down_profile_writes_and_storage.sql` | 20261124110226 | Applied 2026-11-24. |
+| `20261112120000_provider_marketplace_visibility.sql` | 20261124110326 | Applied 2026-11-24. |
+| `20261113120000_phone_verification_and_contact_rules.sql` | 20261124110701 | Applied 2026-11-24. |
+| `20261124120000_user_blocking.sql` | 20261124110757 | Applied 2026-11-24. |
+| `20261124130000_admin_account_closure.sql` | 20261124110925 | Applied 2026-11-24. |
+| `20261124140000_platform_fee_free_at_launch.sql` | 20261124111002 | Applied 2026-11-24. |

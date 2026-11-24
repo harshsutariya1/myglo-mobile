@@ -125,8 +125,8 @@ DECLARE
     v_count      integer;
 BEGIN
     -- Privileges.
-    IF has_function_privilege('authenticated', 'public.delete_account(uuid)', 'EXECUTE')
-       OR has_function_privilege('anon', 'public.delete_account(uuid)', 'EXECUTE')
+    IF has_function_privilege('authenticated', 'public.delete_account(uuid, boolean)', 'EXECUTE')
+       OR has_function_privilege('anon', 'public.delete_account(uuid, boolean)', 'EXECUTE')
        OR has_function_privilege('authenticated', 'public.list_deleted_account_files(uuid, integer)', 'EXECUTE')
        OR has_function_privilege('anon', 'public.begin_account_deletion()', 'EXECUTE')
        OR has_function_privilege('anon', 'public.get_my_account_deletion_status()', 'EXECUTE')
@@ -134,7 +134,7 @@ BEGIN
         RAISE EXCEPTION 'FAIL privileges: deletion functions or log reachable by the wrong role';
     END IF;
     IF NOT has_function_privilege('authenticated', 'public.begin_account_deletion()', 'EXECUTE')
-       OR NOT has_function_privilege('service_role', 'public.delete_account(uuid)', 'EXECUTE') THEN
+       OR NOT has_function_privilege('service_role', 'public.delete_account(uuid, boolean)', 'EXECUTE') THEN
         RAISE EXCEPTION 'FAIL privileges: callers lost access';
     END IF;
 

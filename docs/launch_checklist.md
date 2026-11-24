@@ -5,34 +5,21 @@ order to do it. Status as of 2026-11-24. Everything that could be done in
 code is done (see "Done" at the end); what remains needs approval, a
 dashboard, an account, a device or a decision.
 
-## 1. Approve and apply the database migrations (with Claude, ~10 minutes)
+## 1. Database migrations — done 2026-11-24
 
-These need you present: Supabase asks you to approve each one. Apply them in
-this order, each on its own, before anything below:
+All six are applied to the live project (versions in
+`supabase/migrations/README.md`), every check in `supabase/tests/` passed in
+rolled-back transactions, and the `delete-account` function is redeployed
+(version 2). The platform fee is now 0%.
 
-1. `20261111120000_lock_down_profile_writes_and_storage`
-2. `20261112120000_provider_marketplace_visibility`
-3. `20261113120000_phone_verification_and_contact_rules`
-4. `20261124120000_user_blocking`
-5. `20261124130000_admin_account_closure`
-6. `20261124140000_platform_fee_free_at_launch`
+- [ ] `spatial_ref_sys` is still writable by anonymous API users (Supabase
+      owns the table, so the migration couldn't revoke it). Open a Supabase
+      support ticket asking them to revoke anon / authenticated writes on
+      `public.spatial_ref_sys`, or to enable RLS on it.
 
-Then:
-- [ ] Run the checks in `supabase/tests/` inside rolled-back transactions:
-      `account_deletion.sql`, `admin_security.sql`,
-      `marketplace_visibility.sql`, `phone_verification.sql`,
-      `user_blocking.sql`, `admin_account_closure.sql`.
-- [ ] **Then** redeploy the `delete-account` Edge Function (it calls what
-      migration 5 adds; deploying it first would break account deletion).
-- [ ] If migration 1 warns "spatial_ref_sys is still writable through the
-      API", open a Supabase support ticket asking them to revoke anon /
-      authenticated writes on `public.spatial_ref_sys`.
-- [ ] Update the "Version in the live database" column in
-      `supabase/migrations/README.md`.
-
-Testers on build 1.0.0+4 will need a phone number to finish onboarding once
-migration 3 is applied (the old build lets them skip it, and the server now
-refuses). Ship 1.0.0+5 to testers soon after.
+Testers on build 1.0.0+4 now need a phone number to finish onboarding (the
+old build lets them skip it and the server refuses). Ship 1.0.0+5 to testers
+soon.
 
 ## 2. Merge the code
 
