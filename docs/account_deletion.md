@@ -1,9 +1,61 @@
 # Account deletion
 
-Clients and providers delete their own account in the app: **Account
-Settings → Delete Account** (clients) or **Settings → Privacy & security →
-Delete account** (providers). This is what the App Store (guideline
-5.1.1(v)) and Google Play require.
+**Clients** delete their own account in the app: **Account Settings →
+Delete Account**.
+
+**Providers** don't, by default. They hide their business instead
+(**Settings → Privacy & security → Hide my business**, see below) and email
+support to close the account for good. Whether providers may delete their own
+account is the platform setting `provider_self_deletion` (off by default),
+enforced by the server and read by the app through `get_app_config`:
+
+- Off: the provider settings screen has no "Delete account" row, and
+  `begin_account_deletion` / `get_my_account_deletion_status` report the
+  blocker `provider_deletion_disabled` for a provider who gets there anyway.
+- On: providers get the same flow as clients, with the provider blockers
+  below. Turn it on without an app release:
+
+  ```sql
+  UPDATE private.platform_settings SET provider_self_deletion = true WHERE id;
+  ```
+
+  or, in the app as an admin: **Admin → Settings → Platform settings →
+  Accounts → "Providers can delete their own account"**.
+
+> **Store review risk.** The App Store (guideline 5.1.1(v)) and Google Play
+> require that anyone who can create an account in the app can also start
+> deleting it in the app. Offering providers only "hide" plus an email
+> address may be rejected. If a reviewer objects, turn the setting on.
+
+**Closing an account on request** (support): check it's the account owner
+asking (an email from the account's own address), then in the app as an
+admin: **Admin → People → the person → Moderation → Close account**. It needs
+a fresh authenticator code and a reason, and runs the same deletion as in-app
+deletion through the `delete-account` function: the Stripe balance check,
+`delete_account(user, p_by_admin => true)` and the confirmation email. Every
+blocker below applies except `provider_deletion_disabled` and
+`account_suspended` (a suspended account can be closed this way). The audit
+log records it as `account.close` (migration
+`20261124130000_admin_account_closure`).
+
+## Hiding a business (providers)
+
+`provider_booking_settings.hidden_from_marketplace`, set by the provider
+(migration `20261112120000_provider_marketplace_visibility`). While hidden:
+
+- they're left out of search, the map, the client home list, city counts,
+  provider tagging in posts and the Discover feeds;
+- they have no free times and can't be booked (`provider_not_accepting`),
+  by any path;
+- nothing is deleted: profile, services, reviews and posts are kept, and
+  existing bookings carry on (the provider still answers, completes and is
+  paid for them; clients still see them);
+- a client who opens their profile from a favourite, an old booking or a
+  shared link still sees it, without any times to book.
+
+Showing the business again undoes all of it at once. The server treats a
+hidden provider like one an admin has blocked (`private.is_unlisted`), so
+every listing and booking path applies the same rule.
 
 ## How it works
 
@@ -32,6 +84,7 @@ Deletion waits until none of these are true. The screen explains each one.
 
 | Code | Who | Clears when |
 |---|---|---|
+| `provider_deletion_disabled` | providers | `provider_self_deletion` is turned on (see above); not applied to `delete_account` run by support |
 | `admin_account` | admins | never in the app: remove the row from `private.admins` |
 | `account_suspended` | suspended users | an admin lifts it, or deletes on request (email) |
 | `upcoming_bookings` | both | checkouts, unanswered requests and future confirmed bookings are cancelled or finished |
@@ -88,6 +141,7 @@ role, closed Stripe account and time, with no personal details.
 
 ## Testing
 
-`supabase/tests/account_deletion.sql` runs the whole flow inside a
+`supabase/tests/account_deletion.sql` (deletion) and
+`supabase/tests/marketplace_visibility.sql` (hiding) run the whole flow inside a
 rolled-back transaction (see `supabase/tests/jobs.sql` for how to run it).
 App side: `test/account_deletion_test.dart`.

@@ -7,6 +7,16 @@ class AppConfig {
   /// Supabase Dashboard > Authentication > Providers > Email > "Email OTP Length".
   static const int emailOtpLength = 6;
 
+  /// Digits in the texted phone verification code. Must match Supabase
+  /// Dashboard > Authentication > Providers > Phone > "SMS OTP Length".
+  static const int smsOtpLength = 6;
+
+  /// Shortest password accepted when one is chosen (sign-up and password
+  /// reset). Keep Supabase Dashboard > Authentication > Providers > Email >
+  /// "Minimum password length" at the same value: the server is what
+  /// enforces it.
+  static const int passwordMinLength = 8;
+
   /// Minimum wait before another verification email may be requested. Supabase
   /// itself enforces 60 seconds between emails to the same address.
   static const Duration otpResendCooldown = Duration(seconds: 60);
@@ -67,6 +77,12 @@ class AppConfig {
   /// these links itself once the site serves the app-link verification files
   /// (see docs/share_links.md).
   static const String shareLinkHost = 'myglo.app';
+
+  /// Terms of Service on the public site.
+  static final Uri termsUrl = Uri.https(shareLinkHost, '/terms');
+
+  /// Privacy Policy on the public site.
+  static final Uri privacyUrl = Uri.https(shareLinkHost, '/privacy');
 
   /// Where users reach a person (e.g. to delete a suspended account).
   static const String supportEmail = 'hello@myglo.app';

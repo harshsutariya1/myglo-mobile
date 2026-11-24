@@ -153,18 +153,21 @@ List<Override> _overrides(
   List<ServiceModel>? services,
   WeeklySchedule? hours,
   List<TimeOffBlock> timeOff = const [],
+  bool phoneVerified = true,
 }) =>
     [
       userProfileProvider.overrideWith(
         (ref) async => AppUserProfile(
           rawUser: _providerUser,
           role: UserRole.provider,
-          profile: const ProfileModel(
+          profile: ProfileModel(
             id: 'prov-1',
             role: UserRole.provider,
             providerName: 'Glow Studio',
+            phoneNumber: '+61412345678',
+            phoneVerifiedAt: phoneVerified ? DateTime(2026, 11, 1) : null,
             addressText: '1 Cavill Ave, Surfers Paradise QLD 4217',
-            coordinates: LocationCoordinates(type: 'Point', coordinates: [153.43, -28.0]),
+            coordinates: const LocationCoordinates(type: 'Point', coordinates: [153.43, -28.0]),
           ),
         ),
       ),
@@ -552,6 +555,13 @@ void main() {
       await _pump(tester, _overrides(_FakeRepository(_november)));
 
       expect(find.text('NEEDS YOUR ATTENTION'), findsNothing);
+    });
+
+    testWidgets('asks a provider with an unverified phone number to verify it', (tester) async {
+      await _pump(tester, _overrides(_FakeRepository(_november), phoneVerified: false));
+
+      expect(find.text('NEEDS YOUR ATTENTION'), findsOneWidget);
+      expect(find.text('Verify your phone number'), findsOneWidget);
     });
 
     testWidgets('lists waiting requests, unanswered reviews and card payments to set up', (tester) async {

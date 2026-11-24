@@ -31,12 +31,13 @@ _ProfileModel _$ProfileModelFromJson(Map<String, dynamic> json) =>
       lastName: json['last_name'] as String?,
       email: json['email'] as String?,
       phoneNumber: json['phone_number'] as String?,
+      phoneVerifiedAt: json['phone_verified_at'] == null
+          ? null
+          : DateTime.parse(json['phone_verified_at'] as String),
       profilePic: json['profile_pic'] as String?,
       bio: json['bio'] as String?,
       followersCount: (json['followers_count'] as num?)?.toInt() ?? 0,
       followingCount: (json['following_count'] as num?)?.toInt() ?? 0,
-      isEmailPublic: json['is_email_public'] as bool? ?? false,
-      isPhonePublic: json['is_phone_public'] as bool? ?? false,
       providerName: json['provider_name'] as String?,
       addressText: json['address_text'] as String?,
       coordinates: const LocationCoordinatesConverter().fromJson(
@@ -57,12 +58,11 @@ Map<String, dynamic> _$ProfileModelToJson(_ProfileModel instance) =>
       'last_name': instance.lastName,
       'email': instance.email,
       'phone_number': instance.phoneNumber,
+      'phone_verified_at': instance.phoneVerifiedAt?.toIso8601String(),
       'profile_pic': instance.profilePic,
       'bio': instance.bio,
       'followers_count': instance.followersCount,
       'following_count': instance.followingCount,
-      'is_email_public': instance.isEmailPublic,
-      'is_phone_public': instance.isPhonePublic,
       'provider_name': instance.providerName,
       'address_text': instance.addressText,
       'coordinates': const LocationCoordinatesConverter().toJson(

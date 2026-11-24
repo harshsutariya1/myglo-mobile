@@ -87,8 +87,6 @@ class UserRepository {
     String? phone,
     String? profilePic,
     String? bio,
-    bool? isEmailPublic,
-    bool? isPhonePublic,
     String? providerName,
     String? addressText,
     double? latitude,
@@ -100,8 +98,6 @@ class UserRepository {
     if (phone != null) updates['phone_number'] = phone;
     if (profilePic != null) updates['profile_pic'] = profilePic;
     if (bio != null) updates['bio'] = bio;
-    if (isEmailPublic != null) updates['is_email_public'] = isEmailPublic;
-    if (isPhonePublic != null) updates['is_phone_public'] = isPhonePublic;
 
     if (role == UserRole.provider) {
       if (providerName != null) updates['provider_name'] = providerName;

@@ -61,6 +61,21 @@ void main() {
       expect(base.copyWith(acceptsCard: false, cardReady: true).takesCard, isFalse);
     });
 
+    test('a hidden business takes no new bookings, whatever else is set', () {
+      const listed = ProviderBookingSettings(providerId: 'p');
+      expect(listed.hiddenFromMarketplace, isFalse);
+      expect(listed.takesNewBookings, isTrue);
+      expect(listed.copyWith(acceptsBookings: false).takesNewBookings, isFalse);
+
+      final hidden = ProviderBookingSettings.fromJson({
+        'provider_id': 'p',
+        'accepts_bookings': true,
+        'hidden_from_marketplace': true,
+      });
+      expect(hidden.hiddenFromMarketplace, isTrue);
+      expect(hidden.takesNewBookings, isFalse);
+    });
+
     test('reads the new columns', () {
       final settings = ProviderBookingSettings.fromJson({
         'provider_id': 'p',

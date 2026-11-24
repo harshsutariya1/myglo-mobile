@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../../core/utils/phone_numbers.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/skeleton/skeletons.dart';
 import '../../../shared/authentication/controllers/user_profile_provider.dart';
@@ -25,8 +26,6 @@ class _EditCustomerProfileScreenState
   late TextEditingController _emailController;
   late TextEditingController _bioController;
 
-  bool _isEmailPublic = false;
-  bool _isPhonePublic = false;
 
   File? _newProfilePic;
   final ImagePicker _picker = ImagePicker();
@@ -47,8 +46,6 @@ class _EditCustomerProfileScreenState
     );
     _bioController = TextEditingController(text: profile?.bio ?? '');
 
-    _isEmailPublic = profile?.isEmailPublic ?? false;
-    _isPhonePublic = profile?.isPhonePublic ?? false;
   }
 
   @override
@@ -84,8 +81,6 @@ class _EditCustomerProfileScreenState
           lastName: _lastNameController.text.trim(),
           phone: _phoneController.text.trim(),
           bio: _bioController.text.trim(),
-          isEmailPublic: _isEmailPublic,
-          isPhonePublic: _isPhonePublic,
           newProfilePic: _newProfilePic,
         );
 
@@ -202,6 +197,7 @@ class _EditCustomerProfileScreenState
                       label: 'Phone Number',
                       icon: Icons.phone_outlined,
                       keyboardType: TextInputType.phone,
+                      validator: PhoneNumbers.validateRequired,
                     ),
                     const SizedBox(height: 16),
                     _buildTextField(
@@ -209,45 +205,6 @@ class _EditCustomerProfileScreenState
                       label: 'Email',
                       icon: Icons.email_outlined,
                       readOnly: true,
-                    ),
-
-                    SizedBox(height: 32),
-
-                    // Privacy Settings Section
-                    Text(
-                      'Privacy Settings',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: context.colorScheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    SwitchListTile(
-                      title: const Text('Make Email Public'),
-                      subtitle: const Text(
-                        'Allow others to see your email address',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      value: _isEmailPublic,
-                      activeThumbColor: context.colorScheme.primary,
-                      contentPadding: EdgeInsets.zero,
-                      onChanged: (val) {
-                        setState(() => _isEmailPublic = val);
-                      },
-                    ),
-                    SwitchListTile(
-                      title: const Text('Make Phone Number Public'),
-                      subtitle: const Text(
-                        'Allow others to see your phone number',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      value: _isPhonePublic,
-                      activeThumbColor: context.colorScheme.primary,
-                      contentPadding: EdgeInsets.zero,
-                      onChanged: (val) {
-                        setState(() => _isPhonePublic = val);
-                      },
                     ),
 
                     const SizedBox(height: 48),

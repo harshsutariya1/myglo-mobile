@@ -4,9 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 import '../../features/shared/account_deletion/views/delete_account_screen.dart';
+import '../../features/shared/blocking/views/blocked_accounts_screen.dart';
 import '../../features/shared/authentication/models/auth_repository.dart';
 import '../../features/shared/authentication/views/screens/email_auth_screen.dart';
 import '../../features/shared/authentication/views/screens/email_confirmation_screen.dart';
+import '../../features/shared/authentication/views/screens/reset_password_screen.dart';
+import '../../features/providers/provider_profiles/views/screens/verify_phone_screen.dart';
 import '../../features/shared/authentication/views/screens/role_selection_screen.dart';
 import '../../features/shared/authentication/views/screens/onboarding_details_screen.dart';
 import '../../features/shared/authentication/models/user_role.dart';
@@ -79,6 +82,8 @@ enum AppRoute {
   error(path: '/error'),
   auth(path: '/auth'),
   confirmEmail(path: '/confirm_email'),
+  // Forgotten password (signed out) and "Change password" (signed in).
+  resetPassword(path: '/reset-password'),
   roleSelection(path: '/role'),
   onboardingDetails(path: '/onboarding_details'),
   customerHome(path: '/customer_home'),
@@ -104,6 +109,7 @@ enum AppRoute {
   settings(path: 'settings'),
   // Clients and providers alike, full-screen over their settings.
   deleteAccount(path: '/account/delete'),
+  blockedAccounts(path: '/account/blocked'),
   // Client discovery, full-screen over the home tab.
   providerSearch(path: '/search'),
   providersMap(path: '/map'),
@@ -116,6 +122,7 @@ enum AppRoute {
   editProviderProfile(path: '/business/profile'),
   coverPhotos(path: '/business/cover-photos'),
   businessLocation(path: '/business/location'),
+  verifyPhone(path: '/business/verify-phone'),
   // The provider's clients, full-screen over Business Tools.
   providerContacts(path: '/business/contacts'),
   // Card payments and payouts (Stripe), full-screen.
@@ -178,6 +185,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             verifyOnly: extra['verifyOnly'] as bool? ?? false,
           );
         },
+      ),
+      GoRoute(
+        path: AppRoute.resetPassword.path,
+        name: AppRoute.resetPassword.name,
+        builder: (context, state) => ResetPasswordScreen(email: state.uri.queryParameters['email'] ?? ''),
       ),
       GoRoute(
         path: AppRoute.roleSelection.path,
@@ -283,6 +295,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const DeleteAccountScreen(),
       ),
       GoRoute(
+        path: AppRoute.blockedAccounts.path,
+        name: AppRoute.blockedAccounts.name,
+        builder: (context, state) => const BlockedAccountsScreen(),
+      ),
+      GoRoute(
         path: AppRoute.workingHours.path,
         name: AppRoute.workingHours.name,
         builder: (context, state) => const WorkingHoursScreen(),
@@ -311,6 +328,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoute.businessLocation.path,
         name: AppRoute.businessLocation.name,
         builder: (context, state) => const BusinessLocationScreen(),
+      ),
+      GoRoute(
+        path: AppRoute.verifyPhone.path,
+        name: AppRoute.verifyPhone.name,
+        builder: (context, state) => const VerifyPhoneScreen(),
       ),
       GoRoute(
         path: AppRoute.providerContacts.path,

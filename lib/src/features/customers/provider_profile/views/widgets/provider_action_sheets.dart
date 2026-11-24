@@ -10,10 +10,11 @@ import '../../../../shared/services/views/widgets/service_details_sheet.dart';
 import '../../../../shared/authentication/models/profile_model.dart';
 import 'provider_profile_header.dart';
 
-/// Shows the contact details a provider has chosen to make public.
+/// Shows a provider's business contact details.
 ///
-/// `public_profiles` masks email and phone unless the provider opted in, so a
-/// null value here means "not shared", not "missing".
+/// `public_profiles` shows every provider's email and phone to signed-in
+/// users (and never a client's), so a null value here means the provider
+/// hasn't added one.
 Future<void> showProviderContactSheet(BuildContext context, ProfileModel profile) {
   return showModalBottomSheet<void>(
     context: context,

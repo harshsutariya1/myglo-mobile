@@ -364,15 +364,6 @@ class BookingPaymentScreen extends ConsumerWidget {
                 if (choices.cash) select(PaymentMethod.cash);
               },
             ),
-            const SizedBox(height: 10),
-            PaymentOptionTile(
-              icon: Icons.splitscreen_rounded,
-              title: PaymentMethod.afterpay.label,
-              subtitle: 'Pay in 4 interest-free instalments',
-              selected: false,
-              available: false,
-              onTap: () => context.showComingSoon('Afterpay'),
-            ),
             if (checkout.paymentMessage != null) ...[
               const SizedBox(height: 18),
               BookingNotice(

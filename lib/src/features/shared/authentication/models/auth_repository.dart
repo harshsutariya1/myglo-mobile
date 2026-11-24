@@ -14,6 +14,17 @@ final authStateProvider = StreamProvider<AuthState>((ref) {
   return ref.watch(supabaseClientProvider).auth.onAuthStateChange;
 });
 
+/// What asking for a phone verification code led to.
+enum PhoneVerificationStart {
+  /// A code was texted to the number.
+  codeSent,
+
+  /// Auth already has this number confirmed for the account (e.g. the code
+  /// was accepted earlier but saving it to the profile failed), so there is
+  /// no code to wait for: go straight to [AuthRepository.confirmPhoneVerification].
+  alreadyConfirmed,
+}
+
 class AuthRepository {
   final SupabaseClient _client;
 
@@ -137,6 +148,141 @@ class AuthRepository {
     } catch (e, st) {
       AppLogger.e('Unexpected error resending signup code', tag: 'Auth', error: e, stackTrace: st);
       rethrow;
+    }
+  }
+
+  /// Emails a password-reset *code* (the "Reset password" template renders
+  /// `{{ .Token }}`). Supabase answers the same way whether or not the
+  /// address has an account, and allows one email per address per minute.
+  Future<void> sendPasswordResetCode(String email) async {
+    AppLogger.auth('Sending password reset code', email: email);
+    try {
+      await _client.auth.resetPasswordForEmail(email);
+    } on AuthException catch (e) {
+      AppLogger.w('Password reset email AuthException: ${e.message} (code: ${e.code})', tag: 'Auth');
+      rethrow;
+    } catch (e, st) {
+      AppLogger.e('Unexpected error sending password reset code', tag: 'Auth', error: e, stackTrace: st);
+      rethrow;
+    }
+  }
+
+  /// Checks the code from the reset email. On success the user is signed in
+  /// (that session is what lets them choose a new password). Throws
+  /// [AuthException] for a wrong or expired code.
+  Future<AuthResponse> verifyPasswordResetCode({required String email, required String code}) async {
+    AppLogger.auth('Verifying password reset code', email: email);
+    try {
+      return await _client.auth.verifyOTP(type: OtpType.recovery, email: email, token: code);
+    } on AuthException catch (e) {
+      AppLogger.w('Password reset code rejected: ${e.message} (code: ${e.code})', tag: 'Auth');
+      rethrow;
+    } catch (e, st) {
+      AppLogger.e('Unexpected error verifying password reset code', tag: 'Auth', error: e, stackTrace: st);
+      rethrow;
+    }
+  }
+
+  /// Sets the signed-in user's password, then signs their other devices
+  /// out, so anyone who knew the old password loses access.
+  Future<void> updatePassword(String newPassword) async {
+    final userId = _client.auth.currentUser?.id;
+    AppLogger.auth('Updating password', userId: userId);
+    try {
+      await _client.auth.updateUser(UserAttributes(password: newPassword));
+    } on AuthException catch (e) {
+      AppLogger.w('Password update AuthException: ${e.message} (code: ${e.code})', tag: 'Auth');
+      rethrow;
+    } catch (e, st) {
+      AppLogger.e('Unexpected error updating password', tag: 'Auth', error: e, stackTrace: st);
+      rethrow;
+    }
+    try {
+      await _client.auth.signOut(scope: SignOutScope.others);
+    } catch (e, st) {
+      // The password is changed; the other sessions end when their tokens
+      // expire. Worth knowing about, not worth failing the reset for.
+      AppLogger.e('Signing out other sessions after a password change failed', tag: 'Auth', error: e, stackTrace: st);
+    }
+  }
+
+  /// Texts a verification code to [phone] (E.164, see `PhoneNumbers`). The
+  /// number becomes the account's phone only once [verifyPhoneCode]
+  /// succeeds. Supabase allows one text per number per minute.
+  Future<PhoneVerificationStart> startPhoneVerification(String phone) async {
+    final user = _client.auth.currentUser;
+    AppLogger.auth('Starting phone verification', userId: user?.id);
+    if (user == null) throw const AuthException('No authenticated user found', code: 'session_not_found');
+    if (_sameNumber(user.phone, phone) && user.phoneConfirmedAt != null) {
+      return PhoneVerificationStart.alreadyConfirmed;
+    }
+    try {
+      await _client.auth.updateUser(UserAttributes(phone: phone));
+      return PhoneVerificationStart.codeSent;
+    } on AuthException catch (e, st) {
+      _logPhoneFailure('Sending the phone code', e, st);
+      rethrow;
+    } catch (e, st) {
+      AppLogger.e('Unexpected error sending the phone verification code', tag: 'Auth', error: e, stackTrace: st);
+      rethrow;
+    }
+  }
+
+  /// Texts the code for [phone] again.
+  Future<void> resendPhoneCode(String phone) async {
+    AppLogger.auth('Resending phone verification code', userId: _client.auth.currentUser?.id);
+    try {
+      await _client.auth.resend(type: OtpType.phoneChange, phone: phone);
+    } on AuthException catch (e, st) {
+      _logPhoneFailure('Resending the phone code', e, st);
+      rethrow;
+    } catch (e, st) {
+      AppLogger.e('Unexpected error resending the phone verification code', tag: 'Auth', error: e, stackTrace: st);
+      rethrow;
+    }
+  }
+
+  /// Checks the texted code. On success Auth holds [phone] as the account's
+  /// confirmed number. Throws [AuthException] for a wrong or expired code.
+  Future<void> verifyPhoneCode({required String phone, required String code}) async {
+    AppLogger.auth('Verifying phone code', userId: _client.auth.currentUser?.id);
+    try {
+      await _client.auth.verifyOTP(type: OtpType.phoneChange, phone: phone, token: code);
+    } on AuthException catch (e) {
+      AppLogger.w('Phone code rejected: ${e.message} (code: ${e.code})', tag: 'Auth');
+      rethrow;
+    } catch (e, st) {
+      AppLogger.e('Unexpected error verifying the phone code', tag: 'Auth', error: e, stackTrace: st);
+      rethrow;
+    }
+  }
+
+  /// Copies the number Auth confirmed onto the profile and marks it verified
+  /// (`confirm_phone_verification`; the server reads the number from Auth,
+  /// not from the app).
+  Future<void> confirmPhoneVerification() async {
+    try {
+      await _client.rpc('confirm_phone_verification');
+      AppLogger.auth('Phone number verified', userId: _client.auth.currentUser?.id);
+    } catch (e, st) {
+      AppLogger.e('Saving the verified phone number failed', tag: 'Auth', error: e, stackTrace: st);
+      rethrow;
+    }
+  }
+
+  static bool _sameNumber(String? a, String? b) {
+    String digits(String? value) => (value ?? '').replaceAll(RegExp(r'\D'), '');
+    return digits(a).isNotEmpty && digits(a) == digits(b);
+  }
+
+  /// A refusal the user can fix (taken number, too many texts) is a warning;
+  /// anything else means texting is broken for everyone and is reported.
+  void _logPhoneFailure(String action, AuthException e, StackTrace st) {
+    const userFixable = {'phone_exists', 'over_sms_send_rate_limit', 'over_request_rate_limit', 'validation_failed'};
+    if (userFixable.contains(e.code) || e.statusCode == '429') {
+      AppLogger.w('$action was refused: ${e.message} (code: ${e.code})', tag: 'Auth');
+    } else {
+      AppLogger.e('$action failed (code: ${e.code})', tag: 'Auth', error: e, stackTrace: st);
     }
   }
 

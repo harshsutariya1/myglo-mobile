@@ -62,6 +62,34 @@ void main() {
       expect(from('something new').isExpected, isFalse);
     });
 
+    test('maps the delete-account function\'s answers when closing an account', () {
+      final blocked = AdminFailure.from(FunctionException(status: 409, details: {
+        'error': 'deletion_blocked',
+        'blockers': [
+          {'code': 'upcoming_bookings', 'count': 2},
+          {'code': 'open_disputes', 'count': 1},
+        ],
+      }));
+      expect(blocked.code, AdminFailureCode.accountDeletionBlocked);
+      expect(blocked.blockers, hasLength(2));
+      expect(blocked.message, contains('2 upcoming bookings'));
+      expect(blocked.isExpected, isTrue);
+
+      expect(
+        AdminFailure.from(FunctionException(status: 403, details: {'error': 'reauth_required'})).code,
+        AdminFailureCode.reauthRequired,
+      );
+      expect(
+        AdminFailure.from(FunctionException(status: 404, details: {'error': 'account_not_found'})).code,
+        AdminFailureCode.notFound,
+      );
+      expect(
+        AdminFailure.from(FunctionException(status: 502, details: {'error': 'deletion_unavailable'})).code,
+        AdminFailureCode.deletionUnavailable,
+      );
+      expect(AdminFailure.from(FunctionException(status: 500)).code, AdminFailureCode.deletionUnavailable);
+    });
+
     test('keeps the detail of an invalid setting', () {
       final failure = AdminFailure.from(
         const PostgrestException(message: 'invalid_setting', code: '22023', details: 'owner'),
@@ -94,7 +122,9 @@ void main() {
     test('every editable setting has a form field with the database range', () {
       final fields = {for (final (_, group) in settingGroups) for (final f in group) f.key: f};
       final editable = const PlatformSettings().toChanges().keys.toSet()..remove('map_provider');
-      expect(fields.keys.toSet(), editable);
+      final toggles = {for (final (_, group) in settingToggleGroups) for (final t in group) t.key};
+      expect({...fields.keys, ...toggles}, editable);
+      expect(toggles, {'provider_self_deletion'});
       expect((fields['card_max_advance_days']!.min, fields['card_max_advance_days']!.max), (1, 85));
       expect((fields['checkout_hold_minutes']!.min, fields['checkout_hold_minutes']!.max), (5, 60));
     });
@@ -137,6 +167,19 @@ void main() {
       await tester.pump();
       expect(find.text('No changes'), findsOneWidget);
       expect(find.text('Between 0 and 100'), findsNothing);
+    });
+
+    testWidgets('provider self-deletion is an off-by-default switch that counts as a change', (tester) async {
+      await tester.pumpWidget(_app(const Scaffold(body: PlatformSettingsForm(saved: PlatformSettings()))));
+      final toggle = find.widgetWithText(SwitchListTile, 'Providers can delete their own account');
+      await tester.scrollUntilVisible(toggle, 200, scrollable: find.byType(Scrollable).first);
+      expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+
+      await tester.tap(toggle);
+      await tester.pump();
+
+      expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
+      expect(find.text('Save 1 change'), findsOneWidget);
     });
 
     testWidgets("won't save a value outside the database's range", (tester) async {

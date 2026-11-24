@@ -13,6 +13,7 @@ import '../../../shared/authentication/controllers/user_profile_provider.dart';
 import '../../../shared/authentication/models/profile_model.dart';
 import '../../../shared/bookings/controllers/booking_controllers.dart';
 import '../../../shared/cover_photos/views/cover_carousel.dart';
+import '../../../shared/blocking/views/block_user_dialog.dart';
 import '../../../shared/reports/models/report.dart';
 import '../../../shared/reports/views/report_sheet.dart';
 import '../../../shared/reviews/controllers/reviews_controllers.dart';
@@ -211,10 +212,26 @@ class _PublicProviderProfileScreenState extends ConsumerState<PublicProviderProf
                         child: PopupMenuButton<_ProfileAction>(
                           tooltip: 'More',
                           icon: const Icon(Icons.more_horiz_rounded, color: Colors.white, size: 20),
-                          onSelected: (_) =>
-                              showReportSheet(context, target: ReportTarget.provider, targetId: provider.id),
-                          itemBuilder: (_) => const [
-                            PopupMenuItem(value: _ProfileAction.report, child: Text('Report provider')),
+                          onSelected: (action) async {
+                            switch (action) {
+                              case _ProfileAction.report:
+                                showReportSheet(context, target: ReportTarget.provider, targetId: provider.id);
+                              case _ProfileAction.block:
+                                final blocked = await confirmAndBlockUser(
+                                  context,
+                                  ref,
+                                  userId: provider.id,
+                                  name: providerDisplayName(provider),
+                                );
+                                if (blocked && context.mounted) Navigator.of(context).maybePop();
+                            }
+                          },
+                          itemBuilder: (_) => [
+                            const PopupMenuItem(value: _ProfileAction.report, child: Text('Report provider')),
+                            PopupMenuItem(
+                              value: _ProfileAction.block,
+                              child: Text('Block ${providerDisplayName(provider)}'),
+                            ),
                           ],
                         ),
                       ),
@@ -318,7 +335,7 @@ class _PublicProviderProfileScreenState extends ConsumerState<PublicProviderProf
   }
 }
 
-enum _ProfileAction { report }
+enum _ProfileAction { report, block }
 
 class _TabBarHeader extends SliverPersistentHeaderDelegate {
   const _TabBarHeader({required this.tabBar, required this.background});

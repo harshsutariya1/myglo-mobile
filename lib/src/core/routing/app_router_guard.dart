@@ -116,7 +116,8 @@ String? appRouterRedirect(BuildContext context, GoRouterState state, Ref ref) {
   final isUnauthRoute =
       state.uri.path == AppRoute.auth.path ||
       state.uri.path == AppRoute.intro.path ||
-      state.uri.path == AppRoute.confirmEmail.path;
+      state.uri.path == AppRoute.confirmEmail.path ||
+      state.uri.path == AppRoute.resetPassword.path;
 
   final isAuthRouteOrSplash =
       isUnauthRoute ||
@@ -140,6 +141,16 @@ String? appRouterRedirect(BuildContext context, GoRouterState state, Ref ref) {
       );
       return target;
     }
+    return null;
+  }
+
+  // Resetting a password signs the user in half-way through (the emailed
+  // code is what proves it's them), and "Change password" starts signed in.
+  // Either way the screen stays put until the new password is saved, whatever
+  // the profile is doing meanwhile. Admin accounts are the exception: their
+  // session needs two-factor before anything else, so they go there (admin
+  // passwords are reset from the Supabase dashboard).
+  if (state.uri.path == AppRoute.resetPassword.path && !isAdminAccount(session.user)) {
     return null;
   }
 

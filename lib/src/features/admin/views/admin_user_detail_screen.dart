@@ -108,6 +108,12 @@ class _Detail extends StatelessWidget {
               value: user.emailConfirmedAt == null ? 'No' : adminDate(user.emailConfirmedAt!),
             ),
             AdminInfoRow(label: 'Phone', value: user.phone ?? '—'),
+            if (user.isProvider)
+              AdminInfoRow(
+                label: 'Phone verified',
+                value: user.phoneVerifiedAt == null ? 'No' : adminDate(user.phoneVerifiedAt!),
+                valueColor: user.phoneVerifiedAt == null ? AppTheme.warning : null,
+              ),
             if (user.isProvider) AdminInfoRow(label: 'Address', value: user.address ?? '—'),
             AdminInfoRow(label: 'Joined', value: adminDate(user.createdAt)),
             AdminInfoRow(label: 'Last sign-in', value: user.lastSignIn == null ? 'Never' : adminDateTime(user.lastSignIn!)),
@@ -129,6 +135,11 @@ class _Detail extends StatelessWidget {
           AdminSection(
             title: 'Booking settings',
             children: [
+              AdminInfoRow(
+                label: 'Marketplace',
+                value: settings['hidden_from_marketplace'] == true ? 'Hidden by the provider' : 'Listed',
+                valueColor: settings['hidden_from_marketplace'] == true ? AppTheme.warning : null,
+              ),
               AdminInfoRow(label: 'Taking bookings', value: settings['accepts_bookings'] == true ? 'Yes' : 'Paused'),
               AdminInfoRow(label: 'Approves requests', value: settings['requires_approval'] == true ? 'Yes' : 'No'),
               AdminInfoRow(
@@ -259,6 +270,56 @@ class _ModerationSection extends ConsumerWidget {
     _refresh(ref);
   }
 
+  /// Closes the account for good, when its owner asked (providers can't
+  /// delete their own account in the app).
+  Future<void> _closeAccount(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Close ${user.title}\'s account?'),
+        content: Text(
+          'Only do this when the owner asked, from the email on the account (${user.email ?? 'no email'}). '
+          'Their profile, ${user.isProvider ? 'services, posts, reviews and payout account' : 'posts and reviews'} '
+          'are deleted and they get an email. Booking and payment records are kept without their personal '
+          'details. This can\'t be undone.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.destructive),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    final reason = await askAdminReason(
+      context,
+      title: 'Close ${user.title}\'s account',
+      summary: 'Say how and when the owner asked (e.g. "Email from the account address, 24 Nov").',
+    );
+    if (reason == null || !context.mounted) return;
+    final closed = await runAdminAction<bool>(
+      context,
+      ref,
+      sensitive: true,
+      confirmMessage: 'Enter a code from your authenticator app to close this account.',
+      action: () async {
+        await ref.read(adminRepositoryProvider).closeAccount(user.userId, reason: reason);
+        return true;
+      },
+      successMessage: 'Account closed',
+    );
+    if (closed != true || !context.mounted) return;
+    ref.invalidate(adminUserSearchProvider);
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.goNamed(AppRoute.adminPeople.name);
+    }
+  }
+
   Future<void> _setBlocked(BuildContext context, WidgetRef ref, {required bool blocked}) async {
     final reason = await askAdminReason(
       context,
@@ -330,6 +391,12 @@ class _ModerationSection extends ConsumerWidget {
                     icon: Icon(state.bookingsBlocked ? Icons.event_available_outlined : Icons.event_busy_outlined),
                     label: Text(state.bookingsBlocked ? 'Allow bookings' : 'Stop new bookings'),
                   ),
+                OutlinedButton.icon(
+                  onPressed: () => _closeAccount(context, ref),
+                  style: OutlinedButton.styleFrom(foregroundColor: AppTheme.destructive),
+                  icon: const Icon(Icons.person_off_outlined),
+                  label: const Text('Close account'),
+                ),
               ],
             ),
           ],

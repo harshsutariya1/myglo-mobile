@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import '../../../../../../core/utils/phone_numbers.dart';
 import '../../../../../../core/theme/app_theme.dart';
 
 class PhoneNumberStep extends StatelessWidget {
@@ -35,14 +38,12 @@ class PhoneNumberStep extends StatelessWidget {
             ),
             keyboardType: TextInputType.phone,
             autovalidateMode: AutovalidateMode.onUserInteraction,
-            validator: (value) {
-              if (value != null && value.trim().isNotEmpty) {
-                if (value.trim().length < 7) {
-                  return 'Please enter a valid phone number';
-                }
-              }
-              return null;
-            },
+            autofillHints: const [AutofillHints.telephoneNumber],
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[\d+\s()-]')),
+              LengthLimitingTextInputFormatter(20),
+            ],
+            validator: PhoneNumbers.validateRequired,
           ),
         ],
       ),

@@ -3,13 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/widgets/snackbar_utils.dart';
-import '../../../../../core/widgets/soon_badge.dart';
 import '../../../../shared/services/views/widgets/service_tile.dart';
 import '../../controllers/provider_services_controller.dart';
 import '../../models/service_model.dart';
 import '../screens/add_service_screen.dart';
 
-enum _ServiceAction { edit, duplicate, pause, delete }
+enum _ServiceAction { edit, duplicate, delete }
 
 /// Three-dot menu shown on the provider's own service tiles.
 class ServiceOwnerMenu extends StatelessWidget {
@@ -46,10 +45,6 @@ class ServiceOwnerMenu extends StatelessWidget {
             value: _ServiceAction.duplicate,
             child: _MenuRow(icon: Icons.content_copy_rounded, label: 'Duplicate as new'),
           ),
-          const PopupMenuItem(
-            value: _ServiceAction.pause,
-            child: _MenuRow(icon: Icons.visibility_off_outlined, label: 'Pause service', soon: true),
-          ),
           const PopupMenuDivider(height: 1),
           const PopupMenuItem(
             value: _ServiceAction.delete,
@@ -66,8 +61,6 @@ class ServiceOwnerMenu extends StatelessWidget {
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => AddServiceScreen.edit(service)));
       case _ServiceAction.duplicate:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => AddServiceScreen.duplicate(service)));
-      case _ServiceAction.pause:
-        context.showComingSoon('Pausing a service');
       case _ServiceAction.delete:
         showDeleteServiceSheet(context, service);
     }
@@ -75,12 +68,11 @@ class ServiceOwnerMenu extends StatelessWidget {
 }
 
 class _MenuRow extends StatelessWidget {
-  const _MenuRow({required this.icon, required this.label, this.destructive = false, this.soon = false});
+  const _MenuRow({required this.icon, required this.label, this.destructive = false});
 
   final IconData icon;
   final String label;
   final bool destructive;
-  final bool soon;
 
   @override
   Widget build(BuildContext context) {
@@ -97,10 +89,6 @@ class _MenuRow extends StatelessWidget {
             style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600, color: color),
           ),
         ),
-        if (soon) ...[
-          const SizedBox(width: 8),
-          const SoonBadge(),
-        ],
       ],
     );
   }

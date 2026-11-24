@@ -39,7 +39,7 @@ class SlotRequest {
 /// carries a version that moves with every such change, over realtime.
 final availableSlotsProvider = FutureProvider.autoDispose.family<SlotCalendar, SlotRequest>((ref, request) async {
   final settings = await ref.watch(bookingSettingsProvider(request.providerId).future);
-  if (settings == null || !settings.acceptsBookings || request.serviceIds.isEmpty || request.to.isBefore(request.from)) {
+  if (settings == null || !settings.takesNewBookings || request.serviceIds.isEmpty || request.to.isBefore(request.from)) {
     return SlotCalendar.empty;
   }
   final slots = await ref.watch(availabilityRepositoryProvider).getAvailableSlots(

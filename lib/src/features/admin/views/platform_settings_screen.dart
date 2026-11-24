@@ -166,6 +166,41 @@ final settingGroups = <(String, List<SettingField>)>[
   ),
 ];
 
+/// An on/off platform setting.
+class SettingToggle {
+  const SettingToggle({
+    required this.key,
+    required this.label,
+    required this.help,
+    required this.read,
+    required this.write,
+  });
+
+  /// The key `admin_update_platform_settings` expects.
+  final String key;
+  final String label;
+  final String help;
+  final bool Function(PlatformSettings) read;
+  final PlatformSettings Function(PlatformSettings, bool) write;
+}
+
+/// The on/off settings, in the order shown.
+final List<(String, List<SettingToggle>)> settingToggleGroups = [
+  (
+    'Accounts',
+    [
+      SettingToggle(
+        key: 'provider_self_deletion',
+        label: 'Providers can delete their own account',
+        help: 'Off: providers hide their business instead and email support to close the account. '
+            'Turn on if a store reviewer requires in-app deletion for providers.',
+        read: (s) => s.providerSelfDeletion,
+        write: (s, v) => s.copyWith(providerSelfDeletion: v),
+      ),
+    ],
+  ),
+];
+
 class PlatformSettingsForm extends ConsumerStatefulWidget {
   const PlatformSettingsForm({super.key, required this.saved});
 
@@ -190,9 +225,13 @@ class _PlatformSettingsFormState extends ConsumerState<PlatformSettingsForm> {
     final changes = _changes;
     if (changes.isEmpty) return;
     final labels = {for (final (_, fields) in settingGroups) for (final f in fields) f.key: f};
+    final toggles = {for (final (_, items) in settingToggleGroups) for (final t in items) t.key: t};
+    String onOff(Object? value) => value == true ? 'On' : 'Off';
     final summary = changes.entries.map((e) {
-      final field = labels[e.key];
       final before = widget.saved.toChanges()[e.key];
+      final toggle = toggles[e.key];
+      if (toggle != null) return '${toggle.label}: ${onOff(before)} → ${onOff(e.value)}';
+      final field = labels[e.key];
       return '${field?.label ?? e.key}: $before → ${e.value} ${field?.suffix ?? ''}'.trim();
     }).join('\n');
 
@@ -236,6 +275,39 @@ class _PlatformSettingsFormState extends ConsumerState<PlatformSettingsForm> {
                           initial: field.read(widget.saved),
                           changed: field.read(_edited) != field.read(widget.saved),
                           onChanged: (value) => setState(() => _edited = field.write(_edited, value)),
+                        ),
+                    ],
+                  ),
+                for (final (title, toggles) in settingToggleGroups)
+                  AdminSection(
+                    title: title,
+                    children: [
+                      for (final toggle in toggles)
+                        // Its own Material, so the tile's ink isn't hidden by
+                        // the section's background.
+                        Material(
+                          type: MaterialType.transparency,
+                          child: SwitchListTile.adaptive(
+                            key: ValueKey('${toggle.key}-$_generation'),
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              toggle.label,
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: toggle.read(_edited) != toggle.read(widget.saved)
+                                    ? scheme.secondary
+                                    : scheme.onSurface,
+                              ),
+                            ),
+                            subtitle: Text(
+                              toggle.help,
+                              style: TextStyle(fontSize: 12.5, color: scheme.onSurface.withValues(alpha: 0.6)),
+                            ),
+                            value: toggle.read(_edited),
+                            onChanged:
+                                _saving ? null : (value) => setState(() => _edited = toggle.write(_edited, value)),
+                          ),
                         ),
                     ],
                   ),

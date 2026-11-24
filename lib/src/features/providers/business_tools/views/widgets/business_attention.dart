@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../../core/routing/app_router.dart';
+import '../../../../shared/authentication/controllers/user_profile_provider.dart';
+import '../../../../shared/authentication/models/profile_model.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/utils/formatters.dart';
 import '../../../../shared/bookings/models/booking_settings.dart';
@@ -30,6 +32,8 @@ class BusinessAttention extends ConsumerWidget {
     final setup = ref.watch(paymentsSetupProvider).value;
     final settings = ref.watch(ownBookingSettingsProvider).value;
     final progress = ref.watch(bookingSetupProgressProvider);
+    final profile = ref.watch(userProfileProvider).value?.profile;
+    final phoneUnverified = profile != null && !profile.isPhoneVerified;
     void home({ProviderHomeTab tab = ProviderHomeTab.upcoming}) => context.goNamed(
           AppRoute.providerHome.name,
           queryParameters: tab == ProviderHomeTab.upcoming ? const {} : {'tab': tab.query},
@@ -46,7 +50,23 @@ class BusinessAttention extends ConsumerWidget {
               'hours and location are set',
           onTap: home,
         ),
-      if (settings?.acceptsBookings == false)
+      if (phoneUnverified)
+        SettingsTile(
+          icon: Icons.phone_outlined,
+          iconColor: AppTheme.warning,
+          title: 'Verify your phone number',
+          subtitle: 'It takes a minute: we text you a code',
+          onTap: () => context.pushNamed(AppRoute.verifyPhone.name),
+        ),
+      if (settings?.hiddenFromMarketplace == true)
+        SettingsTile(
+          icon: Icons.visibility_off_outlined,
+          iconColor: AppTheme.warning,
+          title: 'Your business is hidden',
+          subtitle: "Clients can't find or book you until you show it again",
+          onTap: home,
+        )
+      else if (settings?.acceptsBookings == false)
         SettingsTile(
           icon: Icons.pause_circle_outline_rounded,
           iconColor: AppTheme.warning,

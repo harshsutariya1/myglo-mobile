@@ -579,7 +579,9 @@ mixin _$PlatformSettings {
 
 /// Myglo's commission on bookings paid in the app, charged to providers.
 @JsonKey(name: 'platform_fee_percent') double get platformFeePercent;/// Days without commission, from when a provider's card payments start.
-@JsonKey(name: 'fee_free_days') int get feeFreeDays;@JsonKey(name: 'default_cancellation_window_hours') int get defaultCancellationWindowHours;@JsonKey(name: 'default_cancellation_fee_percent') int get defaultCancellationFeePercent;@JsonKey(name: 'map_provider') String get mapProvider;@JsonKey(name: 'checkout_hold_minutes') int get checkoutHoldMinutes;@JsonKey(name: 'card_request_response_hours') int get cardRequestResponseHours;@JsonKey(name: 'card_max_advance_days') int get cardMaxAdvanceDays;@JsonKey(name: 'auto_complete_after_hours') int get autoCompleteAfterHours;@JsonKey(name: 'report_window_hours') int get reportWindowHours;@JsonKey(name: 'updated_at') DateTime? get updatedAt;@JsonKey(name: 'updated_by') String? get updatedBy;
+@JsonKey(name: 'fee_free_days') int get feeFreeDays;@JsonKey(name: 'default_cancellation_window_hours') int get defaultCancellationWindowHours;@JsonKey(name: 'default_cancellation_fee_percent') int get defaultCancellationFeePercent;@JsonKey(name: 'map_provider') String get mapProvider;@JsonKey(name: 'checkout_hold_minutes') int get checkoutHoldMinutes;@JsonKey(name: 'card_request_response_hours') int get cardRequestResponseHours;@JsonKey(name: 'card_max_advance_days') int get cardMaxAdvanceDays;@JsonKey(name: 'auto_complete_after_hours') int get autoCompleteAfterHours;@JsonKey(name: 'report_window_hours') int get reportWindowHours;/// Whether providers may delete their own account in the app. Off:
+/// they hide their business instead and ask support to close it.
+@JsonKey(name: 'provider_self_deletion') bool get providerSelfDeletion;@JsonKey(name: 'updated_at') DateTime? get updatedAt;@JsonKey(name: 'updated_by') String? get updatedBy;
 /// Create a copy of PlatformSettings
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -592,16 +594,16 @@ $PlatformSettingsCopyWith<PlatformSettings> get copyWith => _$PlatformSettingsCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlatformSettings&&(identical(other.platformFeePercent, platformFeePercent) || other.platformFeePercent == platformFeePercent)&&(identical(other.feeFreeDays, feeFreeDays) || other.feeFreeDays == feeFreeDays)&&(identical(other.defaultCancellationWindowHours, defaultCancellationWindowHours) || other.defaultCancellationWindowHours == defaultCancellationWindowHours)&&(identical(other.defaultCancellationFeePercent, defaultCancellationFeePercent) || other.defaultCancellationFeePercent == defaultCancellationFeePercent)&&(identical(other.mapProvider, mapProvider) || other.mapProvider == mapProvider)&&(identical(other.checkoutHoldMinutes, checkoutHoldMinutes) || other.checkoutHoldMinutes == checkoutHoldMinutes)&&(identical(other.cardRequestResponseHours, cardRequestResponseHours) || other.cardRequestResponseHours == cardRequestResponseHours)&&(identical(other.cardMaxAdvanceDays, cardMaxAdvanceDays) || other.cardMaxAdvanceDays == cardMaxAdvanceDays)&&(identical(other.autoCompleteAfterHours, autoCompleteAfterHours) || other.autoCompleteAfterHours == autoCompleteAfterHours)&&(identical(other.reportWindowHours, reportWindowHours) || other.reportWindowHours == reportWindowHours)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.updatedBy, updatedBy) || other.updatedBy == updatedBy));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlatformSettings&&(identical(other.platformFeePercent, platformFeePercent) || other.platformFeePercent == platformFeePercent)&&(identical(other.feeFreeDays, feeFreeDays) || other.feeFreeDays == feeFreeDays)&&(identical(other.defaultCancellationWindowHours, defaultCancellationWindowHours) || other.defaultCancellationWindowHours == defaultCancellationWindowHours)&&(identical(other.defaultCancellationFeePercent, defaultCancellationFeePercent) || other.defaultCancellationFeePercent == defaultCancellationFeePercent)&&(identical(other.mapProvider, mapProvider) || other.mapProvider == mapProvider)&&(identical(other.checkoutHoldMinutes, checkoutHoldMinutes) || other.checkoutHoldMinutes == checkoutHoldMinutes)&&(identical(other.cardRequestResponseHours, cardRequestResponseHours) || other.cardRequestResponseHours == cardRequestResponseHours)&&(identical(other.cardMaxAdvanceDays, cardMaxAdvanceDays) || other.cardMaxAdvanceDays == cardMaxAdvanceDays)&&(identical(other.autoCompleteAfterHours, autoCompleteAfterHours) || other.autoCompleteAfterHours == autoCompleteAfterHours)&&(identical(other.reportWindowHours, reportWindowHours) || other.reportWindowHours == reportWindowHours)&&(identical(other.providerSelfDeletion, providerSelfDeletion) || other.providerSelfDeletion == providerSelfDeletion)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.updatedBy, updatedBy) || other.updatedBy == updatedBy));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,platformFeePercent,feeFreeDays,defaultCancellationWindowHours,defaultCancellationFeePercent,mapProvider,checkoutHoldMinutes,cardRequestResponseHours,cardMaxAdvanceDays,autoCompleteAfterHours,reportWindowHours,updatedAt,updatedBy);
+int get hashCode => Object.hash(runtimeType,platformFeePercent,feeFreeDays,defaultCancellationWindowHours,defaultCancellationFeePercent,mapProvider,checkoutHoldMinutes,cardRequestResponseHours,cardMaxAdvanceDays,autoCompleteAfterHours,reportWindowHours,providerSelfDeletion,updatedAt,updatedBy);
 
 @override
 String toString() {
-  return 'PlatformSettings(platformFeePercent: $platformFeePercent, feeFreeDays: $feeFreeDays, defaultCancellationWindowHours: $defaultCancellationWindowHours, defaultCancellationFeePercent: $defaultCancellationFeePercent, mapProvider: $mapProvider, checkoutHoldMinutes: $checkoutHoldMinutes, cardRequestResponseHours: $cardRequestResponseHours, cardMaxAdvanceDays: $cardMaxAdvanceDays, autoCompleteAfterHours: $autoCompleteAfterHours, reportWindowHours: $reportWindowHours, updatedAt: $updatedAt, updatedBy: $updatedBy)';
+  return 'PlatformSettings(platformFeePercent: $platformFeePercent, feeFreeDays: $feeFreeDays, defaultCancellationWindowHours: $defaultCancellationWindowHours, defaultCancellationFeePercent: $defaultCancellationFeePercent, mapProvider: $mapProvider, checkoutHoldMinutes: $checkoutHoldMinutes, cardRequestResponseHours: $cardRequestResponseHours, cardMaxAdvanceDays: $cardMaxAdvanceDays, autoCompleteAfterHours: $autoCompleteAfterHours, reportWindowHours: $reportWindowHours, providerSelfDeletion: $providerSelfDeletion, updatedAt: $updatedAt, updatedBy: $updatedBy)';
 }
 
 
@@ -612,7 +614,7 @@ abstract mixin class $PlatformSettingsCopyWith<$Res>  {
   factory $PlatformSettingsCopyWith(PlatformSettings value, $Res Function(PlatformSettings) _then) = _$PlatformSettingsCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'platform_fee_percent') double platformFeePercent,@JsonKey(name: 'fee_free_days') int feeFreeDays,@JsonKey(name: 'default_cancellation_window_hours') int defaultCancellationWindowHours,@JsonKey(name: 'default_cancellation_fee_percent') int defaultCancellationFeePercent,@JsonKey(name: 'map_provider') String mapProvider,@JsonKey(name: 'checkout_hold_minutes') int checkoutHoldMinutes,@JsonKey(name: 'card_request_response_hours') int cardRequestResponseHours,@JsonKey(name: 'card_max_advance_days') int cardMaxAdvanceDays,@JsonKey(name: 'auto_complete_after_hours') int autoCompleteAfterHours,@JsonKey(name: 'report_window_hours') int reportWindowHours,@JsonKey(name: 'updated_at') DateTime? updatedAt,@JsonKey(name: 'updated_by') String? updatedBy
+@JsonKey(name: 'platform_fee_percent') double platformFeePercent,@JsonKey(name: 'fee_free_days') int feeFreeDays,@JsonKey(name: 'default_cancellation_window_hours') int defaultCancellationWindowHours,@JsonKey(name: 'default_cancellation_fee_percent') int defaultCancellationFeePercent,@JsonKey(name: 'map_provider') String mapProvider,@JsonKey(name: 'checkout_hold_minutes') int checkoutHoldMinutes,@JsonKey(name: 'card_request_response_hours') int cardRequestResponseHours,@JsonKey(name: 'card_max_advance_days') int cardMaxAdvanceDays,@JsonKey(name: 'auto_complete_after_hours') int autoCompleteAfterHours,@JsonKey(name: 'report_window_hours') int reportWindowHours,@JsonKey(name: 'provider_self_deletion') bool providerSelfDeletion,@JsonKey(name: 'updated_at') DateTime? updatedAt,@JsonKey(name: 'updated_by') String? updatedBy
 });
 
 
@@ -629,7 +631,7 @@ class _$PlatformSettingsCopyWithImpl<$Res>
 
 /// Create a copy of PlatformSettings
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? platformFeePercent = null,Object? feeFreeDays = null,Object? defaultCancellationWindowHours = null,Object? defaultCancellationFeePercent = null,Object? mapProvider = null,Object? checkoutHoldMinutes = null,Object? cardRequestResponseHours = null,Object? cardMaxAdvanceDays = null,Object? autoCompleteAfterHours = null,Object? reportWindowHours = null,Object? updatedAt = freezed,Object? updatedBy = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? platformFeePercent = null,Object? feeFreeDays = null,Object? defaultCancellationWindowHours = null,Object? defaultCancellationFeePercent = null,Object? mapProvider = null,Object? checkoutHoldMinutes = null,Object? cardRequestResponseHours = null,Object? cardMaxAdvanceDays = null,Object? autoCompleteAfterHours = null,Object? reportWindowHours = null,Object? providerSelfDeletion = null,Object? updatedAt = freezed,Object? updatedBy = freezed,}) {
   return _then(_self.copyWith(
 platformFeePercent: null == platformFeePercent ? _self.platformFeePercent : platformFeePercent // ignore: cast_nullable_to_non_nullable
 as double,feeFreeDays: null == feeFreeDays ? _self.feeFreeDays : feeFreeDays // ignore: cast_nullable_to_non_nullable
@@ -641,7 +643,8 @@ as int,cardRequestResponseHours: null == cardRequestResponseHours ? _self.cardRe
 as int,cardMaxAdvanceDays: null == cardMaxAdvanceDays ? _self.cardMaxAdvanceDays : cardMaxAdvanceDays // ignore: cast_nullable_to_non_nullable
 as int,autoCompleteAfterHours: null == autoCompleteAfterHours ? _self.autoCompleteAfterHours : autoCompleteAfterHours // ignore: cast_nullable_to_non_nullable
 as int,reportWindowHours: null == reportWindowHours ? _self.reportWindowHours : reportWindowHours // ignore: cast_nullable_to_non_nullable
-as int,updatedAt: freezed == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
+as int,providerSelfDeletion: null == providerSelfDeletion ? _self.providerSelfDeletion : providerSelfDeletion // ignore: cast_nullable_to_non_nullable
+as bool,updatedAt: freezed == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,updatedBy: freezed == updatedBy ? _self.updatedBy : updatedBy // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
@@ -728,10 +731,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'platform_fee_percent')  double platformFeePercent, @JsonKey(name: 'fee_free_days')  int feeFreeDays, @JsonKey(name: 'default_cancellation_window_hours')  int defaultCancellationWindowHours, @JsonKey(name: 'default_cancellation_fee_percent')  int defaultCancellationFeePercent, @JsonKey(name: 'map_provider')  String mapProvider, @JsonKey(name: 'checkout_hold_minutes')  int checkoutHoldMinutes, @JsonKey(name: 'card_request_response_hours')  int cardRequestResponseHours, @JsonKey(name: 'card_max_advance_days')  int cardMaxAdvanceDays, @JsonKey(name: 'auto_complete_after_hours')  int autoCompleteAfterHours, @JsonKey(name: 'report_window_hours')  int reportWindowHours, @JsonKey(name: 'updated_at')  DateTime? updatedAt, @JsonKey(name: 'updated_by')  String? updatedBy)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'platform_fee_percent')  double platformFeePercent, @JsonKey(name: 'fee_free_days')  int feeFreeDays, @JsonKey(name: 'default_cancellation_window_hours')  int defaultCancellationWindowHours, @JsonKey(name: 'default_cancellation_fee_percent')  int defaultCancellationFeePercent, @JsonKey(name: 'map_provider')  String mapProvider, @JsonKey(name: 'checkout_hold_minutes')  int checkoutHoldMinutes, @JsonKey(name: 'card_request_response_hours')  int cardRequestResponseHours, @JsonKey(name: 'card_max_advance_days')  int cardMaxAdvanceDays, @JsonKey(name: 'auto_complete_after_hours')  int autoCompleteAfterHours, @JsonKey(name: 'report_window_hours')  int reportWindowHours, @JsonKey(name: 'provider_self_deletion')  bool providerSelfDeletion, @JsonKey(name: 'updated_at')  DateTime? updatedAt, @JsonKey(name: 'updated_by')  String? updatedBy)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PlatformSettings() when $default != null:
-return $default(_that.platformFeePercent,_that.feeFreeDays,_that.defaultCancellationWindowHours,_that.defaultCancellationFeePercent,_that.mapProvider,_that.checkoutHoldMinutes,_that.cardRequestResponseHours,_that.cardMaxAdvanceDays,_that.autoCompleteAfterHours,_that.reportWindowHours,_that.updatedAt,_that.updatedBy);case _:
+return $default(_that.platformFeePercent,_that.feeFreeDays,_that.defaultCancellationWindowHours,_that.defaultCancellationFeePercent,_that.mapProvider,_that.checkoutHoldMinutes,_that.cardRequestResponseHours,_that.cardMaxAdvanceDays,_that.autoCompleteAfterHours,_that.reportWindowHours,_that.providerSelfDeletion,_that.updatedAt,_that.updatedBy);case _:
   return orElse();
 
 }
@@ -749,10 +752,10 @@ return $default(_that.platformFeePercent,_that.feeFreeDays,_that.defaultCancella
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'platform_fee_percent')  double platformFeePercent, @JsonKey(name: 'fee_free_days')  int feeFreeDays, @JsonKey(name: 'default_cancellation_window_hours')  int defaultCancellationWindowHours, @JsonKey(name: 'default_cancellation_fee_percent')  int defaultCancellationFeePercent, @JsonKey(name: 'map_provider')  String mapProvider, @JsonKey(name: 'checkout_hold_minutes')  int checkoutHoldMinutes, @JsonKey(name: 'card_request_response_hours')  int cardRequestResponseHours, @JsonKey(name: 'card_max_advance_days')  int cardMaxAdvanceDays, @JsonKey(name: 'auto_complete_after_hours')  int autoCompleteAfterHours, @JsonKey(name: 'report_window_hours')  int reportWindowHours, @JsonKey(name: 'updated_at')  DateTime? updatedAt, @JsonKey(name: 'updated_by')  String? updatedBy)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'platform_fee_percent')  double platformFeePercent, @JsonKey(name: 'fee_free_days')  int feeFreeDays, @JsonKey(name: 'default_cancellation_window_hours')  int defaultCancellationWindowHours, @JsonKey(name: 'default_cancellation_fee_percent')  int defaultCancellationFeePercent, @JsonKey(name: 'map_provider')  String mapProvider, @JsonKey(name: 'checkout_hold_minutes')  int checkoutHoldMinutes, @JsonKey(name: 'card_request_response_hours')  int cardRequestResponseHours, @JsonKey(name: 'card_max_advance_days')  int cardMaxAdvanceDays, @JsonKey(name: 'auto_complete_after_hours')  int autoCompleteAfterHours, @JsonKey(name: 'report_window_hours')  int reportWindowHours, @JsonKey(name: 'provider_self_deletion')  bool providerSelfDeletion, @JsonKey(name: 'updated_at')  DateTime? updatedAt, @JsonKey(name: 'updated_by')  String? updatedBy)  $default,) {final _that = this;
 switch (_that) {
 case _PlatformSettings():
-return $default(_that.platformFeePercent,_that.feeFreeDays,_that.defaultCancellationWindowHours,_that.defaultCancellationFeePercent,_that.mapProvider,_that.checkoutHoldMinutes,_that.cardRequestResponseHours,_that.cardMaxAdvanceDays,_that.autoCompleteAfterHours,_that.reportWindowHours,_that.updatedAt,_that.updatedBy);case _:
+return $default(_that.platformFeePercent,_that.feeFreeDays,_that.defaultCancellationWindowHours,_that.defaultCancellationFeePercent,_that.mapProvider,_that.checkoutHoldMinutes,_that.cardRequestResponseHours,_that.cardMaxAdvanceDays,_that.autoCompleteAfterHours,_that.reportWindowHours,_that.providerSelfDeletion,_that.updatedAt,_that.updatedBy);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -769,10 +772,10 @@ return $default(_that.platformFeePercent,_that.feeFreeDays,_that.defaultCancella
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'platform_fee_percent')  double platformFeePercent, @JsonKey(name: 'fee_free_days')  int feeFreeDays, @JsonKey(name: 'default_cancellation_window_hours')  int defaultCancellationWindowHours, @JsonKey(name: 'default_cancellation_fee_percent')  int defaultCancellationFeePercent, @JsonKey(name: 'map_provider')  String mapProvider, @JsonKey(name: 'checkout_hold_minutes')  int checkoutHoldMinutes, @JsonKey(name: 'card_request_response_hours')  int cardRequestResponseHours, @JsonKey(name: 'card_max_advance_days')  int cardMaxAdvanceDays, @JsonKey(name: 'auto_complete_after_hours')  int autoCompleteAfterHours, @JsonKey(name: 'report_window_hours')  int reportWindowHours, @JsonKey(name: 'updated_at')  DateTime? updatedAt, @JsonKey(name: 'updated_by')  String? updatedBy)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'platform_fee_percent')  double platformFeePercent, @JsonKey(name: 'fee_free_days')  int feeFreeDays, @JsonKey(name: 'default_cancellation_window_hours')  int defaultCancellationWindowHours, @JsonKey(name: 'default_cancellation_fee_percent')  int defaultCancellationFeePercent, @JsonKey(name: 'map_provider')  String mapProvider, @JsonKey(name: 'checkout_hold_minutes')  int checkoutHoldMinutes, @JsonKey(name: 'card_request_response_hours')  int cardRequestResponseHours, @JsonKey(name: 'card_max_advance_days')  int cardMaxAdvanceDays, @JsonKey(name: 'auto_complete_after_hours')  int autoCompleteAfterHours, @JsonKey(name: 'report_window_hours')  int reportWindowHours, @JsonKey(name: 'provider_self_deletion')  bool providerSelfDeletion, @JsonKey(name: 'updated_at')  DateTime? updatedAt, @JsonKey(name: 'updated_by')  String? updatedBy)?  $default,) {final _that = this;
 switch (_that) {
 case _PlatformSettings() when $default != null:
-return $default(_that.platformFeePercent,_that.feeFreeDays,_that.defaultCancellationWindowHours,_that.defaultCancellationFeePercent,_that.mapProvider,_that.checkoutHoldMinutes,_that.cardRequestResponseHours,_that.cardMaxAdvanceDays,_that.autoCompleteAfterHours,_that.reportWindowHours,_that.updatedAt,_that.updatedBy);case _:
+return $default(_that.platformFeePercent,_that.feeFreeDays,_that.defaultCancellationWindowHours,_that.defaultCancellationFeePercent,_that.mapProvider,_that.checkoutHoldMinutes,_that.cardRequestResponseHours,_that.cardMaxAdvanceDays,_that.autoCompleteAfterHours,_that.reportWindowHours,_that.providerSelfDeletion,_that.updatedAt,_that.updatedBy);case _:
   return null;
 
 }
@@ -784,7 +787,7 @@ return $default(_that.platformFeePercent,_that.feeFreeDays,_that.defaultCancella
 @JsonSerializable()
 
 class _PlatformSettings extends PlatformSettings {
-  const _PlatformSettings({@JsonKey(name: 'platform_fee_percent') this.platformFeePercent = 0, @JsonKey(name: 'fee_free_days') this.feeFreeDays = 0, @JsonKey(name: 'default_cancellation_window_hours') this.defaultCancellationWindowHours = 24, @JsonKey(name: 'default_cancellation_fee_percent') this.defaultCancellationFeePercent = 0, @JsonKey(name: 'map_provider') this.mapProvider = 'google', @JsonKey(name: 'checkout_hold_minutes') this.checkoutHoldMinutes = 15, @JsonKey(name: 'card_request_response_hours') this.cardRequestResponseHours = 144, @JsonKey(name: 'card_max_advance_days') this.cardMaxAdvanceDays = 60, @JsonKey(name: 'auto_complete_after_hours') this.autoCompleteAfterHours = 24, @JsonKey(name: 'report_window_hours') this.reportWindowHours = 24, @JsonKey(name: 'updated_at') this.updatedAt, @JsonKey(name: 'updated_by') this.updatedBy}): super._();
+  const _PlatformSettings({@JsonKey(name: 'platform_fee_percent') this.platformFeePercent = 0, @JsonKey(name: 'fee_free_days') this.feeFreeDays = 0, @JsonKey(name: 'default_cancellation_window_hours') this.defaultCancellationWindowHours = 24, @JsonKey(name: 'default_cancellation_fee_percent') this.defaultCancellationFeePercent = 0, @JsonKey(name: 'map_provider') this.mapProvider = 'google', @JsonKey(name: 'checkout_hold_minutes') this.checkoutHoldMinutes = 15, @JsonKey(name: 'card_request_response_hours') this.cardRequestResponseHours = 144, @JsonKey(name: 'card_max_advance_days') this.cardMaxAdvanceDays = 60, @JsonKey(name: 'auto_complete_after_hours') this.autoCompleteAfterHours = 24, @JsonKey(name: 'report_window_hours') this.reportWindowHours = 24, @JsonKey(name: 'provider_self_deletion') this.providerSelfDeletion = false, @JsonKey(name: 'updated_at') this.updatedAt, @JsonKey(name: 'updated_by') this.updatedBy}): super._();
   factory _PlatformSettings.fromJson(Map<String, dynamic> json) => _$PlatformSettingsFromJson(json);
 
 /// Myglo's commission on bookings paid in the app, charged to providers.
@@ -799,6 +802,9 @@ class _PlatformSettings extends PlatformSettings {
 @override@JsonKey(name: 'card_max_advance_days') final  int cardMaxAdvanceDays;
 @override@JsonKey(name: 'auto_complete_after_hours') final  int autoCompleteAfterHours;
 @override@JsonKey(name: 'report_window_hours') final  int reportWindowHours;
+/// Whether providers may delete their own account in the app. Off:
+/// they hide their business instead and ask support to close it.
+@override@JsonKey(name: 'provider_self_deletion') final  bool providerSelfDeletion;
 @override@JsonKey(name: 'updated_at') final  DateTime? updatedAt;
 @override@JsonKey(name: 'updated_by') final  String? updatedBy;
 
@@ -815,16 +821,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlatformSettings&&(identical(other.platformFeePercent, platformFeePercent) || other.platformFeePercent == platformFeePercent)&&(identical(other.feeFreeDays, feeFreeDays) || other.feeFreeDays == feeFreeDays)&&(identical(other.defaultCancellationWindowHours, defaultCancellationWindowHours) || other.defaultCancellationWindowHours == defaultCancellationWindowHours)&&(identical(other.defaultCancellationFeePercent, defaultCancellationFeePercent) || other.defaultCancellationFeePercent == defaultCancellationFeePercent)&&(identical(other.mapProvider, mapProvider) || other.mapProvider == mapProvider)&&(identical(other.checkoutHoldMinutes, checkoutHoldMinutes) || other.checkoutHoldMinutes == checkoutHoldMinutes)&&(identical(other.cardRequestResponseHours, cardRequestResponseHours) || other.cardRequestResponseHours == cardRequestResponseHours)&&(identical(other.cardMaxAdvanceDays, cardMaxAdvanceDays) || other.cardMaxAdvanceDays == cardMaxAdvanceDays)&&(identical(other.autoCompleteAfterHours, autoCompleteAfterHours) || other.autoCompleteAfterHours == autoCompleteAfterHours)&&(identical(other.reportWindowHours, reportWindowHours) || other.reportWindowHours == reportWindowHours)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.updatedBy, updatedBy) || other.updatedBy == updatedBy));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlatformSettings&&(identical(other.platformFeePercent, platformFeePercent) || other.platformFeePercent == platformFeePercent)&&(identical(other.feeFreeDays, feeFreeDays) || other.feeFreeDays == feeFreeDays)&&(identical(other.defaultCancellationWindowHours, defaultCancellationWindowHours) || other.defaultCancellationWindowHours == defaultCancellationWindowHours)&&(identical(other.defaultCancellationFeePercent, defaultCancellationFeePercent) || other.defaultCancellationFeePercent == defaultCancellationFeePercent)&&(identical(other.mapProvider, mapProvider) || other.mapProvider == mapProvider)&&(identical(other.checkoutHoldMinutes, checkoutHoldMinutes) || other.checkoutHoldMinutes == checkoutHoldMinutes)&&(identical(other.cardRequestResponseHours, cardRequestResponseHours) || other.cardRequestResponseHours == cardRequestResponseHours)&&(identical(other.cardMaxAdvanceDays, cardMaxAdvanceDays) || other.cardMaxAdvanceDays == cardMaxAdvanceDays)&&(identical(other.autoCompleteAfterHours, autoCompleteAfterHours) || other.autoCompleteAfterHours == autoCompleteAfterHours)&&(identical(other.reportWindowHours, reportWindowHours) || other.reportWindowHours == reportWindowHours)&&(identical(other.providerSelfDeletion, providerSelfDeletion) || other.providerSelfDeletion == providerSelfDeletion)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.updatedBy, updatedBy) || other.updatedBy == updatedBy));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,platformFeePercent,feeFreeDays,defaultCancellationWindowHours,defaultCancellationFeePercent,mapProvider,checkoutHoldMinutes,cardRequestResponseHours,cardMaxAdvanceDays,autoCompleteAfterHours,reportWindowHours,updatedAt,updatedBy);
+int get hashCode => Object.hash(runtimeType,platformFeePercent,feeFreeDays,defaultCancellationWindowHours,defaultCancellationFeePercent,mapProvider,checkoutHoldMinutes,cardRequestResponseHours,cardMaxAdvanceDays,autoCompleteAfterHours,reportWindowHours,providerSelfDeletion,updatedAt,updatedBy);
 
 @override
 String toString() {
-  return 'PlatformSettings(platformFeePercent: $platformFeePercent, feeFreeDays: $feeFreeDays, defaultCancellationWindowHours: $defaultCancellationWindowHours, defaultCancellationFeePercent: $defaultCancellationFeePercent, mapProvider: $mapProvider, checkoutHoldMinutes: $checkoutHoldMinutes, cardRequestResponseHours: $cardRequestResponseHours, cardMaxAdvanceDays: $cardMaxAdvanceDays, autoCompleteAfterHours: $autoCompleteAfterHours, reportWindowHours: $reportWindowHours, updatedAt: $updatedAt, updatedBy: $updatedBy)';
+  return 'PlatformSettings(platformFeePercent: $platformFeePercent, feeFreeDays: $feeFreeDays, defaultCancellationWindowHours: $defaultCancellationWindowHours, defaultCancellationFeePercent: $defaultCancellationFeePercent, mapProvider: $mapProvider, checkoutHoldMinutes: $checkoutHoldMinutes, cardRequestResponseHours: $cardRequestResponseHours, cardMaxAdvanceDays: $cardMaxAdvanceDays, autoCompleteAfterHours: $autoCompleteAfterHours, reportWindowHours: $reportWindowHours, providerSelfDeletion: $providerSelfDeletion, updatedAt: $updatedAt, updatedBy: $updatedBy)';
 }
 
 
@@ -835,7 +841,7 @@ abstract mixin class _$PlatformSettingsCopyWith<$Res> implements $PlatformSettin
   factory _$PlatformSettingsCopyWith(_PlatformSettings value, $Res Function(_PlatformSettings) _then) = __$PlatformSettingsCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'platform_fee_percent') double platformFeePercent,@JsonKey(name: 'fee_free_days') int feeFreeDays,@JsonKey(name: 'default_cancellation_window_hours') int defaultCancellationWindowHours,@JsonKey(name: 'default_cancellation_fee_percent') int defaultCancellationFeePercent,@JsonKey(name: 'map_provider') String mapProvider,@JsonKey(name: 'checkout_hold_minutes') int checkoutHoldMinutes,@JsonKey(name: 'card_request_response_hours') int cardRequestResponseHours,@JsonKey(name: 'card_max_advance_days') int cardMaxAdvanceDays,@JsonKey(name: 'auto_complete_after_hours') int autoCompleteAfterHours,@JsonKey(name: 'report_window_hours') int reportWindowHours,@JsonKey(name: 'updated_at') DateTime? updatedAt,@JsonKey(name: 'updated_by') String? updatedBy
+@JsonKey(name: 'platform_fee_percent') double platformFeePercent,@JsonKey(name: 'fee_free_days') int feeFreeDays,@JsonKey(name: 'default_cancellation_window_hours') int defaultCancellationWindowHours,@JsonKey(name: 'default_cancellation_fee_percent') int defaultCancellationFeePercent,@JsonKey(name: 'map_provider') String mapProvider,@JsonKey(name: 'checkout_hold_minutes') int checkoutHoldMinutes,@JsonKey(name: 'card_request_response_hours') int cardRequestResponseHours,@JsonKey(name: 'card_max_advance_days') int cardMaxAdvanceDays,@JsonKey(name: 'auto_complete_after_hours') int autoCompleteAfterHours,@JsonKey(name: 'report_window_hours') int reportWindowHours,@JsonKey(name: 'provider_self_deletion') bool providerSelfDeletion,@JsonKey(name: 'updated_at') DateTime? updatedAt,@JsonKey(name: 'updated_by') String? updatedBy
 });
 
 
@@ -852,7 +858,7 @@ class __$PlatformSettingsCopyWithImpl<$Res>
 
 /// Create a copy of PlatformSettings
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? platformFeePercent = null,Object? feeFreeDays = null,Object? defaultCancellationWindowHours = null,Object? defaultCancellationFeePercent = null,Object? mapProvider = null,Object? checkoutHoldMinutes = null,Object? cardRequestResponseHours = null,Object? cardMaxAdvanceDays = null,Object? autoCompleteAfterHours = null,Object? reportWindowHours = null,Object? updatedAt = freezed,Object? updatedBy = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? platformFeePercent = null,Object? feeFreeDays = null,Object? defaultCancellationWindowHours = null,Object? defaultCancellationFeePercent = null,Object? mapProvider = null,Object? checkoutHoldMinutes = null,Object? cardRequestResponseHours = null,Object? cardMaxAdvanceDays = null,Object? autoCompleteAfterHours = null,Object? reportWindowHours = null,Object? providerSelfDeletion = null,Object? updatedAt = freezed,Object? updatedBy = freezed,}) {
   return _then(_PlatformSettings(
 platformFeePercent: null == platformFeePercent ? _self.platformFeePercent : platformFeePercent // ignore: cast_nullable_to_non_nullable
 as double,feeFreeDays: null == feeFreeDays ? _self.feeFreeDays : feeFreeDays // ignore: cast_nullable_to_non_nullable
@@ -864,7 +870,8 @@ as int,cardRequestResponseHours: null == cardRequestResponseHours ? _self.cardRe
 as int,cardMaxAdvanceDays: null == cardMaxAdvanceDays ? _self.cardMaxAdvanceDays : cardMaxAdvanceDays // ignore: cast_nullable_to_non_nullable
 as int,autoCompleteAfterHours: null == autoCompleteAfterHours ? _self.autoCompleteAfterHours : autoCompleteAfterHours // ignore: cast_nullable_to_non_nullable
 as int,reportWindowHours: null == reportWindowHours ? _self.reportWindowHours : reportWindowHours // ignore: cast_nullable_to_non_nullable
-as int,updatedAt: freezed == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
+as int,providerSelfDeletion: null == providerSelfDeletion ? _self.providerSelfDeletion : providerSelfDeletion // ignore: cast_nullable_to_non_nullable
+as bool,updatedAt: freezed == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,updatedBy: freezed == updatedBy ? _self.updatedBy : updatedBy // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
@@ -1726,7 +1733,8 @@ as String?,
 /// @nodoc
 mixin _$AdminUserDetail {
 
-@JsonKey(name: 'user_id') String get userId; String get role;@JsonKey(name: 'first_name') String? get firstName;@JsonKey(name: 'last_name') String? get lastName;@JsonKey(name: 'business_name') String? get businessName; String? get email;@JsonKey(name: 'email_confirmed_at') DateTime? get emailConfirmedAt; String? get phone;@JsonKey(name: 'avatar_url') String? get avatarUrl; String? get address;@JsonKey(name: 'created_at') DateTime get createdAt;@JsonKey(name: 'last_sign_in') DateTime? get lastSignIn;@JsonKey(name: 'banned_until') DateTime? get bannedUntil; AdminBookingCounts get bookings;@JsonKey(name: 'booking_settings') Map<String, dynamic>? get bookingSettings;@JsonKey(name: 'recent_bookings') List<AdminBookingSummary> get recentBookings;
+@JsonKey(name: 'user_id') String get userId; String get role;@JsonKey(name: 'first_name') String? get firstName;@JsonKey(name: 'last_name') String? get lastName;@JsonKey(name: 'business_name') String? get businessName; String? get email;@JsonKey(name: 'email_confirmed_at') DateTime? get emailConfirmedAt; String? get phone;/// When the phone number was confirmed by a texted code, if it was.
+@JsonKey(name: 'phone_verified_at') DateTime? get phoneVerifiedAt;@JsonKey(name: 'avatar_url') String? get avatarUrl; String? get address;@JsonKey(name: 'created_at') DateTime get createdAt;@JsonKey(name: 'last_sign_in') DateTime? get lastSignIn;@JsonKey(name: 'banned_until') DateTime? get bannedUntil; AdminBookingCounts get bookings;@JsonKey(name: 'booking_settings') Map<String, dynamic>? get bookingSettings;@JsonKey(name: 'recent_bookings') List<AdminBookingSummary> get recentBookings;
 /// Create a copy of AdminUserDetail
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1739,16 +1747,16 @@ $AdminUserDetailCopyWith<AdminUserDetail> get copyWith => _$AdminUserDetailCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AdminUserDetail&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.role, role) || other.role == role)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.businessName, businessName) || other.businessName == businessName)&&(identical(other.email, email) || other.email == email)&&(identical(other.emailConfirmedAt, emailConfirmedAt) || other.emailConfirmedAt == emailConfirmedAt)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.avatarUrl, avatarUrl) || other.avatarUrl == avatarUrl)&&(identical(other.address, address) || other.address == address)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.lastSignIn, lastSignIn) || other.lastSignIn == lastSignIn)&&(identical(other.bannedUntil, bannedUntil) || other.bannedUntil == bannedUntil)&&(identical(other.bookings, bookings) || other.bookings == bookings)&&const DeepCollectionEquality().equals(other.bookingSettings, bookingSettings)&&const DeepCollectionEquality().equals(other.recentBookings, recentBookings));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AdminUserDetail&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.role, role) || other.role == role)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.businessName, businessName) || other.businessName == businessName)&&(identical(other.email, email) || other.email == email)&&(identical(other.emailConfirmedAt, emailConfirmedAt) || other.emailConfirmedAt == emailConfirmedAt)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.phoneVerifiedAt, phoneVerifiedAt) || other.phoneVerifiedAt == phoneVerifiedAt)&&(identical(other.avatarUrl, avatarUrl) || other.avatarUrl == avatarUrl)&&(identical(other.address, address) || other.address == address)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.lastSignIn, lastSignIn) || other.lastSignIn == lastSignIn)&&(identical(other.bannedUntil, bannedUntil) || other.bannedUntil == bannedUntil)&&(identical(other.bookings, bookings) || other.bookings == bookings)&&const DeepCollectionEquality().equals(other.bookingSettings, bookingSettings)&&const DeepCollectionEquality().equals(other.recentBookings, recentBookings));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,userId,role,firstName,lastName,businessName,email,emailConfirmedAt,phone,avatarUrl,address,createdAt,lastSignIn,bannedUntil,bookings,const DeepCollectionEquality().hash(bookingSettings),const DeepCollectionEquality().hash(recentBookings));
+int get hashCode => Object.hash(runtimeType,userId,role,firstName,lastName,businessName,email,emailConfirmedAt,phone,phoneVerifiedAt,avatarUrl,address,createdAt,lastSignIn,bannedUntil,bookings,const DeepCollectionEquality().hash(bookingSettings),const DeepCollectionEquality().hash(recentBookings));
 
 @override
 String toString() {
-  return 'AdminUserDetail(userId: $userId, role: $role, firstName: $firstName, lastName: $lastName, businessName: $businessName, email: $email, emailConfirmedAt: $emailConfirmedAt, phone: $phone, avatarUrl: $avatarUrl, address: $address, createdAt: $createdAt, lastSignIn: $lastSignIn, bannedUntil: $bannedUntil, bookings: $bookings, bookingSettings: $bookingSettings, recentBookings: $recentBookings)';
+  return 'AdminUserDetail(userId: $userId, role: $role, firstName: $firstName, lastName: $lastName, businessName: $businessName, email: $email, emailConfirmedAt: $emailConfirmedAt, phone: $phone, phoneVerifiedAt: $phoneVerifiedAt, avatarUrl: $avatarUrl, address: $address, createdAt: $createdAt, lastSignIn: $lastSignIn, bannedUntil: $bannedUntil, bookings: $bookings, bookingSettings: $bookingSettings, recentBookings: $recentBookings)';
 }
 
 
@@ -1759,7 +1767,7 @@ abstract mixin class $AdminUserDetailCopyWith<$Res>  {
   factory $AdminUserDetailCopyWith(AdminUserDetail value, $Res Function(AdminUserDetail) _then) = _$AdminUserDetailCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'user_id') String userId, String role,@JsonKey(name: 'first_name') String? firstName,@JsonKey(name: 'last_name') String? lastName,@JsonKey(name: 'business_name') String? businessName, String? email,@JsonKey(name: 'email_confirmed_at') DateTime? emailConfirmedAt, String? phone,@JsonKey(name: 'avatar_url') String? avatarUrl, String? address,@JsonKey(name: 'created_at') DateTime createdAt,@JsonKey(name: 'last_sign_in') DateTime? lastSignIn,@JsonKey(name: 'banned_until') DateTime? bannedUntil, AdminBookingCounts bookings,@JsonKey(name: 'booking_settings') Map<String, dynamic>? bookingSettings,@JsonKey(name: 'recent_bookings') List<AdminBookingSummary> recentBookings
+@JsonKey(name: 'user_id') String userId, String role,@JsonKey(name: 'first_name') String? firstName,@JsonKey(name: 'last_name') String? lastName,@JsonKey(name: 'business_name') String? businessName, String? email,@JsonKey(name: 'email_confirmed_at') DateTime? emailConfirmedAt, String? phone,@JsonKey(name: 'phone_verified_at') DateTime? phoneVerifiedAt,@JsonKey(name: 'avatar_url') String? avatarUrl, String? address,@JsonKey(name: 'created_at') DateTime createdAt,@JsonKey(name: 'last_sign_in') DateTime? lastSignIn,@JsonKey(name: 'banned_until') DateTime? bannedUntil, AdminBookingCounts bookings,@JsonKey(name: 'booking_settings') Map<String, dynamic>? bookingSettings,@JsonKey(name: 'recent_bookings') List<AdminBookingSummary> recentBookings
 });
 
 
@@ -1776,7 +1784,7 @@ class _$AdminUserDetailCopyWithImpl<$Res>
 
 /// Create a copy of AdminUserDetail
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? userId = null,Object? role = null,Object? firstName = freezed,Object? lastName = freezed,Object? businessName = freezed,Object? email = freezed,Object? emailConfirmedAt = freezed,Object? phone = freezed,Object? avatarUrl = freezed,Object? address = freezed,Object? createdAt = null,Object? lastSignIn = freezed,Object? bannedUntil = freezed,Object? bookings = null,Object? bookingSettings = freezed,Object? recentBookings = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? userId = null,Object? role = null,Object? firstName = freezed,Object? lastName = freezed,Object? businessName = freezed,Object? email = freezed,Object? emailConfirmedAt = freezed,Object? phone = freezed,Object? phoneVerifiedAt = freezed,Object? avatarUrl = freezed,Object? address = freezed,Object? createdAt = null,Object? lastSignIn = freezed,Object? bannedUntil = freezed,Object? bookings = null,Object? bookingSettings = freezed,Object? recentBookings = null,}) {
   return _then(_self.copyWith(
 userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
 as String,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
@@ -1786,7 +1794,8 @@ as String?,businessName: freezed == businessName ? _self.businessName : business
 as String?,email: freezed == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String?,emailConfirmedAt: freezed == emailConfirmedAt ? _self.emailConfirmedAt : emailConfirmedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,phone: freezed == phone ? _self.phone : phone // ignore: cast_nullable_to_non_nullable
-as String?,avatarUrl: freezed == avatarUrl ? _self.avatarUrl : avatarUrl // ignore: cast_nullable_to_non_nullable
+as String?,phoneVerifiedAt: freezed == phoneVerifiedAt ? _self.phoneVerifiedAt : phoneVerifiedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,avatarUrl: freezed == avatarUrl ? _self.avatarUrl : avatarUrl // ignore: cast_nullable_to_non_nullable
 as String?,address: freezed == address ? _self.address : address // ignore: cast_nullable_to_non_nullable
 as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,lastSignIn: freezed == lastSignIn ? _self.lastSignIn : lastSignIn // ignore: cast_nullable_to_non_nullable
@@ -1888,10 +1897,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'user_id')  String userId,  String role, @JsonKey(name: 'first_name')  String? firstName, @JsonKey(name: 'last_name')  String? lastName, @JsonKey(name: 'business_name')  String? businessName,  String? email, @JsonKey(name: 'email_confirmed_at')  DateTime? emailConfirmedAt,  String? phone, @JsonKey(name: 'avatar_url')  String? avatarUrl,  String? address, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'last_sign_in')  DateTime? lastSignIn, @JsonKey(name: 'banned_until')  DateTime? bannedUntil,  AdminBookingCounts bookings, @JsonKey(name: 'booking_settings')  Map<String, dynamic>? bookingSettings, @JsonKey(name: 'recent_bookings')  List<AdminBookingSummary> recentBookings)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'user_id')  String userId,  String role, @JsonKey(name: 'first_name')  String? firstName, @JsonKey(name: 'last_name')  String? lastName, @JsonKey(name: 'business_name')  String? businessName,  String? email, @JsonKey(name: 'email_confirmed_at')  DateTime? emailConfirmedAt,  String? phone, @JsonKey(name: 'phone_verified_at')  DateTime? phoneVerifiedAt, @JsonKey(name: 'avatar_url')  String? avatarUrl,  String? address, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'last_sign_in')  DateTime? lastSignIn, @JsonKey(name: 'banned_until')  DateTime? bannedUntil,  AdminBookingCounts bookings, @JsonKey(name: 'booking_settings')  Map<String, dynamic>? bookingSettings, @JsonKey(name: 'recent_bookings')  List<AdminBookingSummary> recentBookings)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AdminUserDetail() when $default != null:
-return $default(_that.userId,_that.role,_that.firstName,_that.lastName,_that.businessName,_that.email,_that.emailConfirmedAt,_that.phone,_that.avatarUrl,_that.address,_that.createdAt,_that.lastSignIn,_that.bannedUntil,_that.bookings,_that.bookingSettings,_that.recentBookings);case _:
+return $default(_that.userId,_that.role,_that.firstName,_that.lastName,_that.businessName,_that.email,_that.emailConfirmedAt,_that.phone,_that.phoneVerifiedAt,_that.avatarUrl,_that.address,_that.createdAt,_that.lastSignIn,_that.bannedUntil,_that.bookings,_that.bookingSettings,_that.recentBookings);case _:
   return orElse();
 
 }
@@ -1909,10 +1918,10 @@ return $default(_that.userId,_that.role,_that.firstName,_that.lastName,_that.bus
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'user_id')  String userId,  String role, @JsonKey(name: 'first_name')  String? firstName, @JsonKey(name: 'last_name')  String? lastName, @JsonKey(name: 'business_name')  String? businessName,  String? email, @JsonKey(name: 'email_confirmed_at')  DateTime? emailConfirmedAt,  String? phone, @JsonKey(name: 'avatar_url')  String? avatarUrl,  String? address, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'last_sign_in')  DateTime? lastSignIn, @JsonKey(name: 'banned_until')  DateTime? bannedUntil,  AdminBookingCounts bookings, @JsonKey(name: 'booking_settings')  Map<String, dynamic>? bookingSettings, @JsonKey(name: 'recent_bookings')  List<AdminBookingSummary> recentBookings)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'user_id')  String userId,  String role, @JsonKey(name: 'first_name')  String? firstName, @JsonKey(name: 'last_name')  String? lastName, @JsonKey(name: 'business_name')  String? businessName,  String? email, @JsonKey(name: 'email_confirmed_at')  DateTime? emailConfirmedAt,  String? phone, @JsonKey(name: 'phone_verified_at')  DateTime? phoneVerifiedAt, @JsonKey(name: 'avatar_url')  String? avatarUrl,  String? address, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'last_sign_in')  DateTime? lastSignIn, @JsonKey(name: 'banned_until')  DateTime? bannedUntil,  AdminBookingCounts bookings, @JsonKey(name: 'booking_settings')  Map<String, dynamic>? bookingSettings, @JsonKey(name: 'recent_bookings')  List<AdminBookingSummary> recentBookings)  $default,) {final _that = this;
 switch (_that) {
 case _AdminUserDetail():
-return $default(_that.userId,_that.role,_that.firstName,_that.lastName,_that.businessName,_that.email,_that.emailConfirmedAt,_that.phone,_that.avatarUrl,_that.address,_that.createdAt,_that.lastSignIn,_that.bannedUntil,_that.bookings,_that.bookingSettings,_that.recentBookings);case _:
+return $default(_that.userId,_that.role,_that.firstName,_that.lastName,_that.businessName,_that.email,_that.emailConfirmedAt,_that.phone,_that.phoneVerifiedAt,_that.avatarUrl,_that.address,_that.createdAt,_that.lastSignIn,_that.bannedUntil,_that.bookings,_that.bookingSettings,_that.recentBookings);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1929,10 +1938,10 @@ return $default(_that.userId,_that.role,_that.firstName,_that.lastName,_that.bus
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'user_id')  String userId,  String role, @JsonKey(name: 'first_name')  String? firstName, @JsonKey(name: 'last_name')  String? lastName, @JsonKey(name: 'business_name')  String? businessName,  String? email, @JsonKey(name: 'email_confirmed_at')  DateTime? emailConfirmedAt,  String? phone, @JsonKey(name: 'avatar_url')  String? avatarUrl,  String? address, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'last_sign_in')  DateTime? lastSignIn, @JsonKey(name: 'banned_until')  DateTime? bannedUntil,  AdminBookingCounts bookings, @JsonKey(name: 'booking_settings')  Map<String, dynamic>? bookingSettings, @JsonKey(name: 'recent_bookings')  List<AdminBookingSummary> recentBookings)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'user_id')  String userId,  String role, @JsonKey(name: 'first_name')  String? firstName, @JsonKey(name: 'last_name')  String? lastName, @JsonKey(name: 'business_name')  String? businessName,  String? email, @JsonKey(name: 'email_confirmed_at')  DateTime? emailConfirmedAt,  String? phone, @JsonKey(name: 'phone_verified_at')  DateTime? phoneVerifiedAt, @JsonKey(name: 'avatar_url')  String? avatarUrl,  String? address, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'last_sign_in')  DateTime? lastSignIn, @JsonKey(name: 'banned_until')  DateTime? bannedUntil,  AdminBookingCounts bookings, @JsonKey(name: 'booking_settings')  Map<String, dynamic>? bookingSettings, @JsonKey(name: 'recent_bookings')  List<AdminBookingSummary> recentBookings)?  $default,) {final _that = this;
 switch (_that) {
 case _AdminUserDetail() when $default != null:
-return $default(_that.userId,_that.role,_that.firstName,_that.lastName,_that.businessName,_that.email,_that.emailConfirmedAt,_that.phone,_that.avatarUrl,_that.address,_that.createdAt,_that.lastSignIn,_that.bannedUntil,_that.bookings,_that.bookingSettings,_that.recentBookings);case _:
+return $default(_that.userId,_that.role,_that.firstName,_that.lastName,_that.businessName,_that.email,_that.emailConfirmedAt,_that.phone,_that.phoneVerifiedAt,_that.avatarUrl,_that.address,_that.createdAt,_that.lastSignIn,_that.bannedUntil,_that.bookings,_that.bookingSettings,_that.recentBookings);case _:
   return null;
 
 }
@@ -1944,7 +1953,7 @@ return $default(_that.userId,_that.role,_that.firstName,_that.lastName,_that.bus
 @JsonSerializable()
 
 class _AdminUserDetail extends AdminUserDetail {
-  const _AdminUserDetail({@JsonKey(name: 'user_id') required this.userId, required this.role, @JsonKey(name: 'first_name') this.firstName, @JsonKey(name: 'last_name') this.lastName, @JsonKey(name: 'business_name') this.businessName, this.email, @JsonKey(name: 'email_confirmed_at') this.emailConfirmedAt, this.phone, @JsonKey(name: 'avatar_url') this.avatarUrl, this.address, @JsonKey(name: 'created_at') required this.createdAt, @JsonKey(name: 'last_sign_in') this.lastSignIn, @JsonKey(name: 'banned_until') this.bannedUntil, this.bookings = const AdminBookingCounts(), @JsonKey(name: 'booking_settings') final  Map<String, dynamic>? bookingSettings, @JsonKey(name: 'recent_bookings') final  List<AdminBookingSummary> recentBookings = const []}): _bookingSettings = bookingSettings,_recentBookings = recentBookings,super._();
+  const _AdminUserDetail({@JsonKey(name: 'user_id') required this.userId, required this.role, @JsonKey(name: 'first_name') this.firstName, @JsonKey(name: 'last_name') this.lastName, @JsonKey(name: 'business_name') this.businessName, this.email, @JsonKey(name: 'email_confirmed_at') this.emailConfirmedAt, this.phone, @JsonKey(name: 'phone_verified_at') this.phoneVerifiedAt, @JsonKey(name: 'avatar_url') this.avatarUrl, this.address, @JsonKey(name: 'created_at') required this.createdAt, @JsonKey(name: 'last_sign_in') this.lastSignIn, @JsonKey(name: 'banned_until') this.bannedUntil, this.bookings = const AdminBookingCounts(), @JsonKey(name: 'booking_settings') final  Map<String, dynamic>? bookingSettings, @JsonKey(name: 'recent_bookings') final  List<AdminBookingSummary> recentBookings = const []}): _bookingSettings = bookingSettings,_recentBookings = recentBookings,super._();
   factory _AdminUserDetail.fromJson(Map<String, dynamic> json) => _$AdminUserDetailFromJson(json);
 
 @override@JsonKey(name: 'user_id') final  String userId;
@@ -1955,6 +1964,8 @@ class _AdminUserDetail extends AdminUserDetail {
 @override final  String? email;
 @override@JsonKey(name: 'email_confirmed_at') final  DateTime? emailConfirmedAt;
 @override final  String? phone;
+/// When the phone number was confirmed by a texted code, if it was.
+@override@JsonKey(name: 'phone_verified_at') final  DateTime? phoneVerifiedAt;
 @override@JsonKey(name: 'avatar_url') final  String? avatarUrl;
 @override final  String? address;
 @override@JsonKey(name: 'created_at') final  DateTime createdAt;
@@ -1991,16 +2002,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AdminUserDetail&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.role, role) || other.role == role)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.businessName, businessName) || other.businessName == businessName)&&(identical(other.email, email) || other.email == email)&&(identical(other.emailConfirmedAt, emailConfirmedAt) || other.emailConfirmedAt == emailConfirmedAt)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.avatarUrl, avatarUrl) || other.avatarUrl == avatarUrl)&&(identical(other.address, address) || other.address == address)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.lastSignIn, lastSignIn) || other.lastSignIn == lastSignIn)&&(identical(other.bannedUntil, bannedUntil) || other.bannedUntil == bannedUntil)&&(identical(other.bookings, bookings) || other.bookings == bookings)&&const DeepCollectionEquality().equals(other._bookingSettings, _bookingSettings)&&const DeepCollectionEquality().equals(other._recentBookings, _recentBookings));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AdminUserDetail&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.role, role) || other.role == role)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.businessName, businessName) || other.businessName == businessName)&&(identical(other.email, email) || other.email == email)&&(identical(other.emailConfirmedAt, emailConfirmedAt) || other.emailConfirmedAt == emailConfirmedAt)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.phoneVerifiedAt, phoneVerifiedAt) || other.phoneVerifiedAt == phoneVerifiedAt)&&(identical(other.avatarUrl, avatarUrl) || other.avatarUrl == avatarUrl)&&(identical(other.address, address) || other.address == address)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.lastSignIn, lastSignIn) || other.lastSignIn == lastSignIn)&&(identical(other.bannedUntil, bannedUntil) || other.bannedUntil == bannedUntil)&&(identical(other.bookings, bookings) || other.bookings == bookings)&&const DeepCollectionEquality().equals(other._bookingSettings, _bookingSettings)&&const DeepCollectionEquality().equals(other._recentBookings, _recentBookings));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,userId,role,firstName,lastName,businessName,email,emailConfirmedAt,phone,avatarUrl,address,createdAt,lastSignIn,bannedUntil,bookings,const DeepCollectionEquality().hash(_bookingSettings),const DeepCollectionEquality().hash(_recentBookings));
+int get hashCode => Object.hash(runtimeType,userId,role,firstName,lastName,businessName,email,emailConfirmedAt,phone,phoneVerifiedAt,avatarUrl,address,createdAt,lastSignIn,bannedUntil,bookings,const DeepCollectionEquality().hash(_bookingSettings),const DeepCollectionEquality().hash(_recentBookings));
 
 @override
 String toString() {
-  return 'AdminUserDetail(userId: $userId, role: $role, firstName: $firstName, lastName: $lastName, businessName: $businessName, email: $email, emailConfirmedAt: $emailConfirmedAt, phone: $phone, avatarUrl: $avatarUrl, address: $address, createdAt: $createdAt, lastSignIn: $lastSignIn, bannedUntil: $bannedUntil, bookings: $bookings, bookingSettings: $bookingSettings, recentBookings: $recentBookings)';
+  return 'AdminUserDetail(userId: $userId, role: $role, firstName: $firstName, lastName: $lastName, businessName: $businessName, email: $email, emailConfirmedAt: $emailConfirmedAt, phone: $phone, phoneVerifiedAt: $phoneVerifiedAt, avatarUrl: $avatarUrl, address: $address, createdAt: $createdAt, lastSignIn: $lastSignIn, bannedUntil: $bannedUntil, bookings: $bookings, bookingSettings: $bookingSettings, recentBookings: $recentBookings)';
 }
 
 
@@ -2011,7 +2022,7 @@ abstract mixin class _$AdminUserDetailCopyWith<$Res> implements $AdminUserDetail
   factory _$AdminUserDetailCopyWith(_AdminUserDetail value, $Res Function(_AdminUserDetail) _then) = __$AdminUserDetailCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'user_id') String userId, String role,@JsonKey(name: 'first_name') String? firstName,@JsonKey(name: 'last_name') String? lastName,@JsonKey(name: 'business_name') String? businessName, String? email,@JsonKey(name: 'email_confirmed_at') DateTime? emailConfirmedAt, String? phone,@JsonKey(name: 'avatar_url') String? avatarUrl, String? address,@JsonKey(name: 'created_at') DateTime createdAt,@JsonKey(name: 'last_sign_in') DateTime? lastSignIn,@JsonKey(name: 'banned_until') DateTime? bannedUntil, AdminBookingCounts bookings,@JsonKey(name: 'booking_settings') Map<String, dynamic>? bookingSettings,@JsonKey(name: 'recent_bookings') List<AdminBookingSummary> recentBookings
+@JsonKey(name: 'user_id') String userId, String role,@JsonKey(name: 'first_name') String? firstName,@JsonKey(name: 'last_name') String? lastName,@JsonKey(name: 'business_name') String? businessName, String? email,@JsonKey(name: 'email_confirmed_at') DateTime? emailConfirmedAt, String? phone,@JsonKey(name: 'phone_verified_at') DateTime? phoneVerifiedAt,@JsonKey(name: 'avatar_url') String? avatarUrl, String? address,@JsonKey(name: 'created_at') DateTime createdAt,@JsonKey(name: 'last_sign_in') DateTime? lastSignIn,@JsonKey(name: 'banned_until') DateTime? bannedUntil, AdminBookingCounts bookings,@JsonKey(name: 'booking_settings') Map<String, dynamic>? bookingSettings,@JsonKey(name: 'recent_bookings') List<AdminBookingSummary> recentBookings
 });
 
 
@@ -2028,7 +2039,7 @@ class __$AdminUserDetailCopyWithImpl<$Res>
 
 /// Create a copy of AdminUserDetail
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? userId = null,Object? role = null,Object? firstName = freezed,Object? lastName = freezed,Object? businessName = freezed,Object? email = freezed,Object? emailConfirmedAt = freezed,Object? phone = freezed,Object? avatarUrl = freezed,Object? address = freezed,Object? createdAt = null,Object? lastSignIn = freezed,Object? bannedUntil = freezed,Object? bookings = null,Object? bookingSettings = freezed,Object? recentBookings = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? userId = null,Object? role = null,Object? firstName = freezed,Object? lastName = freezed,Object? businessName = freezed,Object? email = freezed,Object? emailConfirmedAt = freezed,Object? phone = freezed,Object? phoneVerifiedAt = freezed,Object? avatarUrl = freezed,Object? address = freezed,Object? createdAt = null,Object? lastSignIn = freezed,Object? bannedUntil = freezed,Object? bookings = null,Object? bookingSettings = freezed,Object? recentBookings = null,}) {
   return _then(_AdminUserDetail(
 userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
 as String,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
@@ -2038,7 +2049,8 @@ as String?,businessName: freezed == businessName ? _self.businessName : business
 as String?,email: freezed == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String?,emailConfirmedAt: freezed == emailConfirmedAt ? _self.emailConfirmedAt : emailConfirmedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,phone: freezed == phone ? _self.phone : phone // ignore: cast_nullable_to_non_nullable
-as String?,avatarUrl: freezed == avatarUrl ? _self.avatarUrl : avatarUrl // ignore: cast_nullable_to_non_nullable
+as String?,phoneVerifiedAt: freezed == phoneVerifiedAt ? _self.phoneVerifiedAt : phoneVerifiedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,avatarUrl: freezed == avatarUrl ? _self.avatarUrl : avatarUrl // ignore: cast_nullable_to_non_nullable
 as String?,address: freezed == address ? _self.address : address // ignore: cast_nullable_to_non_nullable
 as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,lastSignIn: freezed == lastSignIn ? _self.lastSignIn : lastSignIn // ignore: cast_nullable_to_non_nullable
